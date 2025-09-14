@@ -1,0 +1,84 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.env.*
+
+# Django stuff
+local_settings.py
+.db.sqlite3-journal
+/media/
+staticfiles/
+
+# Migrations cache (keep migrations themselves)
+**/migrations/__pycache__/
+
+# Logs
+*.log
+logs/
+
+# IDE/editor
+.vscode/
+.idea/
+*.code-workspace
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Testing
+.coverage
+.tox/
+pytest_cache/
+htmlcov/
+
+# MyPy / Type checker
+.mypy_cache/
+.dmypy.json
+
+# Environments
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Coverage
+coverage.xml
+
+# SQLite
+/db.sqlite3
+
+# Security (adjust if you actually version these with caution)
+*.pem
+
+# Temporary
+*.tmp
+*.swp
+*.swo
+
+# Node (if frontend later in same repo)
+node_modules/
+
+# JetBrains
+*.iml
+.idea/
+
+# Windows specific
+$RECYCLE.BIN/
+
+# Cache
+.cache/
