@@ -7,13 +7,15 @@ from apps.flocks.models import Flock
 from apps.farms.services import ShedCapacityService
 from apps.farms.models import Shed
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 logger = logging.getLogger(__name__)
 
 
 class FlockSerializer(serializers.ModelSerializer):
-    current_age_days = serializers.ReadOnlyField()
-    survival_rate = serializers.ReadOnlyField()
+    # Use SerializerMethodField and annotate return types so drf-spectacular can infer schema
+    current_age_days = serializers.SerializerMethodField()
+    survival_rate = serializers.SerializerMethodField()
 
     class Meta:
         model = Flock
@@ -83,3 +85,19 @@ class FlockSerializer(serializers.ModelSerializer):
                 logger.exception('Error registrando log del lote')
 
             return flock
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_current_age_days(self, obj: Flock):
+        """Return the current age in days for documentation/schema purposes."""
+        try:
+            return obj.current_age_days
+        except Exception:
+            return None
+
+    @extend_schema_field(OpenApiTypes.NUMBER)
+    def get_survival_rate(self, obj: Flock):
+        """Return survival rate as a percentage (0-100)."""
+        try:
+            return obj.survival_rate
+        except Exception:
+            return None

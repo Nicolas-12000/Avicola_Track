@@ -2,7 +2,7 @@ import threading
 import time
 import sys
 
-from django.test import TransactionTestCase, skipIfDBFeature
+from django.test import TransactionTestCase
 from django.utils import timezone
 
 from django.contrib.auth import get_user_model
@@ -14,7 +14,6 @@ from apps.flocks.models import Flock
 User = get_user_model()
 
 
-# SQLite serializes transactions; skip the concurrency test on SQLite to avoid false negatives
 from django.db import connection
 
 

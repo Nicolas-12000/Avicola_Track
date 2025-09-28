@@ -65,6 +65,3 @@ class FlockTests(TestCase):
         other = User.objects.create_user(username='other', password='pass', identification='ID_OTHER')
         # non assigned galponero cannot be equal to assigned
         self.assertNotEqual(other, self.shed.assigned_worker)
-from django.test import TestCase
-
-# Create your tests here.
