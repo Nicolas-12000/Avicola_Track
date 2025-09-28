@@ -50,751 +50,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminUser'
           description: ''
-          /api/admin-users/{id}/:
-            get:
-              operationId: api_admin_users_retrieve
-              parameters:
-              - in: path
-                name: id
-                schema:
-                  type: integer
-                description: Un valor de entero único que identifique este usuario.
-                required: true
-              tags:
-              - api
-              security:
-              - jwtAuth: []
-              responses:
-                '200':
-                  content:
-                    application/json:
-                      schema:
-                        $ref: '#/components/schemas/AdminUser'
-                  description: ''
-      type: object
-      properties:
-        summary:
-          type: object
-          additionalProperties:
-            type: integer
-        sheds:
-          type: array
-          items:
-            $ref: '#/components/schemas/ShedDetail'
-        alerts_count:
+  /api/admin-users/{id}/:
+    get:
+      operationId: api_admin_users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
           type: integer
-        last_updated:
-          type: string
-          format: date-time
-      required:
-      - alerts_count
-      - last_updated
-      - sheds
-      - summary
-    Farm:
-      type: object
-      properties:
-        id:
+        description: Un valor de entero único que identifique este usuario.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+    put:
+      operationId: api_admin_users_update
+      parameters:
+      - in: path
+        name: id
+        schema:
           type: integer
-          readOnly: true
-        name:
-          type: string
-          maxLength: 100
-        location:
-          type: string
-        farm_manager:
-          type: integer
-        total_capacity:
-          type: integer
-          readOnly: true
-        active_sheds:
-          type: integer
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - active_sheds
-      - created_at
-      - farm_manager
-      - id
-      - location
-      - name
-      - total_capacity
-    Flock:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        arrival_date:
-          type: string
-          format: date
-        initial_quantity:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-        current_quantity:
-          type: integer
-          readOnly: true
-        initial_weight:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
-        breed:
-          type: string
-          maxLength: 50
-        gender:
-          $ref: '#/components/schemas/GenderEnum'
-        supplier:
-          type: string
-          maxLength: 100
-        shed:
-          type: integer
-        status:
-          allOf:
-          - $ref: '#/components/schemas/FlockStatusEnum'
-          readOnly: true
-        current_age_days:
-          type: integer
-          description: Return the current age in days for documentation/schema purposes.
-          readOnly: true
-        survival_rate:
-          type: number
-          description: Return survival rate as a percentage (0-100).
-          readOnly: true
-        created_by:
-          type: integer
-          readOnly: true
-          nullable: true
-      required:
-      - arrival_date
-      - breed
-      - created_by
-      - current_age_days
-      - current_quantity
-      - gender
-      - id
-      - initial_quantity
-      - initial_weight
-      - shed
-      - status
-      - supplier
-      - survival_rate
-    FlockStatusEnum:
-      enum:
-      - ACTIVE
-      - SOLD
-      - FINISHED
-      - TRANSFERRED
-      type: string
-      description: |-
-        * `ACTIVE` - Activo
-        * `SOLD` - Vendido
-        * `FINISHED` - Terminado
-        * `TRANSFERRED` - Transferido
-    GenderEnum:
-      enum:
-      - M
-      - F
-      - X
-      type: string
-      description: |-
-        * `M` - Macho
-        * `F` - Hembra
-        * `X` - Mixto
-    MortalityBulkDetail:
-      type: object
-      properties:
-        client_id:
-          type: string
-        server_id:
-          type: integer
-          nullable: true
-        status:
-          $ref: '#/components/schemas/MortalityBulkDetailStatusEnum'
-        action:
-          type: string
-        error:
-          type: string
-      required:
-      - status
-    MortalityBulkDetailStatusEnum:
-      enum:
-      - success
-      - error
-      type: string
-      description: |-
-        * `success` - success
-        * `error` - error
-    MortalityBulkRequest:
-      type: object
-      properties:
-        mortality_records:
-          type: array
-          items:
-            $ref: '#/components/schemas/MortalityRecord'
-      required:
-      - mortality_records
-    MortalityBulkResult:
-      type: object
-      properties:
-        total:
-          type: integer
-        successful:
-          type: integer
-        errors:
-          type: integer
-        details:
-          type: array
-          items:
-            $ref: '#/components/schemas/MortalityBulkDetail'
-      required:
-      - details
-      - errors
-      - successful
-      - total
-    MortalityRecord:
-      type: object
-      properties:
-        flock_id:
-          type: integer
-        date:
-          type: string
-          format: date
-        deaths:
-          type: integer
-        cause_name:
-          type: string
-        temperature:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
-          nullable: true
-        notes:
-          type: string
-        client_id:
-          type: string
-      required:
-      - date
-      - deaths
-      - flock_id
-    PaginatedAdminUserList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/AdminUser'
-    PaginatedDailyWeightList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/DailyWeight'
-    PaginatedFarmList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Farm'
-    PaginatedFlockList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Flock'
-    PaginatedSyncConflictList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/SyncConflict'
-    PasswordResetConfirm:
-      type: object
-      properties:
-        uid:
-          type: string
-        token:
-          type: string
-        new_password:
-          type: string
-          writeOnly: true
-        new_password_confirm:
-          type: string
-          writeOnly: true
-      required:
-      - new_password
-      - new_password_confirm
-      - token
-      - uid
-    PasswordResetRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-      required:
-      - email
-    PatchedAdminUser:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        username:
-          type: string
-          title: Nombre de usuario
-          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
-            dígitos y @/./+/-/_ '
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          title: Dirección de correo electrónico
-          maxLength: 254
-        password:
-          type: string
-          writeOnly: true
-          title: Contraseña
-          maxLength: 128
-        password_confirm:
-          type: string
-          writeOnly: true
-        identification:
-          type: string
-          maxLength: 20
-        phone:
-          type: string
-          maxLength: 15
-        role:
-          type: integer
-    PatchedDailyWeight:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        flock:
-          type: integer
-        date:
-          type: string
-          format: date
-        average_weight:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
-        sample_size:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-        recorded_by:
-          type: integer
-        expected_weight:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
-          readOnly: true
-          nullable: true
-        deviation_percentage:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
-          readOnly: true
-          nullable: true
-        client_id:
-          type: string
-          nullable: true
-          maxLength: 50
-      required:
-      - average_weight
-      - date
-      - deviation_percentage
-      - expected_weight
-      - flock
-      - id
-      - recorded_by
-    PatchedFarm:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          maxLength: 100
-        location:
-          type: string
-        farm_manager:
-          type: integer
-        total_capacity:
-          type: integer
-          readOnly: true
-        active_sheds:
-          type: integer
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - active_sheds
-      - created_at
-      - farm_manager
-      - id
-      - location
-      - name
-      - total_capacity
-    PatchedFlock:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        arrival_date:
-          type: string
-          format: date
-        initial_quantity:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-        current_quantity:
-          type: integer
-          readOnly: true
-        initial_weight:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
-        breed:
-          type: string
-          maxLength: 50
-        gender:
-          $ref: '#/components/schemas/GenderEnum'
-        supplier:
-          type: string
-          maxLength: 100
-        shed:
-          type: integer
-        status:
-          allOf:
-          - $ref: '#/components/schemas/FlockStatusEnum'
-          readOnly: true
-        current_age_days:
-          type: integer
-          description: Return the current age in days for documentation/schema purposes.
-          readOnly: true
-        survival_rate:
-          type: number
-          description: Return survival rate as a percentage (0-100).
-          readOnly: true
-        created_by:
-          type: integer
-          readOnly: true
-          nullable: true
-      required:
-      - arrival_date
-      - breed
-      - created_by
-      - current_age_days
-      - current_quantity
-      - gender
-      - id
-      - initial_quantity
-      - initial_weight
-      - shed
-      - status
-      - supplier
-      - survival_rate
-    PatchedSyncConflict:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        source:
-          type: string
-        client_id:
-          type: string
-        payload: {}
-        resolution:
-          type: string
-        flock:
-          type: integer
-          nullable: true
-        resolved_by:
-          type: integer
-          nullable: true
-        resolved_at:
-          type: string
-          format: date-time
-          nullable: true
-    ResolutionEnum:
-      enum:
-      - manual
-      - discarded
-      - merged
-      type: string
-      description: |-
-        * `manual` - manual
-        * `discarded` - discarded
-        * `merged` - merged
-    ResolveConflict:
-      type: object
-      properties:
-        resolution:
-          $ref: '#/components/schemas/ResolutionEnum'
-        note:
-          type: string
-      required:
-      - resolution
-    ShedDetail:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        farm_name:
-          type: string
-        galponero:
-          type: string
-        occupancy:
-          $ref: '#/components/schemas/ShedOccupancy'
-        flocks:
-          $ref: '#/components/schemas/ShedFlocksSummary'
-        last_activity:
-          type: object
-          additionalProperties:
-            type: string
-            nullable: true
-        status_indicator:
-          type: object
-          additionalProperties:
-            type: string
-      required:
-      - farm_name
-      - flocks
-      - galponero
-      - id
-      - name
-      - occupancy
-      - status_indicator
-    ShedFlocksSummary:
-      type: object
-      properties:
-        active_count:
-          type: integer
-        avg_age:
-          type: number
-          format: double
-        total_birds:
-          type: integer
-      required:
-      - active_count
-      - avg_age
-      - total_birds
-    ShedOccupancy:
-      type: object
-      properties:
-        current:
-          type: integer
-        capacity:
-          type: integer
-        percentage:
-          type: number
-          format: double
-      required:
-      - capacity
-      - current
-      - percentage
-    SyncConflict:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        source:
-          type: string
-        client_id:
-          type: string
-        payload: {}
-        resolution:
-          type: string
-        flock:
-          type: integer
-          nullable: true
-        resolved_by:
-          type: integer
-          nullable: true
-        resolved_at:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-      - id
-      - payload
-      - source
-    TokenObtainPair:
-      type: object
-      properties:
-        username:
-          type: string
-          writeOnly: true
-        password:
-          type: string
-          writeOnly: true
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-          readOnly: true
-      required:
-      - access
-      - password
-      - refresh
-      - username
-    TokenRefresh:
-      type: object
-      properties:
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-      required:
-      - access
-      - refresh
-    UserRegistration:
-      type: object
-      properties:
-        username:
-          type: string
-          title: Nombre de usuario
-          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
-            dígitos y @/./+/-/_ '
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          title: Dirección de correo electrónico
-          maxLength: 254
-        password:
-          type: string
-          writeOnly: true
-          title: Contraseña
-          maxLength: 128
-        password_confirm:
-          type: string
-          writeOnly: true
-        identification:
-          type: string
-          maxLength: 20
-        phone:
-          type: string
-          maxLength: 15
-      required:
-      - identification
-      - password
-      - password_confirm
-      - username
-  securitySchemes:
-    jwtAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-
+        description: Un valor de entero único que identifique este usuario.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
     patch:
       operationId: api_admin_users_partial_update
       parameters:
@@ -974,6 +282,207 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserRegistration'
+          description: ''
+  /api/conflicts/:
+    get:
+      operationId: api_conflicts_list
+      description: List unresolved sync conflicts.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSyncConflictList'
+          description: ''
+    post:
+      operationId: api_conflicts_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncConflict'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncConflict'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncConflict'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConflict'
+          description: ''
+  /api/conflicts/{id}/:
+    get:
+      operationId: api_conflicts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este sync conflict.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConflict'
+          description: ''
+    put:
+      operationId: api_conflicts_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este sync conflict.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncConflict'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncConflict'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncConflict'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConflict'
+          description: ''
+    patch:
+      operationId: api_conflicts_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este sync conflict.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSyncConflict'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSyncConflict'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSyncConflict'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConflict'
+          description: ''
+    delete:
+      operationId: api_conflicts_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este sync conflict.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/conflicts/{id}/resolve/:
+    post:
+      operationId: api_conflicts_resolve_create
+      description: Resolver un conflicto detectado durante la sincronización. Marcará
+        el conflicto como resuelto y registrará el usuario que lo resolvió.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este sync conflict.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveConflict'
+            examples:
+              EjemploResolve:
+                value:
+                  resolution: manual
+                  note: Revisado y fusionado
+                summary: Ejemplo resolve
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResolveConflict'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResolveConflict'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConflict'
+              examples:
+                EjemploResolve:
+                  value:
+                    resolution: manual
+                    note: Revisado y fusionado
+                  summary: Ejemplo resolve
           description: ''
   /api/daily-weights/:
     get:
@@ -1533,6 +1042,67 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/mortality/bulk-sync/:
+    post:
+      operationId: api_mortality_bulk_sync_create
+      description: Sincroniza en bloque registros de mortalidad desde dispositivos
+        móviles.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MortalityBulkRequest'
+            examples:
+              EjemploMortalidad:
+                value:
+                  total: 2
+                  successful: 2
+                  errors: 0
+                  details:
+                  - client_id: c1
+                    server_id: 1
+                    status: success
+                    action: created
+                  - client_id: c2
+                    server_id: 2
+                    status: success
+                    action: created
+                summary: Ejemplo mortalidad
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MortalityBulkRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MortalityBulkRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MortalityBulkResult'
+              examples:
+                EjemploMortalidad:
+                  value:
+                    total: 2
+                    successful: 2
+                    errors: 0
+                    details:
+                    - client_id: c1
+                      server_id: 1
+                      status: success
+                      action: created
+                    - client_id: c2
+                      server_id: 2
+                      status: success
+                      action: created
+                  summary: Ejemplo mortalidad
+          description: ''
 components:
   schemas:
     AdminUser:
@@ -1830,6 +1400,82 @@ components:
         * `M` - Macho
         * `F` - Hembra
         * `X` - Mixto
+    MortalityBulkDetail:
+      type: object
+      properties:
+        client_id:
+          type: string
+        server_id:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/MortalityBulkDetailStatusEnum'
+        action:
+          type: string
+        error:
+          type: string
+      required:
+      - status
+    MortalityBulkDetailStatusEnum:
+      enum:
+      - success
+      - error
+      type: string
+      description: |-
+        * `success` - success
+        * `error` - error
+    MortalityBulkRequest:
+      type: object
+      properties:
+        mortality_records:
+          type: array
+          items:
+            $ref: '#/components/schemas/MortalityRecord'
+      required:
+      - mortality_records
+    MortalityBulkResult:
+      type: object
+      properties:
+        total:
+          type: integer
+        successful:
+          type: integer
+        errors:
+          type: integer
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/MortalityBulkDetail'
+      required:
+      - details
+      - errors
+      - successful
+      - total
+    MortalityRecord:
+      type: object
+      properties:
+        flock_id:
+          type: integer
+        date:
+          type: string
+          format: date
+        deaths:
+          type: integer
+        cause_name:
+          type: string
+        temperature:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
+          nullable: true
+        notes:
+          type: string
+        client_id:
+          type: string
+      required:
+      - date
+      - deaths
+      - flock_id
     PaginatedAdminUserList:
       type: object
       required:
@@ -1922,6 +1568,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Flock'
+    PaginatedSyncConflictList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncConflict'
     PasswordResetConfirm:
       type: object
       properties:
@@ -2090,6 +1759,48 @@ components:
           type: integer
           readOnly: true
           nullable: true
+    PatchedSyncConflict:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source:
+          type: string
+        client_id:
+          type: string
+        payload: {}
+        resolution:
+          type: string
+        flock:
+          type: integer
+          nullable: true
+        resolved_by:
+          type: integer
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+    ResolutionEnum:
+      enum:
+      - manual
+      - discarded
+      - merged
+      type: string
+      description: |-
+        * `manual` - manual
+        * `discarded` - discarded
+        * `merged` - merged
+    ResolveConflict:
+      type: object
+      properties:
+        resolution:
+          $ref: '#/components/schemas/ResolutionEnum'
+        note:
+          type: string
+      required:
+      - resolution
     ShedDetail:
       type: object
       properties:
@@ -2150,6 +1861,33 @@ components:
       - capacity
       - current
       - percentage
+    SyncConflict:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source:
+          type: string
+        client_id:
+          type: string
+        payload: {}
+        resolution:
+          type: string
+        flock:
+          type: integer
+          nullable: true
+        resolved_by:
+          type: integer
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - payload
+      - source
     TokenObtainPair:
       type: object
       properties:
