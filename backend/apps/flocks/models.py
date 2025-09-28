@@ -64,13 +64,35 @@ class Flock(BaseModel):
 
 
 class BreedReference(BaseModel):
-	"""Tabla de referencia de peso por raza y edad (días)"""
+	"""Tabla de referencia de peso y consumo por raza y edad (días) con versionado"""
 	breed = models.CharField(max_length=100)
 	age_days = models.PositiveIntegerField()
 	expected_weight = models.DecimalField(max_digits=6, decimal_places=2)
+	expected_consumption = models.DecimalField(max_digits=6, decimal_places=2, default=0)  # gramos/ave/día
+	tolerance_range = models.DecimalField(max_digits=5, decimal_places=2, default=10.0)  # porcentaje
+
+	# Versionado para actualizaciones
+	version = models.PositiveIntegerField(default=1)
+	is_active = models.BooleanField(default=True)
+	created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
 
 	class Meta:
-		unique_together = ['breed', 'age_days']
+		unique_together = ['breed', 'age_days', 'version']
+		ordering = ['breed', 'age_days']
+
+	@classmethod
+	def get_reference_for_flock(cls, flock, date=None):
+		"""Obtener referencia para un lote en una fecha específica"""
+		if date is None:
+			date = timezone.now().date()
+
+		age_days = (date - flock.arrival_date).days
+
+		return cls.objects.filter(
+			breed=flock.breed,
+			age_days=age_days,
+			is_active=True
+		).order_by('-version').first()
 
 
 class DailyWeightRecord(BaseModel):
@@ -219,3 +241,14 @@ class SyncConflict(BaseModel):
 
 	class Meta:
 		indexes = [models.Index(fields=['source', 'client_id']), models.Index(fields=['resolved_at'])]
+
+
+class ReferenceImportLog(BaseModel):
+	"""Log de importaciones de tablas de referencia"""
+	file_name = models.CharField(max_length=255)
+	imported_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+	total_rows = models.PositiveIntegerField(default=0)
+	successful_imports = models.PositiveIntegerField(default=0)
+	updates = models.PositiveIntegerField(default=0)
+	errors = models.PositiveIntegerField(default=0)
+	error_details = models.JSONField(default=list)

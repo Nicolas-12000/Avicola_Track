@@ -1,3 +1,119 @@
+from __future__ import annotations
+
+import datetime
+from typing import List
+
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
+
+from openpyxl import load_workbook
+
+from .models import BreedReference, ReferenceImportLog
+
+
+class BreedReferenceService:
+    """Servicios relacionados con la tabla BreedReference, incluyendo import desde Excel."""
+
+    @staticmethod
+    def import_from_excel(file_path: str, imported_by) -> ReferenceImportLog:
+        """Importa una hoja de Excel con columnas esperadas y crea/actualiza referencias.
+
+        Columnas requeridas: breed, age_days, expected_weight
+        Opcionales: expected_consumption, tolerance_range
+
+        Reglas:
+        - Para cada fila válida se crea una nueva versión (version = max_version + 1) y se marca is_active=True.
+        - Las versiones previas para la misma (breed, age_days) se desactivan.
+        - Registra el resultado en ReferenceImportLog con conteo de éxitos y errores.
+        """
+
+        wb = load_workbook(filename=file_path, data_only=True)
+        ws = wb.active
+
+        header = [str(cell.value).strip().lower() if cell.value is not None else '' for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+
+        required = ['breed', 'age_days', 'expected_weight']
+        col_map = {}
+        for idx, name in enumerate(header):
+            if name:
+                col_map[name] = idx + 1
+
+        missing = [c for c in required if c not in col_map]
+        log = ReferenceImportLog.objects.create(
+            file_name=file_path.split('/')[-1] if '/' in file_path else file_path.split('\\')[-1],
+            imported_by=imported_by,
+            total_rows=0,
+            successful_imports=0,
+            updates=0,
+            errors=0,
+            error_details=[],
+        )
+
+        if missing:
+            log.errors = 0
+            log.error_details = [f"missing columns: {missing}"]
+            log.save()
+            return log
+
+        total = 0
+        successes = 0
+        updates = 0
+        errors = 0
+        error_details: List[str] = []
+
+        for row in ws.iter_rows(min_row=2):
+            total += 1
+            try:
+                breed = row[col_map['breed'] - 1].value
+                age_days = row[col_map['age_days'] - 1].value
+                expected_weight = row[col_map['expected_weight'] - 1].value
+
+                if breed is None or age_days is None or expected_weight is None:
+                    raise ValueError('required field missing')
+
+                expected_consumption = None
+                if 'expected_consumption' in col_map:
+                    expected_consumption = row[col_map['expected_consumption'] - 1].value or 0
+
+                tolerance_range = None
+                if 'tolerance_range' in col_map:
+                    tolerance_range = row[col_map['tolerance_range'] - 1].value or 10.0
+
+                with transaction.atomic():
+                    # determine new version
+                    latest = BreedReference.objects.filter(breed=breed, age_days=int(age_days)).order_by('-version').first()
+                    new_version = 1
+                    if latest:
+                        new_version = latest.version + 1
+                        # deactivate previous versions
+                        BreedReference.objects.filter(breed=breed, age_days=int(age_days), is_active=True).update(is_active=False)
+
+                    br = BreedReference.objects.create(
+                        breed=str(breed),
+                        age_days=int(age_days),
+                        expected_weight=float(expected_weight),
+                        expected_consumption=float(expected_consumption or 0),
+                        tolerance_range=float(tolerance_range or 10.0),
+                        version=new_version,
+                        is_active=True,
+                        created_by=imported_by,
+                    )
+
+                successes += 1
+            except Exception as exc:  # pragma: no cover - exception paths logged
+                errors += 1
+                error_details.append(f'row {total+1}: {str(exc)}')
+
+        log.total_rows = total
+        log.successful_imports = successes
+        log.updates = updates
+        log.errors = errors
+        log.error_details = error_details
+        log.save()
+
+        return log
+
 from django.db import transaction, models
 from django.utils.dateparse import parse_date
 from django.utils import timezone

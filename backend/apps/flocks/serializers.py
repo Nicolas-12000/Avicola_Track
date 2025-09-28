@@ -1,5 +1,41 @@
 from rest_framework import serializers
 from django.utils import timezone
+
+from .models import BreedReference, ReferenceImportLog
+
+
+class BreedReferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BreedReference
+        fields = ['id', 'breed', 'age_days', 'expected_weight', 'expected_consumption', 'tolerance_range', 'version', 'is_active', 'created_by']
+        read_only_fields = ['version', 'created_by']
+
+    def validate(self, data):
+        # Basic domain validations mirroring service rules
+        age_days = data.get('age_days')
+        weight = data.get('expected_weight')
+        consumption = data.get('expected_consumption', 0)
+        tolerance = data.get('tolerance_range', 10.0)
+
+        if age_days is None or age_days < 0 or age_days > 365:
+            raise serializers.ValidationError('Edad inválida')
+        if weight is None or weight <= 0:
+            raise serializers.ValidationError('Peso inválido')
+        if consumption < 0:
+            raise serializers.ValidationError('Consumo inválido')
+        if tolerance < 0 or tolerance > 100:
+            raise serializers.ValidationError('Tolerancia inválida')
+
+        return data
+
+
+class ReferenceImportLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReferenceImportLog
+        fields = ['id', 'file_name', 'imported_by', 'total_rows', 'successful_imports', 'updates', 'errors', 'error_details', 'created_at']
+        read_only_fields = fields
+from rest_framework import serializers
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 import logging
 
