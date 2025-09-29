@@ -48,16 +48,44 @@ class FlockConcurrencyTests(TransactionTestCase):
             results[idx] = f'err:{e.__class__.__name__}'
 
     def test_concurrent_creations_respect_capacity(self):
+        # Test capacity validation logic for both SQLite and PostgreSQL
         if 'sqlite' in connection.settings_dict['ENGINE']:
-            self.skipTest('Skipping concurrency test on SQLite; run in PostgreSQL for real concurrency')
+            # SQLite: Test capacity validation sequentially (simulates concurrency)
+            # First flock uses 60 capacity
+            flock1 = Flock.objects.create(
+                arrival_date=timezone.now().date(),
+                initial_quantity=60,
+                current_quantity=60,
+                initial_weight=40,
+                breed='B1',
+                gender='X',
+                supplier='S1',
+                shed=self.shed,
+                created_by=self.galponero,
+            )
+            
+            # Second flock should fail or be limited due to capacity constraint (40 remaining)
+            with self.assertRaises(Exception):
+                Flock.objects.create(
+                    arrival_date=timezone.now().date(),
+                    initial_quantity=60,  # This exceeds remaining capacity
+                    current_quantity=60,
+                    initial_weight=40,
+                    breed='B2',
+                    gender='X',
+                    supplier='S2',
+                    shed=self.shed,
+                    created_by=self.galponero,
+                )
+        else:
+            # PostgreSQL: Real concurrency test
+            results = [None, None]
+            t1 = threading.Thread(target=self._create_flock, args=(60, results, 0))
+            t2 = threading.Thread(target=self._create_flock, args=(60, results, 1))
 
-        results = [None, None]
-        t1 = threading.Thread(target=self._create_flock, args=(60, results, 0))
-        t2 = threading.Thread(target=self._create_flock, args=(60, results, 1))
+            t1.start(); t2.start()
+            t1.join(); t2.join()
 
-        t1.start(); t2.start()
-        t1.join(); t2.join()
-
-        # Only one should succeed because capacity is 100
-        success_count = sum(1 for r in results if r == 'ok')
-        self.assertLessEqual(success_count, 1)
+            # Only one should succeed because capacity is 100
+            success_count = sum(1 for r in results if r == 'ok')
+            self.assertLessEqual(success_count, 1)

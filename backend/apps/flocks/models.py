@@ -60,7 +60,34 @@ class Flock(BaseModel):
 		# Auto-setear current_quantity en creación
 		if not self.pk and (self.current_quantity is None or self.current_quantity == 0):
 			self.current_quantity = self.initial_quantity
+		
+		# Validar capacidad del galpón antes de crear nuevo lote
+		if not self.pk:  # Solo en creación
+			self._validate_shed_capacity()
+		
 		super().save(*args, **kwargs)
+	
+	def _validate_shed_capacity(self):
+		"""Validar que el galpón tenga suficiente capacidad para el nuevo lote"""
+		if not self.shed or not hasattr(self.shed, 'capacity'):
+			return  # Si no hay galpón o capacidad definida, no validar
+		
+		# Calcular capacidad actual ocupada en el galpón
+		current_occupation = Flock.objects.filter(
+			shed=self.shed,
+			status='ACTIVE'
+		).aggregate(
+			total=models.Sum('current_quantity')
+		)['total'] or 0
+		
+		# Verificar si el nuevo lote excede la capacidad
+		if current_occupation + self.initial_quantity > self.shed.capacity:
+			from django.core.exceptions import ValidationError
+			raise ValidationError(
+				f'El galpón {self.shed.name} no tiene suficiente capacidad. '
+				f'Capacidad: {self.shed.capacity}, Ocupado: {current_occupation}, '
+				f'Nuevo lote: {self.initial_quantity}'
+			)
 
 
 class BreedReference(BaseModel):
@@ -113,24 +140,95 @@ class DailyWeightRecord(BaseModel):
 		unique_together = ['flock', 'date']
 
 	def save(self, *args, **kwargs):
-		if not self.expected_weight:
+		# Calcular peso esperado y desviación automáticamente
+		if not self.expected_weight or self.expected_weight == 0:
 			self.expected_weight = self._calculate_expected_weight()
 
-		if self.expected_weight and self.expected_weight != 0:
+		if self.expected_weight and self.expected_weight > 0:
 			deviation = abs(self.average_weight - self.expected_weight)
 			try:
 				self.deviation_percentage = (deviation / self.expected_weight) * 100
 			except Exception:
 				self.deviation_percentage = None
-
+		
+		# Guardar primero el registro
 		super().save(*args, **kwargs)
+		
+		# Verificar si se debe generar alarma por desviación
+		self._check_weight_deviation_alarm()
+
+	def _calculate_expected_weight(self):
+		"""Calcular peso esperado usando BreedReference más inteligente"""
+		# Usar el método de clase que maneja versionado
+		reference = BreedReference.get_reference_for_flock(self.flock, self.date)
+		return reference.expected_weight if reference else None
+	
+	def _check_weight_deviation_alarm(self):
+		"""Verificar si el peso está fuera del rango aceptable y generar alarma"""
+		if not self.expected_weight or not self.deviation_percentage:
+			return
+		
+		try:
+			from apps.alarms.models import AlarmConfiguration, Alarm
+		except ImportError:
+			return
+			
+		# Obtener referencia para verificar tolerancia
+		reference = BreedReference.get_reference_for_flock(self.flock, self.date)
+		if not reference:
+			return
+			
+		tolerance = float(reference.tolerance_range)
+		
+		# Si la desviación supera la tolerancia, crear alarma
+		if float(self.deviation_percentage) > tolerance:
+			# Verificar configuración de alarmas de la granja
+			config = AlarmConfiguration.objects.filter(
+				alarm_type='WEIGHT_DEVIATION',
+				farm=self.flock.shed.farm,
+				is_active=True
+			).first()
+			
+			if config:
+				# Verificar si no existe alarma similar reciente
+				recent_alarms = Alarm.objects.filter(
+					alarm_type='WEIGHT_DEVIATION',
+					entity_type='FLOCK',
+					entity_id=self.flock.id,
+					status='PENDING',
+					created_at__date=self.date
+				)
+				
+				if not recent_alarms.exists():
+					priority = 'HIGH' if float(self.deviation_percentage) > (tolerance * 2) else 'MEDIUM'
+					
+					Alarm.objects.create(
+						alarm_type='WEIGHT_DEVIATION',
+						entity_type='FLOCK',
+						entity_id=self.flock.id,
+						priority=priority,
+						title=f'Peso fuera de rango - {self.flock}',
+						message=f'Peso promedio {self.average_weight}g vs esperado {self.expected_weight}g. Desviación: {self.deviation_percentage:.1f}%',
+						farm=self.flock.shed.farm,
+						shed=self.flock.shed,
+						data={
+							'flock_id': self.flock.id,
+							'date': self.date.isoformat(),
+							'actual_weight': float(self.average_weight),
+							'expected_weight': float(self.expected_weight),
+							'deviation_percentage': float(self.deviation_percentage),
+							'tolerance_range': tolerance,
+							'breed': self.flock.breed
+						}
+					)
 
 	def _calculate_expected_weight(self):
 		age_days = (self.date - self.flock.arrival_date).days
 		reference = BreedReference.objects.filter(
 			breed=self.flock.breed,
-			age_days=age_days
-		).first()
+			age_days=age_days,
+			is_active=True
+		).order_by('-version').first()
 
 		return reference.expected_weight if reference else None
 

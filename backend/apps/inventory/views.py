@@ -3,10 +3,19 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
+from django.utils import timezone
+from decimal import Decimal
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from .models import InventoryItem
-from .serializers import InventoryItemSerializer, BulkStockUpdateSerializer
+from .models import InventoryItem, FoodBatch, FoodConsumptionRecord
+from .serializers import (
+    InventoryItemSerializer, BulkStockUpdateSerializer, FoodBatchSerializer,
+    FoodConsumptionRecordSerializer, FoodConsumptionRequestSerializer,
+    BulkFoodConsumptionSerializer, FIFOConsumptionResultSerializer,
+    AddStockSerializer
+)
 from .permissions import CanManageInventory
+from apps.flocks.models import Flock
 
 
 class InventoryViewSet(viewsets.ModelViewSet):
@@ -94,7 +103,176 @@ class InventoryViewSet(viewsets.ModelViewSet):
 
         return Response({'results': results})
 
-    # uses CanManageInventory permission for object-level checks
-from django.shortcuts import render
+    @extend_schema(
+        request=AddStockSerializer,
+        responses=OpenApiResponse(response=FoodBatchSerializer)
+    )
+    @action(detail=True, methods=['post'], url_path='add-stock')
+    def add_stock(self, request, pk=None):
+        """Agregar stock creando un lote FIFO"""
+        item = self.get_object()
+        serializer = AddStockSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Crear lote FIFO
+        batch = item.add_stock(
+            quantity=serializer.validated_data['quantity'],
+            entry_date=serializer.validated_data.get('entry_date')
+        )
+        
+        # Actualizar campos opcionales del lote
+        if serializer.validated_data.get('supplier'):
+            batch.supplier = serializer.validated_data['supplier']
+        if serializer.validated_data.get('lot_number'):
+            batch.lot_number = serializer.validated_data['lot_number']
+        if serializer.validated_data.get('expiry_date'):
+            batch.expiry_date = serializer.validated_data['expiry_date']
+        batch.save()
+        
+        return Response(FoodBatchSerializer(batch).data, status=status.HTTP_201_CREATED)
 
-# Create your views here.
+    @extend_schema(
+        request=FoodConsumptionRequestSerializer,
+        responses=OpenApiResponse(response=FIFOConsumptionResultSerializer)
+    )
+    @action(detail=True, methods=['post'], url_path='consume-fifo')
+    def consume_fifo(self, request, pk=None):
+        """Consumir stock usando FIFO estricto"""
+        item = self.get_object()
+        serializer = FoodConsumptionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            flock = Flock.objects.get(id=serializer.validated_data['flock_id'])
+            
+            # Realizar consumo FIFO
+            consumption_record, fifo_details = item.consume_fifo(
+                quantity_to_consume=serializer.validated_data['quantity_consumed'],
+                flock=flock,
+                user=request.user
+            )
+            
+            # Actualizar campos opcionales
+            if serializer.validated_data.get('date'):
+                consumption_record.date = serializer.validated_data['date']
+            if serializer.validated_data.get('client_id'):
+                consumption_record.client_id = serializer.validated_data['client_id']
+            consumption_record.save()
+            
+            return Response({
+                'consumption_record_id': consumption_record.id,
+                'fifo_details': fifo_details,
+                'remaining_stock': float(item.current_stock)
+            })
+            
+        except Flock.DoesNotExist:
+            return Response({'error': 'Lote no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'], url_path='fifo-batches')
+    def fifo_batches(self, request, pk=None):
+        """Obtener lotes FIFO de un item"""
+        item = self.get_object()
+        batches = item.food_batches.all().order_by('entry_date')
+        return Response(FoodBatchSerializer(batches, many=True).data)
+
+    @extend_schema(
+        request=BulkFoodConsumptionSerializer,
+        responses=OpenApiResponse(response=None)
+    )
+    @action(detail=False, methods=['post'], url_path='bulk-consume-fifo')
+    def bulk_consume_fifo(self, request):
+        """Sincronización masiva de consumo FIFO desde dispositivos móviles"""
+        serializer = BulkFoodConsumptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        results = []
+        
+        with transaction.atomic():
+            for consumption_data in serializer.validated_data['consumption_records']:
+                try:
+                    # Obtener objetos
+                    flock = Flock.objects.get(id=consumption_data['flock_id'])
+                    item = InventoryItem.objects.get(id=consumption_data['inventory_item_id'])
+                    
+                    # Verificar permisos
+                    if not CanManageInventory().has_object_permission(request, self, item):
+                        raise PermissionError('Sin permisos para este inventario')
+                    
+                    # Realizar consumo FIFO
+                    consumption_record, fifo_details = item.consume_fifo(
+                        quantity_to_consume=consumption_data['quantity_consumed'],
+                        flock=flock,
+                        user=request.user
+                    )
+                    
+                    # Configurar campos adicionales
+                    if consumption_data.get('date'):
+                        consumption_record.date = consumption_data['date']
+                    if consumption_data.get('client_id'):
+                        consumption_record.client_id = consumption_data['client_id']
+                    consumption_record.save()
+                    
+                    results.append({
+                        'client_id': consumption_data.get('client_id'),
+                        'server_id': consumption_record.id,
+                        'status': 'success',
+                        'fifo_details': fifo_details
+                    })
+                    
+                except Exception as e:
+                    results.append({
+                        'client_id': consumption_data.get('client_id'),
+                        'server_id': None,
+                        'status': 'error',
+                        'error': str(e)
+                    })
+        
+        return Response({
+            'total': len(serializer.validated_data['consumption_records']),
+            'successful': len([r for r in results if r['status'] == 'success']),
+            'errors': len([r for r in results if r['status'] == 'error']),
+            'details': results
+        })
+
+    # uses CanManageInventory permission for object-level checks
+
+
+class FoodBatchViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para ver lotes de alimento (solo lectura)"""
+    queryset = FoodBatch.objects.all().order_by('-entry_date')
+    serializer_class = FoodBatchSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Filtrar según permisos de usuario
+        if hasattr(user, 'role') and user.role and user.role.name == 'Administrador Sistema':
+            return FoodBatch.objects.all().order_by('-entry_date')
+
+        if hasattr(user, 'role') and user.role and user.role.name == 'Administrador de Granja':
+            return FoodBatch.objects.filter(inventory_item__farm__farm_manager=user).order_by('-entry_date')
+
+        # Default: restricción por galpones asignados
+        return FoodBatch.objects.filter(inventory_item__shed__assigned_worker=user).order_by('-entry_date')
+
+
+class FoodConsumptionRecordViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para registros de consumo FIFO (solo lectura, creación via InventoryViewSet)"""
+    queryset = FoodConsumptionRecord.objects.all().order_by('-date')
+    serializer_class = FoodConsumptionRecordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Filtrar según permisos de usuario
+        if hasattr(user, 'role') and user.role and user.role.name == 'Administrador Sistema':
+            return FoodConsumptionRecord.objects.all().order_by('-date')
+
+        if hasattr(user, 'role') and user.role and user.role.name == 'Administrador de Granja':
+            return FoodConsumptionRecord.objects.filter(flock__shed__farm__farm_manager=user).order_by('-date')
+
+        # Default: solo registros de lotes asignados al galponero
+        return FoodConsumptionRecord.objects.filter(flock__shed__assigned_worker=user).order_by('-date')
+

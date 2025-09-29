@@ -29,6 +29,9 @@ INSTALLED_APPS = [
     'apps.alarms',
     'apps.reports',
     'apps.sync',
+    
+    # Celery Beat
+    'django_celery_beat',
 ]
 
 # Middleware optimized for slow links
@@ -159,3 +162,12 @@ LOGGING = {
         'level': os.environ.get('LOG_LEVEL', 'INFO'),
     },
 }
+
+# Celery Configuration (Redis as broker)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
