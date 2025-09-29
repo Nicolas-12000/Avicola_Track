@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 from .models import InventoryItem, InventoryConsumptionRecord
 
@@ -22,11 +23,15 @@ class InventoryItemSerializer(serializers.ModelSerializer):
 		]
 		read_only_fields = ['daily_avg_consumption', 'last_consumption_date', 'projected_stockout_date', 'stock_status']
 
+
+	@extend_schema_field(OpenApiTypes.DATE)
 	def get_projected_stockout_date(self, obj):
 		return obj.projected_stockout_date.isoformat() if obj.projected_stockout_date else None
 
+	@extend_schema_field(OpenApiTypes.OBJECT)
 	def get_stock_status(self, obj):
 		return obj.stock_status
+
 
 
 class BulkStockUpdateSerializer(serializers.Serializer):
