@@ -17,6 +17,7 @@ class AlarmConfiguration(BaseModel):
     ALARM_TYPES = [
         ('MORTALITY', 'Mortalidad Alta'),
         ('WEIGHT', 'Peso Fuera de Rango'),
+        ('WEIGHT_DEVIATION', 'Desviación de Peso'),
         ('STOCK', 'Stock Crítico'),
         ('CONSUMPTION', 'Consumo Anómalo'),
         ('NO_RECORDS', 'Sin Registros'),

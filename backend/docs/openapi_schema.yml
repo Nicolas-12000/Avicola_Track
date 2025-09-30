@@ -1,8 +1,60 @@
 openapi: 3.0.3
 info:
   title: AvícolaTrack API
-  version: 6.0.0
-  description: API OpenAPI schema for AvícolaTrack
+  version: 9.0.0
+  description: |
+    # AvícolaTrack API Documentation
+    
+    ## Descripción General
+    API REST completa para el sistema de gestión avícola AvícolaTrack. 
+    Este sistema permite la administración integral de granjas avícolas, incluyendo:
+    
+    - 🏢 **Gestión de Granjas**: Administración de granjas, galpones y trabajadores
+    - 🐔 **Gestión de Lotes**: Control completo del ciclo de vida de lotes de aves
+    - 📦 **Inventario**: Control de alimento, consumo y stock
+    - 🚨 **Alarmas**: Monitoreo automático e indicadores críticos
+    - 📊 **Reportes**: Generación de reportes automatizados
+    - 🔄 **Sincronización**: Sistema de sincronización para dispositivos móviles
+    
+    ## Autenticación
+    La API utiliza autenticación JWT (JSON Web Tokens). Para acceder a los endpoints protegidos:
+    
+    1. Obtén un token usando `/api/auth/login/`
+    2. Incluye el token en el header: `Authorization: Bearer <token>`
+    3. Renueva el token usando `/api/auth/refresh/` cuando sea necesario
+    
+    ## Códigos de Estado HTTP
+    - `200` - Éxito
+    - `201` - Creado exitosamente  
+    - `204` - Sin contenido (eliminación exitosa)
+    - `400` - Solicitud inválida
+    - `401` - No autorizado
+    - `403` - Prohibido
+    - `404` - No encontrado
+    - `409` - Conflicto (datos duplicados)
+    - `500` - Error interno del servidor
+    
+    ## Paginación
+    Los endpoints que retornan listas utilizan paginación estándar con los siguientes campos:
+    - `count`: Total de elementos
+    - `next`: URL de la siguiente página (null si es la última)
+    - `previous`: URL de la página anterior (null si es la primera)
+    - `results`: Array con los elementos de la página actual
+  
+  contact:
+    name: Nicolas Garcia
+    url: https://github.com/Nicolas-12000
+    email: nicolas.garcia@avicolatrack.com
+  
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Servidor de desarrollo local
+  - url: https://api.avicolatrack.com
+    description: Servidor de producción
 paths:
   /api/admin-users/:
     get:
@@ -153,28 +205,92 @@ paths:
   /api/auth/login/:
     post:
       operationId: api_auth_login_create
-      description: Extiende TokenObtainPairView para añadir info del usuario y logging.
+      summary: Iniciar sesión de usuario
+      description: |
+        Autentica un usuario y devuelve tokens JWT de acceso y actualización.
+        
+        **Importante**: 
+        - El token de acceso expira en 15 minutos
+        - El token de actualización expira en 7 días
+        - Guarda ambos tokens para mantener la sesión activa
+        
+        **Ejemplo de uso**:
+        ```javascript
+        // Solicitud
+        fetch('/api/auth/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'usuario@email.com',
+            password: 'mi_password'
+          })
+        })
+        ```
       tags:
-      - api
+      - 🔐 Autenticación
       requestBody:
+        description: Credenciales de usuario
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/TokenObtainPair'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPair'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPair'
+            example:
+              username: "galponero@granja.com"
+              password: "password123"
         required: true
       responses:
         '200':
+          description: Autenticación exitosa
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenObtainPair'
-          description: ''
+                type: object
+                properties:
+                  access:
+                    type: string
+                    description: Token JWT de acceso (15 min)
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                  refresh:
+                    type: string
+                    description: Token JWT de actualización (7 días)
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: "galponero@granja.com"
+                      role:
+                        type: string
+                        description: Rol del usuario en el sistema
+                        example: "Galponero"
+                      farm_name:
+                        type: string
+                        description: Nombre de la granja asignada
+                        example: "Granja El Pollo Feliz"
+        '400':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "No se han encontrado credenciales válidas"
+        '401':
+          description: Usuario o contraseña incorrectos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Las credenciales proporcionadas no son válidas"
   /api/auth/password-reset/:
     post:
       operationId: api_auth_password_reset_create
@@ -232,57 +348,169 @@ paths:
   /api/auth/refresh/:
     post:
       operationId: api_auth_refresh_create
-      description: |-
-        Takes a refresh type JSON web token and returns an access type JSON web
-        token if the refresh token is valid.
+      summary: Renovar token de acceso
+      description: |
+        Renueva el token de acceso JWT usando el token de actualización.
+        
+        **Uso recomendado**:
+        - Llama a este endpoint cuando el token de acceso expire (cada 15 minutos)
+        - Implementa renovación automática en el frontend
+        - Si este endpoint falla, redirige al usuario al login
+        
+        **Ejemplo de implementación**:
+        ```javascript
+        // Interceptor para renovar token automáticamente
+        axios.interceptors.response.use(
+          response => response,
+          async error => {
+            if (error.response?.status === 401) {
+              const refreshToken = localStorage.getItem('refresh_token');
+              const response = await axios.post('/api/auth/refresh/', {
+                refresh: refreshToken
+              });
+              localStorage.setItem('access_token', response.data.access);
+            }
+          }
+        );
+        ```
       tags:
-      - api
+      - 🔐 Autenticación
       requestBody:
+        description: Token de actualización
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TokenRefresh'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
+              type: object
+              required:
+                - refresh
+              properties:
+                refresh:
+                  type: string
+                  description: Token JWT de actualización
+                  example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
         required: true
       responses:
         '200':
+          description: Token renovado exitosamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenRefresh'
-          description: ''
+                type: object
+                properties:
+                  access:
+                    type: string
+                    description: Nuevo token JWT de acceso
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        '401':
+          description: Token de actualización inválido o expirado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Token is invalid or expired"
+                  code:
+                    type: string
+                    example: "token_not_valid"
   /api/auth/register/:
     post:
       operationId: api_auth_register_create
+      summary: Registrar nuevo usuario
+      description: |
+        Registra un nuevo usuario en el sistema AvícolaTrack.
+        
+        **Importante**:
+        - Solo administradores pueden crear nuevos usuarios
+        - El usuario recibirá un email con las credenciales iniciales
+        - Se requiere asignar un rol específico según las responsabilidades
+        
+        **Roles disponibles**:
+        - `Administrador de Granja`: Acceso completo a la granja
+        - `Galponero`: Gestión de galpones asignados
+        - `Supervisor`: Supervisión y reportes
+        - `Veterinario`: Acceso a datos de salud y mortalidad
       tags:
-      - api
+      - 🔐 Autenticación
       requestBody:
+        description: Datos del nuevo usuario
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UserRegistration'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/UserRegistration'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/UserRegistration'
+            example:
+              username: "nuevo.galponero@granja.com"
+              email: "nuevo.galponero@granja.com"
+              password: "TempPassword123!"
+              password_confirm: "TempPassword123!"
+              first_name: "Juan"
+              last_name: "Pérez"
+              role: "Galponero"
+              farm: 1
         required: true
       security:
       - jwtAuth: []
-      - {}
       responses:
         '201':
+          description: Usuario creado exitosamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserRegistration'
-          description: ''
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 15
+                  username:
+                    type: string
+                    example: "nuevo.galponero@granja.com"
+                  email:
+                    type: string
+                    example: "nuevo.galponero@granja.com"
+                  first_name:
+                    type: string
+                    example: "Juan"
+                  last_name:
+                    type: string
+                    example: "Pérez"
+                  role:
+                    type: string
+                    example: "Galponero"
+                  is_active:
+                    type: boolean
+                    example: true
+                  date_joined:
+                    type: string
+                    format: date-time
+                    example: "2025-09-29T10:30:00Z"
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Este nombre de usuario ya existe."]
+                  password:
+                    type: array
+                    items:
+                      type: string
+                    example: ["La contraseña debe tener al menos 8 caracteres."]
+        '403':
+          description: Sin permisos para crear usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "No tienes permisos para realizar esta acción."
   /api/conflicts/:
     get:
       operationId: api_conflicts_list
@@ -441,6 +669,10 @@ paths:
       operationId: api_conflicts_resolve_create
       description: Resolver un conflicto detectado durante la sincronización. Marcará
         el conflicto como resuelto y registrará el usuario que lo resolvió.
+        Cuando se resuelva, el sistema creará notificaciones dirigidas al
+        `reported_by` y al `farm_manager` (si existe). Para trazabilidad se
+        genera un objeto ligero `Alarm` que usan los adaptadores de notificación
+        para crear entradas en `NotificationLog`.
       parameters:
       - in: path
         name: id
@@ -461,6 +693,16 @@ paths:
                   resolution: manual
                   note: Revisado y fusionado
                 summary: Ejemplo resolve
+              MortalityClientResolve:
+                value:
+                  resolution: merged
+                  resolution_type: client
+                  resolution_data:
+                    flock_id: 1
+                    date: 2025-09-28
+                    deaths: 3
+                  resolution_notes: Aplicado desde dispositivo
+                summary: Resolución tipo client para conflicto de mortalidad
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ResolveConflict'
@@ -483,6 +725,16 @@ paths:
                     resolution: manual
                     note: Revisado y fusionado
                   summary: Ejemplo resolve
+                MortalityResolveResponse:
+                  value:
+                    id: 1
+                    resolution_status: RESOLVED_CLIENT
+                    resolution_data:
+                      action: applied_client
+                      message: Mortalidad aplicada
+                      mortality_record_id: 123
+                    resolution_notes: Aplicado desde dispositivo
+                  summary: Ejemplo de respuesta tras aplicar mortalidad
           description: ''
   /api/daily-weights/:
     get:
@@ -703,14 +955,33 @@ paths:
   /api/dashboard/:
     get:
       operationId: api_dashboard_retrieve
-      description: Vista resumida del estado de los galpones accesibles al usuario.
+      summary: Dashboard principal del sistema
+      description: |
+        Vista resumida del estado de los galpones accesibles al usuario.
         Incluye resumen de capacidad/ocupación, listado de galpones con indicadores
         y la hora del último cálculo.
+        
+        **📊 Información proporcionada**:
+        - Resumen general de capacidad y ocupación
+        - Estado detallado de cada galpón accesible
+        - Información de lotes activos por galpón
+        - Indicadores de estado (al día, retrasado, crítico)
+        - Contador de alertas activas
+        - Última actualización de datos
+        
+        **🔒 Filtros por rol**:
+        - `Administrador General`: Ve dashboard completo del sistema
+        - `Administrador de Granja`: Dashboard de su granja asignada
+        - `Galponero/Supervisor`: Dashboard de los galpones donde trabaja
+        
+        **⚡ Actualización automática**:
+        - Los datos se actualizan cada 30 minutos
+        - Los cálculos de porcentaje se realizan en tiempo real
+        - Los indicadores de estado se evalúan dinámicamente
       tags:
-      - api
+      - 📊 Dashboard
       security:
       - jwtAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -718,79 +989,287 @@ paths:
               schema:
                 $ref: '#/components/schemas/DashboardResponse'
               examples:
-                EjemploDashboard:
+                DashboardCompleto:
                   value:
                     summary:
-                      total_capacity: 1000
-                      total_occupancy: 560
+                      total_capacity: 2500
+                      total_occupancy: 1890
+                      occupancy_percentage: 75.6
                     sheds:
                     - id: 1
                       name: Galpón A
-                      farm_name: Granja Central
-                      galponero: Juan Perez
+                      farm_name: Granja Norte
+                      galponero: Juan Pérez
                       occupancy:
-                        current: 200
-                        capacity: 300
-                        percentage: 66.67
+                        current: 450
+                        capacity: 500
+                        percentage: 90.0
                       flocks:
-                        active_count: 2
-                        avg_age: 15.5
-                        total_birds: 200
+                        active_count: 1
+                        avg_age: 28
+                        total_birds: 450
                       last_activity:
-                        weight_date: '2025-09-28'
+                        weight_date: '2025-01-15'
+                        mortality_count: 2
+                      status_indicator:
+                        color: yellow
+                        message: Pesaje retrasado (3 días)
+                    - id: 2
+                      name: Galpón B
+                      farm_name: Granja Norte
+                      galponero: María González
+                      occupancy:
+                        current: 320
+                        capacity: 400
+                        percentage: 80.0
+                      flocks:
+                        active_count: 1
+                        avg_age: 15
+                        total_birds: 320
+                      last_activity:
+                        weight_date: '2025-01-17'
+                        mortality_count: 0
                       status_indicator:
                         color: green
                         message: Al día
-                    alerts_count: 3
-                    last_updated: '2025-09-28T12:00:00Z'
-                  summary: Ejemplo dashboard
-          description: ''
+                    alerts_count: 5
+                    last_updated: '2025-01-18T14:30:00Z'
+                  summary: Dashboard completo con múltiples galpones
+                DashboardVacio:
+                  value:
+                    summary:
+                      total_capacity: 0
+                      total_occupancy: 0
+                      occupancy_percentage: 0
+                    sheds: []
+                    alerts_count: 0
+                    last_updated: '2025-01-18T14:30:00Z'
+                  summary: Dashboard sin galpones asignados
+          description: 'Dashboard principal exitoso'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                TokenExpirado:
+                  value:
+                    error: unauthorized
+                    detail: Token has expired
+                    code: token_expired
+                  summary: Token JWT expirado
+          description: 'Token de autenticación inválido o expirado'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                SinPermisos:
+                  value:
+                    error: forbidden
+                    detail: No tiene permisos para acceder al dashboard
+                    code: insufficient_permissions
+                  summary: Usuario sin permisos
+          description: 'Usuario no tiene permisos para acceder al dashboard'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ErrorServidor:
+                  value:
+                    error: internal_server_error
+                    detail: Error al calcular métricas del dashboard
+                    code: dashboard_calculation_error
+                  summary: Error en cálculo de métricas
+          description: 'Error interno del servidor'
   /api/farms/:
     get:
       operationId: api_farms_list
+      summary: Listar granjas
+      description: |
+        Obtiene la lista paginada de granjas accesibles al usuario autenticado.
+        
+        **Filtros automáticos por rol**:
+        - `Administrador General`: Ve todas las granjas del sistema
+        - `Administrador de Granja`: Solo ve su granja asignada
+        - `Galponero/Supervisor`: Solo ve la granja donde trabaja
+        
+        **Datos incluidos**:
+        - Información básica de la granja
+        - Capacidad total y ocupación actual
+        - Número de galpones activos
+        - Estado operacional
+        - Administrador asignado
+        
+        **Casos de uso**:
+        - Dashboard principal del sistema
+        - Selección de granja en formularios
+        - Reportes por granja
       parameters:
       - name: page
         required: false
         in: query
-        description: Un número de página dentro del conjunto de resultados paginado.
+        description: Número de página (por defecto 1, 20 elementos por página)
         schema:
           type: integer
+          minimum: 1
+          example: 1
+      - name: search
+        required: false
+        in: query
+        description: Buscar por nombre o ubicación de la granja
+        schema:
+          type: string
+          example: "El Pollo Feliz"
+      - name: active_only
+        required: false
+        in: query  
+        description: Filtrar solo granjas activas
+        schema:
+          type: boolean
+          default: true
+          example: true
       tags:
-      - api
+      - 🏢 Gestión de Granjas
       security:
       - jwtAuth: []
       responses:
         '200':
+          description: Lista de granjas obtenida exitosamente
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedFarmList'
-          description: ''
+              example:
+                count: 5
+                next: "/api/farms/?page=2"
+                previous: null
+                results:
+                  - id: 1
+                    name: "Granja El Pollo Feliz"
+                    location: "Cundinamarca, Colombia"
+                    farm_manager: "Juan Pérez"
+                    total_capacity: 5000
+                    current_occupation: 3500
+                    occupation_percentage: 70.0
+                    active_sheds: 8
+                    total_sheds: 10
+                    is_active: true
+                    created_at: "2024-01-15T08:00:00Z"
+        '401':
+          description: Token de autenticación requerido
+        '403':
+          description: Sin permisos para ver granjas
     post:
       operationId: api_farms_create
+      summary: Crear nueva granja
+      description: |
+        Crea una nueva granja en el sistema AvícolaTrack.
+        
+        **Permisos requeridos**:
+        - Solo `Administrador General` puede crear granjas
+        
+        **Validaciones automáticas**:
+        - Nombre único por región
+        - Administrador de granja válido y disponible
+        - Capacidad mínima de 100 aves
+        - Ubicación geográfica válida
+        
+        **Procesos automáticos después de la creación**:
+        - Asignación del administrador de granja
+        - Creación de configuración de alarmas por defecto
+        - Inicialización de inventario base
+        - Envío de notificación al administrador asignado
+        
+        **Ejemplo de flujo**:
+        1. Validar permisos del usuario
+        2. Verificar disponibilidad del administrador
+        3. Crear granja con datos básicos
+        4. Configurar alarmas predeterminadas
+        5. Notificar al administrador asignado
       tags:
-      - api
+      - 🏢 Gestión de Granjas
       requestBody:
+        description: Datos de la nueva granja
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Farm'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Farm'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Farm'
+            example:
+              name: "Granja Los Pollos Hermanos"
+              location: "Valle del Cauca, Colombia"
+              address: "Km 5 Vía Cali-Yumbo"
+              phone: "+57 2 555-0123"
+              email: "admin@polloshermanos.com"
+              farm_manager: 5
+              max_capacity: 10000
+              latitude: 3.4516
+              longitude: -76.5320
+              description: "Granja especializada en pollo de engorde"
         required: true
       security:
       - jwtAuth: []
       responses:
         '201':
+          description: Granja creada exitosamente
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Farm'
-          description: ''
+              example:
+                id: 15
+                name: "Granja Los Pollos Hermanos"
+                location: "Valle del Cauca, Colombia"
+                address: "Km 5 Vía Cali-Yumbo"
+                phone: "+57 2 555-0123"
+                email: "admin@polloshermanos.com"
+                farm_manager: 
+                  id: 5
+                  name: "Carlos Martínez"
+                  email: "carlos@polloshermanos.com"
+                max_capacity: 10000
+                current_occupation: 0
+                occupation_percentage: 0.0
+                total_sheds: 0
+                active_sheds: 0
+                is_active: true
+                created_at: "2025-09-29T10:30:00Z"
+                updated_at: "2025-09-29T10:30:00Z"
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Ya existe una granja con este nombre en la región."]
+                  farm_manager:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Este usuario ya administra otra granja."]
+                  max_capacity:
+                    type: array
+                    items:
+                      type: string
+                    example: ["La capacidad mínima es 100 aves."]
+        '403':
+          description: Sin permisos para crear granjas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Solo administradores generales pueden crear granjas."
   /api/farms/{id}/:
     get:
       operationId: api_farms_retrieve
@@ -899,49 +1378,268 @@ paths:
   /api/flocks/:
     get:
       operationId: api_flocks_list
+      summary: Listar lotes de aves
+      description: |
+        Obtiene la lista paginada de lotes de aves según los permisos del usuario.
+        
+        **Sistema FIFO implementado**:
+        - Los lotes se ordenan automáticamente por fecha de llegada
+        - Priorización para venta según antigüedad
+        - Optimización de rotación de inventario
+        
+        **Filtros automáticos por rol**:
+        - `Galponero`: Solo lotes de sus galpones asignados
+        - `Administrador de Granja`: Todos los lotes de su granja
+        - `Supervisor`: Lotes bajo su supervisión
+        - `Veterinario`: Acceso completo para seguimiento sanitario
+        
+        **Datos calculados incluidos**:
+        - Edad actual en días
+        - Tasa de supervivencia (%)
+        - Peso promedio actual
+        - Consumo diario estimado
+        - Estado sanitario
+        - Próximas fechas de pesaje/vacunación
+        
+        **Estados de lote**:
+        - `ACTIVE`: Lote activo en producción
+        - `SOLD`: Lote vendido
+        - `FINISHED`: Ciclo completo finalizado
+        - `TRANSFERRED`: Transferido a otro galpón
       parameters:
       - name: page
         required: false
         in: query
-        description: Un número de página dentro del conjunto de resultados paginado.
+        description: Número de página (20 lotes por página)
         schema:
           type: integer
+          minimum: 1
+          example: 1
+      - name: shed
+        required: false
+        in: query
+        description: Filtrar por ID de galpón específico
+        schema:
+          type: integer
+          example: 5
+      - name: status
+        required: false
+        in: query
+        description: Filtrar por estado del lote
+        schema:
+          type: string
+          enum: ['ACTIVE', 'SOLD', 'FINISHED', 'TRANSFERRED']
+          example: 'ACTIVE'
+      - name: breed
+        required: false
+        in: query
+        description: Filtrar por raza
+        schema:
+          type: string
+          example: "Ross 308"
+      - name: age_min
+        required: false
+        in: query
+        description: Edad mínima en días
+        schema:
+          type: integer
+          example: 21
+      - name: age_max
+        required: false
+        in: query
+        description: Edad máxima en días
+        schema:
+          type: integer
+          example: 45
+      - name: ordering
+        required: false
+        in: query
+        description: Campo de ordenamiento (arrival_date, -arrival_date, current_age_days, -current_age_days)
+        schema:
+          type: string
+          default: "arrival_date"
+          example: "-arrival_date"
       tags:
-      - api
+      - 🐔 Gestión de Lotes
       security:
       - jwtAuth: []
       responses:
         '200':
+          description: Lista de lotes obtenida exitosamente
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedFlockList'
-          description: ''
+              example:
+                count: 25
+                next: "/api/flocks/?page=2"
+                previous: null
+                results:
+                  - id: 101
+                    shed:
+                      id: 5
+                      name: "Galpón A-1"
+                      capacity: 1000
+                    arrival_date: "2025-09-01"
+                    initial_quantity: 950
+                    current_quantity: 920
+                    survival_rate: 96.84
+                    current_age_days: 28
+                    breed: "Ross 308"
+                    gender: "X"
+                    supplier: "Pollitos Premium S.A."
+                    status: "ACTIVE"
+                    initial_weight: 45.0
+                    current_avg_weight: 1250.0
+                    expected_weight: 1300.0
+                    weight_status: "below_target"
+                    daily_consumption: 2850.5
+                    created_by: "Juan Galponero"
+                    fifo_priority: 1
+                    next_weighing_date: "2025-10-02"
+        '401':
+          description: Token de autenticación requerido
+        '403':
+          description: Sin permisos para ver lotes
     post:
       operationId: api_flocks_create
+      summary: Crear nuevo lote de aves
+      description: |
+        Registra un nuevo lote de aves en el sistema.
+        
+        **Validaciones automáticas**:
+        - Verificación de capacidad disponible en el galpón
+        - Validación de raza y proveedor
+        - Control de fechas (no futuras)
+        - Verificación de permisos del usuario
+        
+        **Procesos automáticos tras la creación**:
+        - Asignación automática de referencias de peso por raza
+        - Creación de programa de pesaje automático
+        - Configuración de alarmas específicas del lote
+        - Registro en el sistema FIFO
+        - Cálculo de proyecciones de crecimiento
+        - Programación de notificaciones de seguimiento
+        
+        **Sistema FIFO**:
+        - El lote se posiciona automáticamente en la cola FIFO
+        - Prioridad basada en fecha de llegada
+        - Optimización para rotación de inventario
+        
+        **Notificaciones automáticas**:
+        - Supervisor de granja: Nuevo lote registrado
+        - Veterinario: Programa de vacunación
+        - Administrador: Actualización de capacidad
       tags:
-      - api
+      - 🐔 Gestión de Lotes
       requestBody:
+        description: Datos del nuevo lote de aves
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Flock'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Flock'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Flock'
+            example:
+              shed: 5
+              arrival_date: "2025-09-29"
+              initial_quantity: 1000
+              initial_weight: 45.5
+              breed: "Ross 308"
+              gender: "X"
+              supplier: "Pollitos Premium S.A."
+              batch_number: "PP-2025-1029"
+              vaccination_status: "complete"
+              notes: "Lote premium con certificación sanitaria"
         required: true
       security:
       - jwtAuth: []
       responses:
         '201':
+          description: Lote creado exitosamente
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Flock'
-          description: ''
+              example:
+                id: 125
+                shed:
+                  id: 5
+                  name: "Galpón A-1"
+                  capacity: 1000
+                  current_occupation: 1000
+                arrival_date: "2025-09-29"
+                initial_quantity: 1000
+                current_quantity: 1000
+                initial_weight: 45.5
+                breed: "Ross 308"
+                gender: "X"
+                supplier: "Pollitos Premium S.A."
+                status: "ACTIVE"
+                current_age_days: 0
+                survival_rate: 100.0
+                fifo_priority: 3
+                created_by:
+                  id: 8
+                  name: "Juan Galponero"
+                created_at: "2025-09-29T10:30:00Z"
+                next_weighing_date: "2025-10-06"
+                expected_sale_date: "2025-11-12"
+                breed_references:
+                  current_expected_weight: 45.5
+                  current_expected_consumption: 15.2
+                automatic_alarms_created: 5
+        '400':
+          description: Datos inválidos o errores de validación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shed:
+                    type: array
+                    items:
+                      type: string
+                    example: ["El galpón no tiene capacidad suficiente. Disponible: 200, Solicitado: 1000"]
+                  arrival_date:
+                    type: array
+                    items:
+                      type: string
+                    example: ["La fecha de llegada no puede ser futura."]
+                  initial_quantity:
+                    type: array
+                    items:
+                      type: string
+                    example: ["La cantidad debe ser mayor a 0 y menor a 10000."]
+                  breed:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Raza no válida. Consulte el catálogo de razas disponibles."]
+        '403':
+          description: Sin permisos para crear lotes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "No tienes permisos para crear lotes en este galpón."
+        '409':
+          description: Conflicto de capacidad o recursos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "El galpón ya está ocupado por otro lote activo."
+                  current_occupation:
+                    type: integer
+                    example: 800
+                  available_capacity:
+                    type: integer
+                    example: 200
   /api/flocks/{id}/:
     get:
       operationId: api_flocks_retrieve
@@ -1045,15 +1743,88 @@ paths:
   /api/inventory/:
     get:
       operationId: api_inventory_list
+      summary: Listar elementos del inventario
+      description: |
+        Obtiene la lista paginada de elementos del inventario accesibles al usuario.
+        
+        **📦 Tipos de elementos incluidos**:
+        - Alimentos balanceados (por etapa y tipo)
+        - Medicamentos y vacunas
+        - Suplementos nutricionales
+        - Material de limpieza y desinfección
+        - Equipos y herramientas
+        - Material de construcción y mantenimiento
+        
+        **🔒 Filtros por rol**:
+        - `Administrador General`: Ve todo el inventario del sistema
+        - `Administrador de Granja`: Solo inventario de su granja
+        - `Galponero/Supervisor`: Solo puede ver, no modificar
+        
+        **📊 Información incluida**:
+        - Cantidad actual en stock
+        - Punto de reorden automático
+        - Fecha de última actualización
+        - Precio unitario (si tiene permisos)
+        - Estado del stock (crítico, bajo, normal, alto)
+        
+        **⚠️ Alertas automáticas**:
+        - Stock crítico (menos del 10% del punto de reorden)
+        - Stock bajo (menos del punto de reorden)
+        - Productos próximos a vencer (si aplica)
       parameters:
       - name: page
         required: false
         in: query
-        description: Un número de página dentro del conjunto de resultados paginado.
+        description: Número de página para la paginación (default 1)
         schema:
           type: integer
+          minimum: 1
+          default: 1
+          example: 1
+      - name: page_size
+        required: false
+        in: query
+        description: Cantidad de elementos por página (default 20, máximo 100)
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          example: 20
+      - name: search
+        required: false
+        in: query
+        description: Búsqueda por nombre, descripción o categoría del producto
+        schema:
+          type: string
+          maxLength: 100
+          example: "balanceado"
+      - name: category
+        required: false
+        in: query
+        description: Filtrar por categoría de producto
+        schema:
+          type: string
+          enum: [feed, medicine, supplement, cleaning, equipment, construction]
+          example: "feed"
+      - name: low_stock
+        required: false
+        in: query
+        description: Solo mostrar productos con stock bajo o crítico
+        schema:
+          type: boolean
+          default: false
+          example: true
+      - name: farm
+        required: false
+        in: query
+        description: ID de la granja (solo para administradores generales)
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
       tags:
-      - api
+      - 📦 Gestión de Inventario
       security:
       - jwtAuth: []
       responses:
@@ -1062,23 +1833,172 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedInventoryItemList'
-          description: ''
+              examples:
+                InventarioCompleto:
+                  value:
+                    count: 25
+                    next: "http://localhost:8000/api/inventory/?page=2"
+                    previous: null
+                    results:
+                    - id: 1
+                      name: "Balanceado Inicial 0-3 semanas"
+                      description: "Alimento balanceado para pollos de 0 a 3 semanas"
+                      category: "feed"
+                      unit: "kg"
+                      current_stock: 450.5
+                      reorder_point: 200.0
+                      unit_price: 1850.00
+                      farm: 1
+                      farm_name: "Granja Norte"
+                      last_updated: "2025-01-17T09:30:00Z"
+                      status: "normal"
+                      days_of_supply: 15
+                    - id: 2
+                      name: "Vacuna Newcastle"
+                      description: "Vacuna contra Newcastle - Dosis única"
+                      category: "medicine"
+                      unit: "dosis"
+                      current_stock: 45
+                      reorder_point: 100
+                      unit_price: 850.00
+                      farm: 1
+                      farm_name: "Granja Norte"
+                      last_updated: "2025-01-16T14:20:00Z"
+                      status: "low"
+                      expiry_date: "2025-06-15"
+                      days_of_supply: 8
+                  summary: Lista completa con diferentes categorías
+                InventarioStockBajo:
+                  value:
+                    count: 3
+                    next: null
+                    previous: null
+                    results:
+                    - id: 5
+                      name: "Desinfectante Multisuperficie"
+                      description: "Desinfectante para limpieza de instalaciones"
+                      category: "cleaning"
+                      unit: "litros"
+                      current_stock: 5.2
+                      reorder_point: 25.0
+                      unit_price: 1200.00
+                      farm: 1
+                      farm_name: "Granja Norte"
+                      last_updated: "2025-01-18T08:15:00Z"
+                      status: "critical"
+                      days_of_supply: 2
+                  summary: Filtro solo stock bajo/crítico
+          description: 'Lista de elementos del inventario obtenida exitosamente'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                TokenInvalido:
+                  value:
+                    error: unauthorized
+                    detail: Token has expired
+                    code: token_expired
+                  summary: Token JWT expirado
+          description: 'Token de autenticación inválido'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                SinPermisos:
+                  value:
+                    error: forbidden
+                    detail: No tiene permisos para ver el inventario
+                    code: insufficient_permissions
+                  summary: Usuario sin permisos
+          description: 'Sin permisos para acceder al inventario'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ErrorServidor:
+                  value:
+                    error: internal_server_error
+                    detail: Error al obtener elementos del inventario
+                    code: inventory_fetch_error
+                  summary: Error interno del servidor
+          description: 'Error interno del servidor'
     post:
       operationId: api_inventory_create
+      summary: Crear nuevo elemento de inventario
+      description: |
+        Crea un nuevo elemento en el inventario de la granja.
+        
+        **📝 Campos requeridos**:
+        - `name`: Nombre descriptivo del producto
+        - `category`: Categoría del producto (feed, medicine, supplement, cleaning, equipment, construction)
+        - `unit`: Unidad de medida (kg, litros, dosis, unidades, etc.)
+        - `current_stock`: Cantidad inicial en stock
+        - `reorder_point`: Punto de reorden automático
+        
+        **💰 Campos opcionales**:
+        - `description`: Descripción detallada del producto
+        - `unit_price`: Precio unitario del producto
+        - `supplier`: Proveedor del producto
+        - `expiry_date`: Fecha de vencimiento (para medicamentos y alimentos)
+        
+        **🔒 Permisos requeridos**:
+        - Solo `Administrador General` y `Administrador de Granja` pueden crear elementos
+        - Los elementos se crean automáticamente en la granja del usuario (para admin de granja)
+        
+        **⚡ Procesos automáticos**:
+        - Validación de categoría y unidad de medida
+        - Cálculo automático del estado del stock
+        - Generación de alertas si el stock inicial está bajo
+        - Asignación automática de la granja según el usuario
       tags:
-      - api
+      - 📦 Gestión de Inventario
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/InventoryItem'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/InventoryItem'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/InventoryItem'
-        required: true
+            examples:
+              BalanceadoInicial:
+                value:
+                  name: "Balanceado Crecimiento 4-6 semanas"
+                  description: "Alimento balanceado para pollos de 4 a 6 semanas de edad"
+                  category: "feed"
+                  unit: "kg"
+                  current_stock: 1000.0
+                  reorder_point: 300.0
+                  unit_price: 1950.00
+                  supplier: "Nutriaves S.A."
+                summary: Creación de alimento balanceado
+              MedicamentoVacuna:
+                value:
+                  name: "Vacuna Gumboro"
+                  description: "Vacuna contra enfermedad de Gumboro - Aplicación única"
+                  category: "medicine"
+                  unit: "dosis"
+                  current_stock: 200
+                  reorder_point: 50
+                  unit_price: 750.00
+                  supplier: "VetMed Colombia"
+                  expiry_date: "2025-12-31"
+                summary: Creación de vacuna
+              Desinfectante:
+                value:
+                  name: "Quaternario de Amonio"
+                  description: "Desinfectante concentrado para instalaciones avícolas"
+                  category: "cleaning"
+                  unit: "litros"
+                  current_stock: 50.0
+                  reorder_point: 20.0
+                  unit_price: 1500.00
+                  supplier: "Químicos Industriales"
+                summary: Creación de producto de limpieza
       security:
       - jwtAuth: []
       responses:
@@ -1087,19 +2007,136 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InventoryItem'
-          description: ''
+              examples:
+                ElementoCreado:
+                  value:
+                    id: 15
+                    name: "Balanceado Crecimiento 4-6 semanas"
+                    description: "Alimento balanceado para pollos de 4 a 6 semanas de edad"
+                    category: "feed"
+                    unit: "kg"
+                    current_stock: 1000.0
+                    reorder_point: 300.0
+                    unit_price: 1950.00
+                    supplier: "Nutriaves S.A."
+                    farm: 1
+                    farm_name: "Granja Norte"
+                    created_at: "2025-01-18T15:30:00Z"
+                    last_updated: "2025-01-18T15:30:00Z"
+                    status: "normal"
+                    days_of_supply: 25
+                  summary: Elemento creado exitosamente
+          description: 'Elemento de inventario creado exitosamente'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                DatosInvalidos:
+                  value:
+                    error: validation_error
+                    detail:
+                      name: ["Este campo es requerido"]
+                      current_stock: ["Debe ser un número positivo"]
+                      category: ["Categoría inválida. Opciones válidas: feed, medicine, supplement, cleaning, equipment, construction"]
+                    code: invalid_data
+                  summary: Datos de entrada inválidos
+                StockNegativo:
+                  value:
+                    error: validation_error
+                    detail:
+                      current_stock: ["El stock actual no puede ser negativo"]
+                      reorder_point: ["El punto de reorden debe ser positivo"]
+                    code: invalid_stock_values
+                  summary: Valores de stock inválidos
+          description: 'Datos de entrada inválidos'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                TokenInvalido:
+                  value:
+                    error: unauthorized
+                    detail: Token has expired
+                    code: token_expired
+                  summary: Token JWT expirado
+          description: 'Token de autenticación inválido'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                SinPermisos:
+                  value:
+                    error: forbidden
+                    detail: No tiene permisos para crear elementos del inventario
+                    code: insufficient_permissions
+                  summary: Usuario sin permisos para crear
+          description: 'Sin permisos para crear elementos del inventario'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ElementoDuplicado:
+                  value:
+                    error: conflict
+                    detail: Ya existe un elemento con este nombre en la granja
+                    code: duplicate_inventory_item
+                  summary: Elemento duplicado
+          description: 'Conflicto - elemento ya existe'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ErrorServidor:
+                  value:
+                    error: internal_server_error
+                    detail: Error al crear elemento del inventario
+                    code: inventory_creation_error
+                  summary: Error interno del servidor
+          description: 'Error interno del servidor'
   /api/inventory/{id}/:
     get:
       operationId: api_inventory_retrieve
+      summary: Obtener detalle de elemento del inventario
+      description: |
+        Obtiene la información detallada de un elemento específico del inventario.
+        
+        **📋 Información incluida**:
+        - Detalles completos del producto
+        - Stock actual y punto de reorden
+        - Historial de movimientos recientes (opcional)
+        - Estado actual del stock
+        - Información de precio y proveedor
+        - Fechas de creación y última actualización
+        
+        **🔒 Control de acceso**:
+        - Solo elementos de granjas accesibles al usuario
+        - Los galponeros pueden ver pero no modificar precios
+        
+        **📊 Cálculos automáticos**:
+        - Días de suministro estimados
+        - Estado del stock (crítico, bajo, normal, alto)
+        - Alertas de vencimiento (si aplica)
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este inventory item.
+          minimum: 1
+          example: 1
+        description: ID único del elemento del inventario
         required: true
       tags:
-      - api
+      - 📦 Gestión de Inventario
       security:
       - jwtAuth: []
       responses:
@@ -1108,7 +2145,107 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InventoryItem'
-          description: ''
+              examples:
+                ElementoCompleto:
+                  value:
+                    id: 1
+                    name: "Balanceado Inicial 0-3 semanas"
+                    description: "Alimento balanceado para pollos de 0 a 3 semanas de edad"
+                    category: "feed"
+                    unit: "kg"
+                    current_stock: 450.5
+                    reorder_point: 200.0
+                    unit_price: 1850.00
+                    supplier: "Nutriaves S.A."
+                    farm: 1
+                    farm_name: "Granja Norte"
+                    created_at: "2025-01-10T09:00:00Z"
+                    last_updated: "2025-01-17T14:30:00Z"
+                    status: "normal"
+                    days_of_supply: 18
+                    recent_movements:
+                    - date: "2025-01-17"
+                      type: "consumption"
+                      quantity: -25.5
+                      reason: "Consumo Galpón A"
+                    - date: "2025-01-15"
+                      type: "purchase"
+                      quantity: 100.0
+                      reason: "Compra semanal"
+                  summary: Elemento con todos los detalles
+                MedicamentoVencimiento:
+                  value:
+                    id: 8
+                    name: "Vacuna Newcastle"
+                    description: "Vacuna contra Newcastle - Dosis única"
+                    category: "medicine"
+                    unit: "dosis"
+                    current_stock: 45
+                    reorder_point: 100
+                    unit_price: 850.00
+                    supplier: "VetMed Colombia"
+                    expiry_date: "2025-06-15"
+                    farm: 1
+                    farm_name: "Granja Norte"
+                    created_at: "2025-01-05T10:15:00Z"
+                    last_updated: "2025-01-16T16:45:00Z"
+                    status: "low"
+                    days_of_supply: 8
+                    expiry_warning: true
+                  summary: Medicamento con alerta de vencimiento
+          description: 'Detalle del elemento obtenido exitosamente'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                TokenInvalido:
+                  value:
+                    error: unauthorized
+                    detail: Token has expired
+                    code: token_expired
+                  summary: Token JWT expirado
+          description: 'Token de autenticación inválido'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                SinAcceso:
+                  value:
+                    error: forbidden
+                    detail: No tiene acceso a este elemento del inventario
+                    code: insufficient_permissions
+                  summary: Sin acceso al elemento
+          description: 'Sin permisos para acceder a este elemento'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ElementoNoEncontrado:
+                  value:
+                    error: not_found
+                    detail: Elemento del inventario no encontrado
+                    code: inventory_item_not_found
+                  summary: Elemento no existe
+          description: 'Elemento del inventario no encontrado'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ErrorServidor:
+                  value:
+                    error: internal_server_error
+                    detail: Error al obtener elemento del inventario
+                    code: inventory_retrieve_error
+                  summary: Error interno del servidor
+          description: 'Error interno del servidor'
     put:
       operationId: api_inventory_update
       parameters:
@@ -2403,8 +3540,15 @@ components:
       properties:
         resolution:
           $ref: '#/components/schemas/ResolutionEnum'
-        note:
+        resolution_type:
           type: string
+          description: "Detalle del origen de la resolución (client | server | manual | ignore). Opcional cuando resolution indica estado final."
+        resolution_data:
+          type: object
+          description: "Datos adicionales necesarios para aplicar la resolución (ej.: para mortalidad: flock_id, date, deaths)."
+        resolution_notes:
+          type: string
+          description: "Notas explicativas opcionales para la resolución manual o el auditor."
       required:
       - resolution
     ShedDetail:

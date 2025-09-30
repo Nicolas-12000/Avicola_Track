@@ -62,7 +62,7 @@ class ConflictPersistenceAPITest(APITestCase):
             flock_id=self.flock.id
         )
 
-        url = f'/api/conflicts/{conflict.id}/resolve/'
+        url = reverse('flock-conflict-resolve', kwargs={'pk': conflict.id})
         resp = self.client.post(url, {'resolution': 'manual', 'note': 'Reviewed and merged'}, format='json')
         assert resp.status_code == 200
         conflict.refresh_from_db()

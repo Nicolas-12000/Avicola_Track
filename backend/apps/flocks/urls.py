@@ -10,7 +10,13 @@ router = DefaultRouter()
 router.register(r'flocks', FlockViewSet, basename='flock')
 router.register(r'daily-weights', DailyWeightViewSet, basename='dailyweight')
 router.register(r'mortality', MortalityViewSet, basename='mortality')
-router.register(r'conflicts', SyncConflictViewSet, basename='conflict')
+# NOTE: We explicitly register the flocks-local conflicts under 'flocks-conflicts' to
+# avoid a route name collision with the central `apps.sync` router which exposes
+# the canonical `/api/conflicts/` endpoints. This keeps the public API stable and
+# prevents ambiguous URL resolution in environments where both routers are included
+# under the same `/api/` prefix. If you add another SyncConflictViewSet elsewhere,
+# please choose a unique route and basename.
+router.register(r'flocks-conflicts', SyncConflictViewSet, basename='flock-conflict')
 router.register(r'references', BreedReferenceViewSet, basename='breedreference')
 
 urlpatterns = [

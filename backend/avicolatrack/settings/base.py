@@ -29,6 +29,9 @@ INSTALLED_APPS = [
     'apps.alarms',
     'apps.reports',
     'apps.sync',
+    
+    # Celery Beat
+    'django_celery_beat',
 ]
 
 # Middleware optimized for slow links
@@ -137,8 +140,34 @@ SIMPLE_JWT = {
 # drf-spectacular OpenAPI settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'AvícolaTrack API',
-    'DESCRIPTION': 'API OpenAPI schema for AvícolaTrack (Sprint 1)',
-    'VERSION': '1.0.0',
+    'DESCRIPTION': '''# AvícolaTrack API Documentation
+
+    ## Descripción General
+    API REST completa para el sistema de gestión avícola AvícolaTrack. 
+    Este sistema permite la administración integral de granjas avícolas, incluyendo:
+    
+    - 🏢 **Gestión de Granjas**: Administración de granjas, galpones y trabajadores
+    - 🐔 **Gestión de Lotes**: Control completo del ciclo de vida de lotes de aves
+    - 📦 **Inventario**: Control de alimento, consumo y stock
+    - 🚨 **Alarmas**: Monitoreo automático e indicadores críticos
+    - 📊 **Reportes**: Generación de reportes automatizados
+    - 🔄 **Sincronización**: Sistema de sincronización para dispositivos móviles
+    
+    ## Autenticación
+    La API utiliza autenticación JWT (JSON Web Tokens). Para acceder a los endpoints protegidos:
+    
+    1. Obtén un token usando `/api/auth/login/`
+    2. Incluye el token en el header: `Authorization: Bearer <token>`
+    3. Renueva el token usando `/api/auth/refresh/` cuando sea necesario
+    ''',
+    'VERSION': '9.0.0',
+    'SERVERS': [
+        {'url': 'http://localhost:8000', 'description': 'Servidor de desarrollo local'},
+    ],
+    'CONTACT': {
+        'name': 'Nicolas Garcia',
+        'url': 'https://github.com/Nicolas-12000',
+    },
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
@@ -159,3 +188,12 @@ LOGGING = {
         'level': os.environ.get('LOG_LEVEL', 'INFO'),
     },
 }
+
+# Celery Configuration (Redis as broker)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
