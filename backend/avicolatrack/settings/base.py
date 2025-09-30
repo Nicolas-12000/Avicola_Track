@@ -163,16 +163,10 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '9.0.0',
     'SERVERS': [
         {'url': 'http://localhost:8000', 'description': 'Servidor de desarrollo local'},
-        {'url': 'https://api.avicolatrack.com', 'description': 'Servidor de producción'},
     ],
     'CONTACT': {
         'name': 'Nicolas Garcia',
         'url': 'https://github.com/Nicolas-12000',
-        'email': 'nicolas.garcia@avicolatrack.com',
-    },
-    'LICENSE': {
-        'name': 'MIT License',
-        'url': 'https://opensource.org/licenses/MIT',
     },
     'SERVE_INCLUDE_SCHEMA': False,
 }
