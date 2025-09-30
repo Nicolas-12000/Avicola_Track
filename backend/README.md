@@ -46,7 +46,7 @@ AvícolaTrack Backend es un sistema completo de gestión avícola que permite el
 
 - **Framework**: Django 5.2.6
 - **API**: Django REST Framework
-- **Base de Datos**: SQLite (desarrollo) / PostgreSQL (producción)
+- **Base de Datos**: SQLite (desarrollo) / 
 - **Autenticación**: JWT con django-rest-framework-simplejwt
 - **Documentación**: drf-spectacular (OpenAPI/Swagger)
 - **Tareas Asíncronas**: Celery + Redis
@@ -162,7 +162,7 @@ backend/
 
 ### Base de Datos
 - **Desarrollo**: SQLite (por defecto)
-- **Producción**: PostgreSQL (recomendado)
+- **Producción**: 
 
 ### Cache y Tareas Asíncronas
 - **Redis**: Para cache y broker de Celery
