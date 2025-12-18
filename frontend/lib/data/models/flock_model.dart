@@ -1,0 +1,143 @@
+class FlockModel {
+  final int id;
+  final int shedId;
+  final String? shedName;
+  final int farmId;
+  final String? farmName;
+  final String breed;
+  final int initialQuantity;
+  final int currentQuantity;
+  final double? initialWeight;
+  final double? currentWeight;
+  final String gender;
+  final DateTime arrivalDate;
+  final DateTime? saleDate;
+  final String? supplier;
+  final String status;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  FlockModel({
+    required this.id,
+    required this.shedId,
+    this.shedName,
+    required this.farmId,
+    this.farmName,
+    required this.breed,
+    required this.initialQuantity,
+    required this.currentQuantity,
+    this.initialWeight,
+    this.currentWeight,
+    required this.gender,
+    required this.arrivalDate,
+    this.saleDate,
+    this.supplier,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory FlockModel.fromJson(Map<String, dynamic> json) {
+    return FlockModel(
+      id: json['id'] as int,
+      shedId: json['shed'] as int,
+      shedName: json['shed_name'] as String?,
+      farmId: json['farm'] as int,
+      farmName: json['farm_name'] as String?,
+      breed: json['breed'] as String,
+      initialQuantity: json['initial_quantity'] as int,
+      currentQuantity: json['current_quantity'] as int,
+      initialWeight: (json['initial_weight'] as num?)?.toDouble(),
+      currentWeight: (json['current_weight'] as num?)?.toDouble(),
+      gender: json['gender'] as String,
+      arrivalDate: DateTime.parse(json['arrival_date'] as String),
+      saleDate: json['sale_date'] != null
+          ? DateTime.parse(json['sale_date'] as String)
+          : null,
+      supplier: json['supplier'] as String?,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'shed': shedId,
+      'farm': farmId,
+      'breed': breed,
+      'initial_quantity': initialQuantity,
+      'current_quantity': currentQuantity,
+      'initial_weight': initialWeight,
+      'current_weight': currentWeight,
+      'gender': gender,
+      'arrival_date': arrivalDate.toIso8601String().split('T')[0],
+      'sale_date': saleDate?.toIso8601String().split('T')[0],
+      'supplier': supplier,
+      'status': status,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  int get ageInDays {
+    return DateTime.now().difference(arrivalDate).inDays;
+  }
+
+  int get deadCount => initialQuantity - currentQuantity;
+
+  double get mortalityRate {
+    if (initialQuantity == 0) return 0.0;
+    return (deadCount / initialQuantity) * 100;
+  }
+
+  double? get weightGain {
+    if (initialWeight == null || currentWeight == null) return null;
+    return currentWeight! - initialWeight!;
+  }
+
+  bool get isActive => status == 'Active';
+  bool get isSold => status == 'Sold';
+  bool get isTerminated => status == 'Terminated';
+
+  FlockModel copyWith({
+    int? id,
+    int? shedId,
+    String? shedName,
+    int? farmId,
+    String? farmName,
+    String? breed,
+    int? initialQuantity,
+    int? currentQuantity,
+    double? initialWeight,
+    double? currentWeight,
+    String? gender,
+    DateTime? arrivalDate,
+    DateTime? saleDate,
+    String? supplier,
+    String? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return FlockModel(
+      id: id ?? this.id,
+      shedId: shedId ?? this.shedId,
+      shedName: shedName ?? this.shedName,
+      farmId: farmId ?? this.farmId,
+      farmName: farmName ?? this.farmName,
+      breed: breed ?? this.breed,
+      initialQuantity: initialQuantity ?? this.initialQuantity,
+      currentQuantity: currentQuantity ?? this.currentQuantity,
+      initialWeight: initialWeight ?? this.initialWeight,
+      currentWeight: currentWeight ?? this.currentWeight,
+      gender: gender ?? this.gender,
+      arrivalDate: arrivalDate ?? this.arrivalDate,
+      saleDate: saleDate ?? this.saleDate,
+      supplier: supplier ?? this.supplier,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}

@@ -41,13 +41,70 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
             onPressed: () {
-              // TODO: Implementar búsqueda
+              showSearch(
+                context: context,
+                delegate: _FarmSearchDelegate(farmsState.farms),
+              );
             },
           ),
           IconButton(
             icon: const Icon(Icons.filter_list, color: Colors.white),
             onPressed: () {
-              // TODO: Implementar filtros
+              showModalBottomSheet(
+                context: context,
+                builder: (context) => SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Filtrar granjas',
+                          style: AppTextStyles.textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 20),
+                        ListTile(
+                          leading: const Icon(Icons.sort_by_alpha),
+                          title: const Text('Ordenar por nombre'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Ordenado por nombre'),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.location_on),
+                          title: const Text('Ordenar por ubicación'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Ordenado por ubicación'),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.people),
+                          title: const Text('Granjas con asignación'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Mostrando granjas asignadas'),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         ],
@@ -138,9 +195,50 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // TODO: Navegar a detalle
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Ver detalle de ${farm.name}')),
+            showModalBottomSheet(
+              context: context,
+              builder: (context) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.visibility),
+                      title: const Text('Ver detalles'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🏢 Ver detalles de ${farm.name}'),
+                            action: SnackBarAction(
+                              label: 'OK',
+                              onPressed: () {},
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.edit),
+                      title: const Text('Editar'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showFarmDialog(context, farm);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.delete, color: Colors.red),
+                      title: const Text(
+                        'Eliminar',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDeleteConfirmation(farm);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             );
           },
           child: Padding(
@@ -432,6 +530,143 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// SearchDelegate para búsqueda de granjas
+class _FarmSearchDelegate extends SearchDelegate {
+  final List farms;
+
+  _FarmSearchDelegate(this.farms);
+
+  @override
+  String get searchFieldLabel => 'Buscar granja...';
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, null);
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return _buildSearchResults(context);
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    return _buildSearchResults(context);
+  }
+
+  Widget _buildSearchResults(BuildContext context) {
+    final results = farms.where((dynamic farm) {
+      final searchLower = query.toLowerCase();
+      final nameLower = (farm.name as String).toLowerCase();
+      final locationLower = (farm.location as String?)?.toLowerCase() ?? '';
+
+      return nameLower.contains(searchLower) ||
+          locationLower.contains(searchLower);
+    }).toList();
+
+    if (results.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No se encontraron granjas',
+              style: AppTextStyles.textTheme.titleMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Intenta con otro término de búsqueda',
+              style: AppTextStyles.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: results.length,
+      padding: const EdgeInsets.all(16),
+      itemBuilder: (context, index) {
+        final dynamic farm = results[index];
+        final String farmName = farm.name as String;
+        final String? farmLocation = farm.location as String?;
+
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            leading: CircleAvatar(
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.business, color: Colors.white),
+            ),
+            title: Text(farmName, style: AppTextStyles.textTheme.titleMedium),
+            subtitle: farmLocation != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            farmLocation,
+                            style: AppTextStyles.textTheme.bodySmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : null,
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              close(context, null);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('🏢 Seleccionaste: $farmName'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

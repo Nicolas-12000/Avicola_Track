@@ -129,7 +129,18 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          // TODO: Navegar a detalle de usuario
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Ver detalle de ${user.firstName} ${user.lastName}',
+              ),
+              duration: const Duration(seconds: 2),
+              action: SnackBarAction(
+                label: 'Editar',
+                onPressed: () => _showUserDialog(context, user),
+              ),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

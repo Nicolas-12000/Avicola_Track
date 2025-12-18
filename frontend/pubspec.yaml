@@ -49,6 +49,9 @@ dependencies:
   json_annotation: ^4.9.0
   pretty_dio_logger: ^1.4.0
   
+  # Functional Programming
+  dartz: ^0.10.1
+  
   # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0

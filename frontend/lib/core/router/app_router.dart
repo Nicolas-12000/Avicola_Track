@@ -6,6 +6,8 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/admin_dashboard_screen.dart';
 import '../../features/farms/presentation/screens/farms_list_screen.dart';
 import '../../features/users/presentation/screens/users_list_screen.dart';
+import '../../features/sheds/presentation/screens/sheds_list_screen.dart';
+import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
 
 // Router Provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -95,12 +97,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      // Sheds Routes
+      GoRoute(
+        path: '/sheds',
+        name: 'sheds',
+        builder: (context, state) => const ShedsListScreen(),
+      ),
+
       // Flocks Routes
       GoRoute(
         path: '/flocks',
         name: 'flocks',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Flocks List - TODO'))),
+        builder: (context, state) => const FlocksListScreen(),
       ),
 
       // Inventory Routes

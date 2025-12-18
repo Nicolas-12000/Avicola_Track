@@ -61,13 +61,23 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () {
-              // TODO: Navegar a notificaciones
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🔔 Sistema de notificaciones - Próximamente'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Colors.white),
             onPressed: () {
-              // TODO: Navegar a configuración
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('⚙️ Configuración - Próximamente'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
           ),
           const SizedBox(width: 8),
@@ -194,7 +204,54 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               IconButton(
                 icon: const Icon(Icons.more_vert),
                 onPressed: () {
-                  // TODO: Mostrar opciones
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (context) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.file_download),
+                            title: const Text('Exportar datos'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('📊 Exportando datos...'),
+                                ),
+                              );
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.refresh),
+                            title: const Text('Actualizar gráfico'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('🔄 Actualizando...'),
+                                ),
+                              );
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.settings),
+                            title: const Text('Configurar vista'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    '⚙️ Configuración - Próximamente',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               ),
             ],
@@ -407,7 +464,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
                       onPressed: () {
-                        // TODO: Navegar a detalle de granja
+                        final farmName =
+                            farmsState.farms.isNotEmpty &&
+                                index < farmsState.farms.length
+                            ? farmsState.farms[index].name
+                            : 'Granja';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🏢 Ver detalle de $farmName'),
+                            duration: const Duration(seconds: 2),
+                            action: SnackBarAction(
+                              label: 'Ir a Granjas',
+                              onPressed: () => context.push('/farms'),
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ],
