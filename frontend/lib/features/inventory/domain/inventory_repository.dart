@@ -21,9 +21,7 @@ class InventoryRepository {
     }
   }
 
-  Future<Either<Failure, InventoryItemModel>> getInventoryItem(
-    int id,
-  ) async {
+  Future<Either<Failure, InventoryItemModel>> getInventoryItem(int id) async {
     try {
       final item = await dataSource.getInventoryItem(id);
       return Right(item);

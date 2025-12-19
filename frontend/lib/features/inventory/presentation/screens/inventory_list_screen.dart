@@ -20,14 +20,15 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(inventoryProvider.notifier).loadInventoryItems(farmId: widget.farmId);
+      ref
+          .read(inventoryProvider.notifier)
+          .loadInventoryItems(farmId: widget.farmId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final inventoryState = ref.watch(inventoryProvider);
-    final farmsState = ref.watch(farmsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,65 +44,74 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       body: inventoryState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : inventoryState.error != null
-              ? Center(child: Text('Error: ${inventoryState.error}'))
-              : inventoryState.items.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inventory_2_outlined,
-                              size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('No hay items en inventario',
-                              style: TextStyle(fontSize: 18, color: Colors.grey)),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () => ref
-                          .read(inventoryProvider.notifier)
-                          .loadInventoryItems(farmId: widget.farmId),
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          // Stats Cards
-                          _buildStatsRow(inventoryState),
-                          const SizedBox(height: 16),
-                          
-                          // Expiring Items Warning
-                          if (inventoryState.expiringItems.isNotEmpty)
-                            _buildExpiringWarning(inventoryState.expiringItems),
-                          
-                          // Critical Items
-                          if (inventoryState.criticalItems.isNotEmpty) ...[
-                            _buildSectionHeader('Crítico', Colors.red),
-                            ...inventoryState.criticalItems
-                                .map((item) => _buildInventoryCard(item)),
-                          ],
-                          
-                          // Low Stock Items
-                          if (inventoryState.lowStockItems.isNotEmpty) ...[
-                            _buildSectionHeader('Stock Bajo', Colors.orange),
-                            ...inventoryState.lowStockItems
-                                .map((item) => _buildInventoryCard(item)),
-                          ],
-                          
-                          // Warning Items
-                          if (inventoryState.warningItems.isNotEmpty) ...[
-                            _buildSectionHeader('Advertencia', Colors.amber),
-                            ...inventoryState.warningItems
-                                .map((item) => _buildInventoryCard(item)),
-                          ],
-                          
-                          // Normal Items
-                          if (inventoryState.normalItems.isNotEmpty) ...[
-                            _buildSectionHeader('Normal', Colors.green),
-                            ...inventoryState.normalItems
-                                .map((item) => _buildInventoryCard(item)),
-                          ],
-                        ],
-                      ),
+          ? Center(child: Text('Error: ${inventoryState.error}'))
+          : inventoryState.items.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No hay items en inventario',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: () => ref
+                  .read(inventoryProvider.notifier)
+                  .loadInventoryItems(farmId: widget.farmId),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Stats Cards
+                  _buildStatsRow(inventoryState),
+                  const SizedBox(height: 16),
+
+                  // Expiring Items Warning
+                  if (inventoryState.expiringItems.isNotEmpty)
+                    _buildExpiringWarning(inventoryState.expiringItems),
+
+                  // Critical Items
+                  if (inventoryState.criticalItems.isNotEmpty) ...[
+                    _buildSectionHeader('Crítico', Colors.red),
+                    ...inventoryState.criticalItems.map(
+                      (item) => _buildInventoryCard(item),
                     ),
+                  ],
+
+                  // Low Stock Items
+                  if (inventoryState.lowStockItems.isNotEmpty) ...[
+                    _buildSectionHeader('Stock Bajo', Colors.orange),
+                    ...inventoryState.lowStockItems.map(
+                      (item) => _buildInventoryCard(item),
+                    ),
+                  ],
+
+                  // Warning Items
+                  if (inventoryState.warningItems.isNotEmpty) ...[
+                    _buildSectionHeader('Advertencia', Colors.amber),
+                    ...inventoryState.warningItems.map(
+                      (item) => _buildInventoryCard(item),
+                    ),
+                  ],
+
+                  // Normal Items
+                  if (inventoryState.normalItems.isNotEmpty) ...[
+                    _buildSectionHeader('Normal', Colors.green),
+                    ...inventoryState.normalItems.map(
+                      (item) => _buildInventoryCard(item),
+                    ),
+                  ],
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showInventoryDialog(),
         backgroundColor: AppColors.primary,
@@ -152,7 +162,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -163,11 +178,16 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             Text(
               value,
               style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold, color: color),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-            Text(label,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                textAlign: TextAlign.center),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -179,11 +199,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(
-            width: 4,
-            height: 20,
-            color: color,
-          ),
+          Container(width: 4, height: 20, color: color),
           const SizedBox(width: 8),
           Text(
             title,
@@ -216,8 +232,11 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
   Widget _buildInventoryCard(InventoryItemModel item) {
     final statusColor = _getStatusColor(item.stockStatus);
-    final stockPercentage = (item.currentStock / item.minimumStock * 100).clamp(0, 200);
-    
+    final stockPercentage = (item.currentStock / item.minimumStock * 100).clamp(
+      0,
+      200,
+    );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -254,7 +273,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -271,7 +293,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Stock Progress Bar
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +323,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   ),
                 ],
               ),
-              
+
               // Additional Info
               const SizedBox(height: 12),
               Row(
@@ -333,7 +355,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   ],
                 ],
               ),
-              
+
               // Actions
               const SizedBox(height: 12),
               Row(
@@ -343,18 +365,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     onPressed: () => _showAdjustStockDialog(item, isAdd: false),
                     icon: const Icon(Icons.remove_circle_outline, size: 18),
                     label: const Text('Consumir'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: () => _showAdjustStockDialog(item, isAdd: true),
                     icon: const Icon(Icons.add_circle_outline, size: 18),
                     label: const Text('Agregar'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.green,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.green),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
@@ -405,14 +423,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     final nameController = TextEditingController(text: item?.name);
     final categoryController = TextEditingController(text: item?.category);
     final unitController = TextEditingController(text: item?.unit);
-    final currentStockController =
-        TextEditingController(text: item?.currentStock.toString());
-    final minimumStockController =
-        TextEditingController(text: item?.minimumStock.toString());
-    final avgConsumptionController =
-        TextEditingController(text: item?.averageConsumption?.toString());
+    final currentStockController = TextEditingController(
+      text: item?.currentStock.toString(),
+    );
+    final minimumStockController = TextEditingController(
+      text: item?.minimumStock.toString(),
+    );
+    final avgConsumptionController = TextEditingController(
+      text: item?.averageConsumption?.toString(),
+    );
     final supplierController = TextEditingController(text: item?.supplier);
-    
+
     int? selectedFarmId = item?.farmId ?? widget.farmId;
 
     showModalBottomSheet(
@@ -434,10 +455,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   Text(
                     isEdit ? 'Editar Item' : 'Nuevo Item',
                     style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Farm Selector (solo si no está filtrado)
                   if (widget.farmId == null)
                     Consumer(
@@ -450,10 +473,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                             border: OutlineInputBorder(),
                           ),
                           items: farmsState.farms
-                              .map((farm) => DropdownMenuItem(
-                                    value: farm.id,
-                                    child: Text(farm.name),
-                                  ))
+                              .map(
+                                (farm) => DropdownMenuItem(
+                                  value: farm.id,
+                                  child: Text(farm.name),
+                                ),
+                              )
                               .toList(),
                           onChanged: (value) => selectedFarmId = value,
                           validator: (value) =>
@@ -461,7 +486,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         );
                       },
                     ),
-                  
+
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: nameController,
@@ -561,29 +586,45 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         onPressed: () {
                           if (formKey.currentState!.validate()) {
                             if (isEdit) {
-                              ref.read(inventoryProvider.notifier).updateInventoryItem(
+                              ref
+                                  .read(inventoryProvider.notifier)
+                                  .updateInventoryItem(
                                     id: item.id,
                                     name: nameController.text,
                                     category: categoryController.text,
                                     unit: unitController.text,
-                                    minimumStock: double.parse(minimumStockController.text),
-                                    averageConsumption: avgConsumptionController.text.isNotEmpty
-                                        ? double.tryParse(avgConsumptionController.text)
+                                    minimumStock: double.parse(
+                                      minimumStockController.text,
+                                    ),
+                                    averageConsumption:
+                                        avgConsumptionController.text.isNotEmpty
+                                        ? double.tryParse(
+                                            avgConsumptionController.text,
+                                          )
                                         : null,
                                     supplier: supplierController.text.isNotEmpty
                                         ? supplierController.text
                                         : null,
                                   );
                             } else {
-                              ref.read(inventoryProvider.notifier).createInventoryItem(
+                              ref
+                                  .read(inventoryProvider.notifier)
+                                  .createInventoryItem(
                                     farmId: selectedFarmId!,
                                     name: nameController.text,
                                     category: categoryController.text,
                                     unit: unitController.text,
-                                    currentStock: double.parse(currentStockController.text),
-                                    minimumStock: double.parse(minimumStockController.text),
-                                    averageConsumption: avgConsumptionController.text.isNotEmpty
-                                        ? double.tryParse(avgConsumptionController.text)
+                                    currentStock: double.parse(
+                                      currentStockController.text,
+                                    ),
+                                    minimumStock: double.parse(
+                                      minimumStockController.text,
+                                    ),
+                                    averageConsumption:
+                                        avgConsumptionController.text.isNotEmpty
+                                        ? double.tryParse(
+                                            avgConsumptionController.text,
+                                          )
                                         : null,
                                     supplier: supplierController.text.isNotEmpty
                                         ? supplierController.text
@@ -660,7 +701,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             onPressed: () {
               if (formKey.currentState!.validate()) {
                 final quantity = double.parse(quantityController.text);
-                ref.read(inventoryProvider.notifier).adjustStock(
+                ref
+                    .read(inventoryProvider.notifier)
+                    .adjustStock(
                       id: item.id,
                       quantityChange: isAdd ? quantity : -quantity,
                       reason: reasonController.text,

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/alarm_model.dart';
 import '../providers/alarms_provider.dart';
-import '../../../farms/presentation/providers/farms_provider.dart';
 
 class AlarmsListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -36,7 +35,9 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
   }
 
   void _loadAlarms({bool? isResolved}) {
-    ref.read(alarmsProvider.notifier).loadAlarms(
+    ref
+        .read(alarmsProvider.notifier)
+        .loadAlarms(
           farmId: widget.farmId,
           severity: _selectedSeverity,
           isResolved: isResolved,
@@ -66,7 +67,9 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(12),
@@ -177,10 +180,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
             color: color,
           ),
         ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
@@ -208,7 +208,9 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              isResolved ? 'No hay alarmas resueltas' : 'No hay alarmas activas',
+              isResolved
+                  ? 'No hay alarmas resueltas'
+                  : 'No hay alarmas activas',
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
@@ -238,9 +240,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
-            border: Border(
-              left: BorderSide(color: severityColor, width: 4),
-            ),
+            border: Border(left: BorderSide(color: severityColor, width: 4)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -264,7 +264,9 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: severityColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -316,8 +318,11 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.check_circle,
-                          size: 16, color: Colors.green),
+                      const Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Resuelta el ${_formatDate(alarm.resolvedAt!)}',
@@ -433,8 +438,12 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
               _buildDetailRow('Fecha', _formatDate(alarm.createdAt)),
               if (alarm.isResolved) ...[
                 const Divider(),
-                _buildDetailRow('Resuelta el',
-                    alarm.resolvedAt != null ? _formatDate(alarm.resolvedAt!) : '-'),
+                _buildDetailRow(
+                  'Resuelta el',
+                  alarm.resolvedAt != null
+                      ? _formatDate(alarm.resolvedAt!)
+                      : '-',
+                ),
                 if (alarm.resolutionNotes != null)
                   _buildDetailRow('Notas', alarm.resolutionNotes!),
               ],
@@ -511,7 +520,9 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                ref.read(alarmsProvider.notifier).resolveAlarm(
+                ref
+                    .read(alarmsProvider.notifier)
+                    .resolveAlarm(
                       id: alarm.id,
                       resolutionNotes: notesController.text,
                     );

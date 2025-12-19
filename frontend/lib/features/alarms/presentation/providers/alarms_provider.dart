@@ -102,41 +102,40 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
       resolutionNotes: resolutionNotes,
     );
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (resolvedAlarm) {
-        final updatedAlarms = state.alarms.map((alarm) {
-          return alarm.id == id ? resolvedAlarm : alarm;
-        }).toList();
-        state = state.copyWith(alarms: updatedAlarms, error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      resolvedAlarm,
+    ) {
+      final updatedAlarms = state.alarms.map((alarm) {
+        return alarm.id == id ? resolvedAlarm : alarm;
+      }).toList();
+      state = state.copyWith(alarms: updatedAlarms, error: null);
+    });
   }
 
   Future<void> escalateAlarm(int id) async {
     final result = await repository.escalateAlarm(id);
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (escalatedAlarm) {
-        final updatedAlarms = state.alarms.map((alarm) {
-          return alarm.id == id ? escalatedAlarm : alarm;
-        }).toList();
-        state = state.copyWith(alarms: updatedAlarms, error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      escalatedAlarm,
+    ) {
+      final updatedAlarms = state.alarms.map((alarm) {
+        return alarm.id == id ? escalatedAlarm : alarm;
+      }).toList();
+      state = state.copyWith(alarms: updatedAlarms, error: null);
+    });
   }
 
   Future<void> deleteAlarm(int id) async {
     final result = await repository.deleteAlarm(id);
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (_) {
-        final updatedAlarms = state.alarms.where((alarm) => alarm.id != id).toList();
-        state = state.copyWith(alarms: updatedAlarms, error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      _,
+    ) {
+      final updatedAlarms = state.alarms
+          .where((alarm) => alarm.id != id)
+          .toList();
+      state = state.copyWith(alarms: updatedAlarms, error: null);
+    });
   }
 }
 
@@ -151,8 +150,9 @@ final alarmRepositoryProvider = Provider<AlarmRepository>((ref) {
   return AlarmRepository(dataSource);
 });
 
-final alarmsProvider =
-    StateNotifierProvider<AlarmsNotifier, AlarmsState>((ref) {
+final alarmsProvider = StateNotifierProvider<AlarmsNotifier, AlarmsState>((
+  ref,
+) {
   final repository = ref.watch(alarmRepositoryProvider);
   return AlarmsNotifier(repository);
 });

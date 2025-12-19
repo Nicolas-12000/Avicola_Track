@@ -21,8 +21,9 @@ class AlarmRepository {
       );
       return Right(alarms);
     } catch (e) {
-      return Left(ServerFailure(
-          message: 'Error al cargar alarmas: ${e.toString()}'));
+      return Left(
+        ServerFailure(message: 'Error al cargar alarmas: ${e.toString()}'),
+      );
     }
   }
 
@@ -31,8 +32,9 @@ class AlarmRepository {
       final alarm = await dataSource.getAlarm(id);
       return Right(alarm);
     } catch (e) {
-      return Left(ServerFailure(
-          message: 'Error al cargar alarma: ${e.toString()}'));
+      return Left(
+        ServerFailure(message: 'Error al cargar alarma: ${e.toString()}'),
+      );
     }
   }
 
@@ -49,8 +51,9 @@ class AlarmRepository {
       );
       return Right(alarm);
     } catch (e) {
-      return Left(ServerFailure(
-          message: 'Error al resolver alarma: ${e.toString()}'));
+      return Left(
+        ServerFailure(message: 'Error al resolver alarma: ${e.toString()}'),
+      );
     }
   }
 
@@ -59,8 +62,9 @@ class AlarmRepository {
       final alarm = await dataSource.escalateAlarm(id);
       return Right(alarm);
     } catch (e) {
-      return Left(ServerFailure(
-          message: 'Error al escalar alarma: ${e.toString()}'));
+      return Left(
+        ServerFailure(message: 'Error al escalar alarma: ${e.toString()}'),
+      );
     }
   }
 
@@ -69,8 +73,9 @@ class AlarmRepository {
       await dataSource.deleteAlarm(id);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(
-          message: 'Error al eliminar alarma: ${e.toString()}'));
+      return Left(
+        ServerFailure(message: 'Error al eliminar alarma: ${e.toString()}'),
+      );
     }
   }
 
@@ -81,8 +86,9 @@ class AlarmRepository {
       final stats = await dataSource.getAlarmStats(farmId: farmId);
       return Right(stats);
     } catch (e) {
-      return Left(ServerFailure(
-          message: 'Error al cargar estadísticas: ${e.toString()}'));
+      return Left(
+        ServerFailure(message: 'Error al cargar estadísticas: ${e.toString()}'),
+      );
     }
   }
 }

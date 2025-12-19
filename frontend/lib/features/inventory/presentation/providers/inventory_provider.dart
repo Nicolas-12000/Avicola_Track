@@ -27,19 +27,19 @@ class InventoryState {
   // Getters por estado de stock
   List<InventoryItemModel> get criticalItems =>
       items.where((i) => i.stockStatus == 'out_of_stock').toList();
-  
+
   List<InventoryItemModel> get lowStockItems =>
       items.where((i) => i.stockStatus == 'low_stock').toList();
-  
+
   List<InventoryItemModel> get warningItems =>
       items.where((i) => i.stockStatus == 'warning').toList();
-  
+
   List<InventoryItemModel> get normalItems =>
       items.where((i) => i.stockStatus == 'normal').toList();
-  
+
   List<InventoryItemModel> get expiringItems =>
       items.where((i) => i.isExpiringSoon && !i.isExpired).toList();
-  
+
   List<InventoryItemModel> get expiredItems =>
       items.where((i) => i.isExpired).toList();
 }
@@ -86,12 +86,11 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
       supplier: supplier,
     );
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (item) {
-        state = state.copyWith(items: [...state.items, item], error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      item,
+    ) {
+      state = state.copyWith(items: [...state.items, item], error: null);
+    });
   }
 
   Future<void> updateInventoryItem({
@@ -113,27 +112,25 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
       supplier: supplier,
     );
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (updatedItem) {
-        final updatedItems = state.items.map((item) {
-          return item.id == id ? updatedItem : item;
-        }).toList();
-        state = state.copyWith(items: updatedItems, error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      updatedItem,
+    ) {
+      final updatedItems = state.items.map((item) {
+        return item.id == id ? updatedItem : item;
+      }).toList();
+      state = state.copyWith(items: updatedItems, error: null);
+    });
   }
 
   Future<void> deleteInventoryItem(int id) async {
     final result = await repository.deleteInventoryItem(id);
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (_) {
-        final updatedItems = state.items.where((item) => item.id != id).toList();
-        state = state.copyWith(items: updatedItems, error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      _,
+    ) {
+      final updatedItems = state.items.where((item) => item.id != id).toList();
+      state = state.copyWith(items: updatedItems, error: null);
+    });
   }
 
   Future<void> adjustStock({
@@ -147,15 +144,14 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
       reason: reason,
     );
 
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (updatedItem) {
-        final updatedItems = state.items.map((item) {
-          return item.id == id ? updatedItem : item;
-        }).toList();
-        state = state.copyWith(items: updatedItems, error: null);
-      },
-    );
+    result.fold((failure) => state = state.copyWith(error: failure.message), (
+      updatedItem,
+    ) {
+      final updatedItems = state.items.map((item) {
+        return item.id == id ? updatedItem : item;
+      }).toList();
+      state = state.copyWith(items: updatedItems, error: null);
+    });
   }
 }
 
@@ -172,6 +168,6 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 
 final inventoryProvider =
     StateNotifierProvider<InventoryNotifier, InventoryState>((ref) {
-  final repository = ref.watch(inventoryRepositoryProvider);
-  return InventoryNotifier(repository);
-});
+      final repository = ref.watch(inventoryRepositoryProvider);
+      return InventoryNotifier(repository);
+    });

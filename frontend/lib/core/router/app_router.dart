@@ -8,6 +8,12 @@ import '../../features/farms/presentation/screens/farms_list_screen.dart';
 import '../../features/users/presentation/screens/users_list_screen.dart';
 import '../../features/sheds/presentation/screens/sheds_list_screen.dart';
 import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_list_screen.dart';
+import '../../features/alarms/presentation/screens/alarms_list_screen.dart';
+import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart';
+import '../../features/dashboard/presentation/screens/shed_keeper_dashboard_screen.dart';
+import '../../features/reports/presentation/screens/reports_list_screen.dart';
+import '../../features/veterinary/presentation/screens/veterinary_dashboard_screen.dart';
 
 // Router Provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -69,7 +75,19 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+          GoRoute(
+            path: 'dashboard',
+            name: 'farm-dashboard',
+            builder: (context, state) => const FarmDashboardScreen(),
+          ),
         ],
+      ),
+
+      // Dashboard Routes
+      GoRoute(
+        path: '/shed-keeper-dashboard',
+        name: 'shed-keeper-dashboard',
+        builder: (context, state) => const ShedKeeperDashboardScreen(),
       ),
 
       // Users Routes
@@ -115,24 +133,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/inventory',
         name: 'inventory',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Inventory - TODO'))),
+        builder: (context, state) => const InventoryListScreen(),
       ),
 
       // Alarms Routes
       GoRoute(
         path: '/alarms',
         name: 'alarms',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Alarms - TODO'))),
+        builder: (context, state) => const AlarmsListScreen(),
       ),
 
       // Reports Routes
       GoRoute(
         path: '/reports',
         name: 'reports',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Reports - TODO'))),
+        builder: (context, state) => const ReportsListScreen(),
+      ),
+
+      // Veterinary Routes
+      GoRoute(
+        path: '/veterinary',
+        name: 'veterinary-dashboard',
+        builder: (context, state) => const VeterinaryDashboardScreen(),
       ),
 
       // Settings Routes

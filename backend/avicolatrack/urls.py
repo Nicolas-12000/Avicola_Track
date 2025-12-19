@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/', include('apps.alarms.urls')),
     path('api/', include('apps.sync.urls')),
     path('api/', include('apps.reports.urls')),
+    path('api/veterinary/', include('apps.veterinary.urls')),
     # OpenAPI / Swagger
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

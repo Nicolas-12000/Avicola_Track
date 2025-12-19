@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.alarms',
     'apps.reports',
     'apps.sync',
+    'apps.veterinary',
     
     # Celery Beat
     'django_celery_beat',
