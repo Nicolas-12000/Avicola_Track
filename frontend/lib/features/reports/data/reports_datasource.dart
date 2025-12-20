@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../domain/reports_repository.dart';
+import '../../../core/utils/error_handler.dart';
 
 class ReportsDataSource {
   final Dio dio;
@@ -20,8 +21,13 @@ class ReportsDataSource {
         response: response,
         error: 'Failed to load reports',
       );
-    } catch (e) {
-      throw Exception('Failed to load reports: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load reports',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -37,8 +43,13 @@ class ReportsDataSource {
         response: response,
         error: 'Failed to load report',
       );
-    } catch (e) {
-      throw Exception('Failed to load report: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load report',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -68,8 +79,13 @@ class ReportsDataSource {
         response: response,
         error: 'Failed to generate report',
       );
-    } catch (e) {
-      throw Exception('Failed to generate report: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to generate report',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -84,8 +100,13 @@ class ReportsDataSource {
           error: 'Failed to delete report',
         );
       }
-    } catch (e) {
-      throw Exception('Failed to delete report: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to delete report',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 

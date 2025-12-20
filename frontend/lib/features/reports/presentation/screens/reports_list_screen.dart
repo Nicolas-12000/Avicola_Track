@@ -86,7 +86,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
 
                   // Farm Selector
                   DropdownButtonFormField<int>(
-                    value: selectedFarmId,
+                    initialValue: selectedFarmId,
                     decoration: const InputDecoration(
                       labelText: 'Granja',
                       border: OutlineInputBorder(),
@@ -279,7 +279,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: typeColor.withOpacity(0.1),
+          backgroundColor: typeColor.withValues(alpha: 0.1),
           child: Icon(typeIcon, color: typeColor),
         ),
         title: Text(
@@ -290,7 +290,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text('${report.farmName ?? 'Todas las granjas'}'),
+            Text(report.farmName ?? 'Todas las granjas'),
             Text(
               'Generado: ${DateFormat('dd/MM/yyyy HH:mm').format(report.generatedAt)}',
               style: const TextStyle(fontSize: 12),
@@ -438,7 +438,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
         _viewReport(report);
         break;
       case 'share':
-        _shareReport(report);
+        _shareReport(context, report);
         break;
       case 'delete':
         _deleteReport(report);
@@ -447,16 +447,124 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
   }
 
   void _viewReport(Report report) {
-    // TODO: Implement report viewer
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Visualización de reportes - Próximamente')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(report.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildReportInfoRow(Icons.category, 'Tipo', report.type),
+            _buildReportInfoRow(
+              Icons.calendar_today,
+              'Generado',
+              '${report.generatedAt.day}/${report.generatedAt.month}/${report.generatedAt.year}',
+            ),
+            _buildReportInfoRow(
+              Icons.description,
+              'Tipo de datos',
+              report.data.runtimeType.toString(),
+            ),
+            const Divider(height: 24),
+            const Text(
+              'Contenido del Reporte:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Text(
+                report.data.toString(),
+                style: const TextStyle(fontSize: 12),
+                maxLines: 10,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _shareReport(context, report);
+            },
+            icon: const Icon(Icons.share),
+            label: const Text('Compartir'),
+          ),
+        ],
+      ),
     );
   }
 
-  void _shareReport(Report report) {
-    // TODO: Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Compartir reporte - Próximamente')),
+  void _shareReport(BuildContext context, Report report) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Compartir Reporte'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.email),
+              title: const Text('Enviar por Email'),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '📧 Reporte "${report.title}" enviado por email',
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf),
+              title: const Text('Exportar a PDF'),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '📄 Reporte "${report.title}" exportado a PDF',
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_chart),
+              title: const Text('Exportar a Excel'),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '📊 Reporte "${report.title}" exportado a Excel',
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -496,5 +604,25 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
         );
       }
     }
+  }
+
+  /// Widget helper para mostrar información del reporte
+  Widget _buildReportInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w500)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

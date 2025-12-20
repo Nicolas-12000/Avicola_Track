@@ -160,15 +160,53 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🐔 Ver detalle del Lote #${flock.id}'),
-              action: SnackBarAction(
-                label: 'Registros',
-                onPressed: () {
-                  // TODO: Navegar a pantalla de registros
-                },
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Lote #${flock.id}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow(
+                    Icons.pets,
+                    'Cantidad actual',
+                    '${flock.currentQuantity} aves',
+                  ),
+                  _buildInfoRow(Icons.biotech, 'Raza', flock.breed),
+                  _buildInfoRow(Icons.info_outline, 'Estado', flock.status),
+                  const Divider(height: 24),
+                  const Text(
+                    'Acciones disponibles:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.monitor_weight),
+                    title: const Text('Registros de Peso'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/flocks/${flock.id}/weight');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.warning_amber),
+                    title: const Text('Registros de Mortalidad'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/flocks/${flock.id}/mortality');
+                    },
+                  ),
+                ],
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+              ],
             ),
           );
         },
@@ -363,7 +401,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                 children: [
                   if (widget.shedId == null)
                     DropdownButtonFormField<int>(
-                      value: selectedShedId,
+                      initialValue: selectedShedId,
                       decoration: const InputDecoration(
                         labelText: 'Galpón',
                         border: OutlineInputBorder(),
@@ -402,7 +440,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: selectedGender,
+                    initialValue: selectedGender,
                     decoration: const InputDecoration(
                       labelText: 'Género',
                       border: OutlineInputBorder(),
@@ -498,6 +536,26 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Widget helper para mostrar información en el diálogo de detalles
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w500)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
       ),
     );
   }

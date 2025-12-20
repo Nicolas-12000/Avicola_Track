@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../data/models/inventory_item_model.dart';
+import '../../../core/utils/error_handler.dart';
 
 class InventoryDataSource {
   final Dio dio;
@@ -20,8 +21,13 @@ class InventoryDataSource {
             (json) => InventoryItemModel.fromJson(json as Map<String, dynamic>),
           )
           .toList();
-    } catch (e) {
-      throw Exception('Failed to load inventory: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load inventory',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -29,8 +35,13 @@ class InventoryDataSource {
     try {
       final response = await dio.get('/inventory/$id/');
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to load inventory item: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load inventory item',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -61,8 +72,13 @@ class InventoryDataSource {
         },
       );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to create inventory item: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to create inventory item',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -84,26 +100,38 @@ class InventoryDataSource {
       if (unit != null) data['unit'] = unit;
       if (currentStock != null) data['current_stock'] = currentStock;
       if (minimumStock != null) data['minimum_stock'] = minimumStock;
-      if (averageConsumption != null)
+      if (averageConsumption != null) {
         data['average_consumption'] = averageConsumption;
-      if (expirationDate != null)
+      }
+      if (expirationDate != null) {
         data['expiration_date'] = expirationDate.toIso8601String().split(
           'T',
         )[0];
+      }
       if (supplier != null) data['supplier'] = supplier;
 
       final response = await dio.patch('/inventory/$id/', data: data);
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to update inventory item: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to update inventory item',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
   Future<void> deleteInventoryItem(int id) async {
     try {
       await dio.delete('/inventory/$id/');
-    } catch (e) {
-      throw Exception('Failed to delete inventory item: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to delete inventory item',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -118,8 +146,13 @@ class InventoryDataSource {
         data: {'quantity_change': quantityChange, 'reason': reason},
       );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to adjust stock: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to adjust stock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 }

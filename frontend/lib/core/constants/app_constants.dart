@@ -12,6 +12,7 @@ class AppConstants {
   static const String storageKeyTheme = 'theme_mode';
   static const String storageKeyLanguage = 'language';
   static const String storageKeyBiometric = 'biometric_enabled';
+  static const String storageKeyRememberMe = 'remember_me';
 
   // Pagination
   static const int defaultPageSize = 20;

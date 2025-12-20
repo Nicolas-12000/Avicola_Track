@@ -59,6 +59,19 @@ class SecureStorage {
     return value == 'true';
   }
 
+  // Remember Me
+  static Future<void> setRememberMe(bool remember) async {
+    await _storage.write(
+      key: AppConstants.storageKeyRememberMe,
+      value: remember.toString(),
+    );
+  }
+
+  static Future<bool> getRememberMe() async {
+    final value = await _storage.read(key: AppConstants.storageKeyRememberMe);
+    return value == 'true';
+  }
+
   // Clear All
   static Future<void> clearAll() async {
     await _storage.deleteAll();

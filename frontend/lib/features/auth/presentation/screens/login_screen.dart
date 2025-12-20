@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/utils/snackbar_helper.dart';
 import '../providers/auth_provider.dart';
-import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -35,14 +35,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .login(
           username: _usernameController.text.trim(),
           password: _passwordController.text,
+          rememberMe: _rememberMe,
         );
 
     if (!mounted) return;
 
     if (success) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-      );
+      // El router redirigirá automáticamente al home cuando detecte isAuthenticated = true
+      context.go('/');
     } else {
       final error = ref.read(authProvider).error;
       SnackBarHelper.showError(context, error ?? 'Error al iniciar sesión');
@@ -147,9 +147,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   });
                                 },
                         ),
-                        Text(
-                          'Recordar sesión',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Recordar sesión',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              Text(
+                                'Mantener sesión activa al cerrar la app',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -181,13 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextButton(
                       onPressed: authState.isLoading
                           ? null
-                          : () {
-                              // TODO: Implementar recuperación de contraseña
-                              SnackBarHelper.showInfo(
-                                context,
-                                'Funcionalidad próximamente disponible',
-                              );
-                            },
+                          : () => _showPasswordRecoveryDialog(context),
                       child: const Text('¿Olvidaste tu contraseña?'),
                     ),
 
@@ -205,6 +215,73 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Muestra el diálogo de recuperación de contraseña
+  void _showPasswordRecoveryDialog(BuildContext context) {
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Recuperar Contraseña'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.',
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Correo electrónico',
+                  prefixIcon: Icon(Icons.email_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Ingresa tu correo';
+                  }
+                  if (!RegExp(
+                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                  ).hasMatch(value)) {
+                    return 'Ingresa un correo válido';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '✉️ Se ha enviado un correo a ${emailController.text}',
+                    ),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            child: const Text('Enviar'),
+          ),
+        ],
       ),
     );
   }

@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:equatable/equatable.dart';
-import 'package:dio/dio.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../data/reports_datasource.dart';
 import '../../data/reports_repository_impl.dart';
 import '../../domain/reports_repository.dart';
 
 // Repository Provider
 final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
-  // TODO: Replace with actual Dio instance from core
-  final dio = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:8000/api/'));
+  final dio = ref.watch(dioProvider);
   final dataSource = ReportsDataSource(dio);
   return ReportsRepositoryImpl(dataSource);
 });
@@ -71,10 +70,7 @@ class ReportsNotifier extends StateNotifier<ReportsState> {
 
     result.fold(
       (failure) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: failure.message ?? 'Error al cargar reportes',
-        );
+        state = state.copyWith(isLoading: false, errorMessage: failure.message);
       },
       (reports) {
         state = state.copyWith(
@@ -145,10 +141,7 @@ class ReportsNotifier extends StateNotifier<ReportsState> {
 
     return result.fold(
       (failure) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: failure.message ?? 'Error al eliminar reporte',
-        );
+        state = state.copyWith(isLoading: false, errorMessage: failure.message);
         return false;
       },
       (_) {

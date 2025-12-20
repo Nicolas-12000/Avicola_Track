@@ -278,7 +278,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.2),
+                      color: statusColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -467,7 +467,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       builder: (context, ref, _) {
                         final farmsState = ref.watch(farmsProvider);
                         return DropdownButtonFormField<int>(
-                          value: selectedFarmId,
+                          initialValue: selectedFarmId,
                           decoration: const InputDecoration(
                             labelText: 'Granja',
                             border: OutlineInputBorder(),
@@ -531,8 +531,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                           enabled: !isEdit, // No editable en modo edit
                           validator: (value) {
                             if (value?.isEmpty ?? true) return 'Requerido';
-                            if (double.tryParse(value!) == null)
+                            if (double.tryParse(value!) == null) {
                               return 'Número inválido';
+                            }
                             return null;
                           },
                         ),
@@ -548,8 +549,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                           keyboardType: TextInputType.number,
                           validator: (value) {
                             if (value?.isEmpty ?? true) return 'Requerido';
-                            if (double.tryParse(value!) == null)
+                            if (double.tryParse(value!) == null) {
                               return 'Número inválido';
+                            }
                             return null;
                           },
                         ),

@@ -268,7 +268,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: severityColor.withOpacity(0.2),
+                        color: severityColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(

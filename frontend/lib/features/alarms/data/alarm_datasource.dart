@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../data/models/alarm_model.dart';
+import '../../../core/utils/error_handler.dart';
 
 class AlarmDataSource {
   final Dio dio;
@@ -23,8 +24,13 @@ class AlarmDataSource {
       return data
           .map((json) => AlarmModel.fromJson(json as Map<String, dynamic>))
           .toList();
-    } catch (e) {
-      throw Exception('Failed to load alarms: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load alarms',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -32,8 +38,13 @@ class AlarmDataSource {
     try {
       final response = await dio.get('/alarms/$id/');
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to load alarm: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load alarm',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -47,8 +58,13 @@ class AlarmDataSource {
         data: {'resolution_notes': resolutionNotes},
       );
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to resolve alarm: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to resolve alarm',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -56,16 +72,26 @@ class AlarmDataSource {
     try {
       final response = await dio.post('/alarms/$id/escalate/');
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to escalate alarm: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to escalate alarm',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
   Future<void> deleteAlarm(int id) async {
     try {
       await dio.delete('/alarms/$id/');
-    } catch (e) {
-      throw Exception('Failed to delete alarm: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to delete alarm',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -77,8 +103,13 @@ class AlarmDataSource {
         queryParameters: queryParams,
       );
       return Map<String, int>.from(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to load alarm stats: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load alarm stats',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 }

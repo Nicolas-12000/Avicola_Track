@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions
-from .models import AlarmConfiguration, Alarm
+from .models import AlarmConfiguration, Alarm, NotificationLog
 from .serializers import AlarmConfigurationSerializer, AlarmSerializer
+from .serializers_notifications import NotificationLogSerializer
 
 
 class AlarmConfigurationViewSet(viewsets.ModelViewSet):
@@ -137,3 +138,49 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         )
 
         return Response({'updated_count': updated_count, 'message': f'{updated_count} alarmas atendidas'})
+
+
+class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para consultar notificaciones del usuario autenticado"""
+    serializer_class = NotificationLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Solo notificaciones del usuario actual"""
+        return NotificationLog.objects.filter(
+            recipient=self.request.user
+        ).select_related('alarm', 'recipient').order_by('-created_at')
+    
+    @action(detail=False, methods=['get'])
+    def unread(self, request):
+        """Obtener notificaciones no leídas (creadas en últimas 24h)"""
+        from datetime import timedelta
+        
+        cutoff_time = timezone.now() - timedelta(hours=24)
+        notifications = self.get_queryset().filter(
+            created_at__gte=cutoff_time,
+            status='SENT'
+        )
+        
+        serializer = self.get_serializer(notifications, many=True)
+        return Response({
+            'count': notifications.count(),
+            'notifications': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def recent(self, request):
+        """Obtener notificaciones recientes (últimos 7 días)"""
+        from datetime import timedelta
+        
+        cutoff_time = timezone.now() - timedelta(days=7)
+        notifications = self.get_queryset().filter(
+            created_at__gte=cutoff_time
+        )[:50]  # Límite de 50
+        
+        serializer = self.get_serializer(notifications, many=True)
+        return Response({
+            'count': notifications.count(),
+            'notifications': serializer.data
+        })
+

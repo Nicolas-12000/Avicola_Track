@@ -1015,7 +1015,10 @@ Conflicto Detectado:
 **Deliverable Fase 3:** ✅ ENTREGADO
 - ✅ Sistema FIFO completo y funcional
 - ✅ Alertas inteligentes por rol con navegación
-- ⏳ Notificaciones push en tiempo real (fase futura)
+- ✅ Sistema de notificaciones NATIVO (Fase 6)
+  - ✅ Backend: /alarms/notifications/unread/ y /recent/
+  - ✅ Frontend: Polling + flutter_local_notifications
+  - ✅ SIN Firebase (eliminado en Fase 6)
 
 ---
 
@@ -1113,27 +1116,72 @@ Conflicto Detectado:
 
 ---
 
-### **Fase 6: Offline & Optimización (Mes 11-12)**
+### **Fase 6: Offline & Optimización (Mes 11-12)** ✅ SPRINT 11 COMPLETADO
 
-**Sprint 11: Offline-First**
-- ✅ Sync engine con queue
-- ✅ Caché inteligente
-- ✅ Detección de conflictos
-- ✅ UI/UX para modo offline
-- ✅ Background sync
+**Sprint 11: Offline-First** ✅ COMPLETADO
+- ✅ Sistema de notificaciones NATIVO (sin Firebase)
+  - ✅ Backend: Endpoint `/alarms/notifications/unread/` y `/recent/`
+  - ✅ Frontend: NotificationsService con polling cada 30s
+  - ✅ flutter_local_notifications para notificaciones locales
+  - ✅ Provider con estado de notificaciones
+  - ✅ Eliminadas dependencias de Firebase (firebase_core, firebase_messaging)
+- ✅ Sistema Offline-First con Hive
+  - ✅ SyncQueueItem model con Hive TypeAdapter
+  - ✅ OfflineSyncService completo con:
+    - ✅ Cola de sincronización persistente
+    - ✅ Retry automático con exponential backoff (hasta 5 intentos)
+    - ✅ Sync manual y automático (cada 5 min)
+    - ✅ Caché offline con Hive
+  - ✅ OfflineProvider con StateNotifier
+  - ✅ Widgets de UI:
+    - ✅ SyncStatusBanner (banner superior con estado)
+    - ✅ CompactSyncIndicator (indicador compacto para AppBar)
+  - ✅ OfflineHelpers con ejemplos de integración
+  - ✅ Inicialización en main.dart
+  - ✅ Soporte para operaciones CRUD offline (POST, PUT, PATCH, DELETE)
+- ✅ Detección de conflictos (estructura lista)
+- ✅ UI/UX para modo offline con indicadores visuales
 
-**Sprint 12: Polish & Performance**
-- ✅ Optimización de rendimiento
-- ✅ Animaciones finales
-- ✅ Testing E2E
-- ✅ Mejoras de UX según feedback
-- ✅ Documentación
+**Sprint 12: Polish & Performance** ⏳ PENDIENTE
+- ⏳ Optimización de rendimiento
+- ⏳ Animaciones finales
+- ⏳ Testing E2E
+- ⏳ Mejoras de UX según feedback
+- ⏳ Documentación completa
 
-**Deliverable Fase 6:**
-- App funcional 100% offline
-- Performance óptimo (<2s load time)
-- Animaciones pulidas
-- App lista para producción
+**Deliverable Fase 6 (Sprint 11):** ✅ 90% COMPLETADO
+- ✅ Sistema de notificaciones nativo sin dependencias externas
+- ✅ Polling inteligente al backend Django
+- ✅ Sync engine con queue persistente (Hive)
+- ✅ Caché inteligente offline
+- ✅ UI/UX para modo offline completa
+- ✅ Auto-sync en background
+- ⚠️ Pendiente: Testing E2E, animaciones finales, optimización performance
+
+**Arquitectura Offline Implementada:**
+```dart
+// 1. Detección de conectividad
+final isOffline = ref.watch(isOfflineModeProvider);
+
+// 2. Operación offline
+if (isOffline) {
+  await ref.read(offlineProvider.notifier).addToQueue(
+    endpoint: '/flocks/weight/',
+    method: 'POST',
+    data: weightData,
+    entityType: 'weight_record',
+  );
+}
+
+// 3. Sincronización automática
+// - Auto-sync cada 5 minutos
+// - Manual: ref.read(offlineProvider.notifier).syncNow()
+// - Retry con exponential backoff (máx 5 intentos)
+
+// 4. UI de estado
+SyncStatusBanner() // Banner superior
+CompactSyncIndicator() // Indicador en AppBar
+```
 
 ---
 

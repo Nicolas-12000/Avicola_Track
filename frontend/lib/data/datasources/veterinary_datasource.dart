@@ -318,8 +318,9 @@ class VeterinaryDataSource {
     DateTime? endDate,
   }) async {
     final queryParams = <String, dynamic>{'farm_id': farmId};
-    if (startDate != null)
+    if (startDate != null) {
       queryParams['start_date'] = startDate.toIso8601String();
+    }
     if (endDate != null) queryParams['end_date'] = endDate.toIso8601String();
 
     final response = await _dio.get(

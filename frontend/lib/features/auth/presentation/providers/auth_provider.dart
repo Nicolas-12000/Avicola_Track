@@ -71,6 +71,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login({
     required String username,
     required String password,
+    bool rememberMe = false,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -78,6 +79,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await repository.login(
         username: username,
         password: password,
+        rememberMe: rememberMe,
       );
 
       state = state.copyWith(

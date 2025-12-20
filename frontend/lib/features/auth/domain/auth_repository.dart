@@ -12,6 +12,7 @@ class AuthRepository {
   Future<UserModel> login({
     required String username,
     required String password,
+    bool rememberMe = false,
   }) async {
     try {
       final authResponse = await dataSource.login(
@@ -27,6 +28,9 @@ class AuthRepository {
       final userData = jsonEncode(authResponse.user);
       await SecureStorage.saveUserData(userData);
 
+      // Guardar preferencia de recordar sesión
+      await SecureStorage.setRememberMe(rememberMe);
+
       return UserModel.fromJson(authResponse.user);
     } catch (e) {
       rethrow;
@@ -34,7 +38,15 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    await SecureStorage.clearAll();
+    // Solo limpiar si el usuario no eligió recordar la sesión
+    final rememberMe = await SecureStorage.getRememberMe();
+    if (rememberMe) {
+      // Solo cerrar sesión actual pero mantener credenciales
+      await SecureStorage.deleteTokens();
+    } else {
+      // Limpiar todo
+      await SecureStorage.clearAll();
+    }
   }
 
   Future<UserModel?> getCurrentUser() async {

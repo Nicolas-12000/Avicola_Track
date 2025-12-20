@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../data/models/flock_model.dart';
 import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
+import '../../../core/utils/error_handler.dart';
 
 class FlockDataSource {
   final Dio dio;
@@ -25,8 +26,13 @@ class FlockDataSource {
       return data
           .map((json) => FlockModel.fromJson(json as Map<String, dynamic>))
           .toList();
-    } catch (e) {
-      throw Exception('Failed to load flocks: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load flocks',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -34,8 +40,13 @@ class FlockDataSource {
     try {
       final response = await dio.get('/flocks/$id/');
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to load flock: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load flock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -64,8 +75,13 @@ class FlockDataSource {
         },
       );
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to create flock: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to create flock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -81,21 +97,32 @@ class FlockDataSource {
       if (currentQuantity != null) data['current_quantity'] = currentQuantity;
       if (currentWeight != null) data['current_weight'] = currentWeight;
       if (status != null) data['status'] = status;
-      if (saleDate != null)
+      if (saleDate != null) {
         data['sale_date'] = saleDate.toIso8601String().split('T')[0];
+      }
 
       final response = await dio.patch('/flocks/$id/', data: data);
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to update flock: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to update flock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
   Future<void> deleteFlock(int id) async {
     try {
       await dio.delete('/flocks/$id/');
-    } catch (e) {
-      throw Exception('Failed to delete flock: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to delete flock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -112,8 +139,13 @@ class FlockDataSource {
             (json) => WeightRecordModel.fromJson(json as Map<String, dynamic>),
           )
           .toList();
-    } catch (e) {
-      throw Exception('Failed to load weight records: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load weight records',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -136,8 +168,13 @@ class FlockDataSource {
         },
       );
       return WeightRecordModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      throw Exception('Failed to create weight record: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to create weight record',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -155,8 +192,13 @@ class FlockDataSource {
                 MortalityRecordModel.fromJson(json as Map<String, dynamic>),
           )
           .toList();
-    } catch (e) {
-      throw Exception('Failed to load mortality records: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load mortality records',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 
@@ -183,8 +225,13 @@ class FlockDataSource {
       return MortalityRecordModel.fromJson(
         response.data as Map<String, dynamic>,
       );
-    } catch (e) {
-      throw Exception('Failed to create mortality record: $e');
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to create mortality record',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 }

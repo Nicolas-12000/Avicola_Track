@@ -7,6 +7,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/stat_card.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
+import '../../../../core/providers/theme_provider.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -61,24 +62,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🔔 Sistema de notificaciones - Próximamente'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              context.push('/alarms');
             },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Colors.white),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('⚙️ Configuración - Próximamente'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
+            onPressed: () => _showSettingsDialog(context, ref),
           ),
           const SizedBox(width: 8),
         ],
@@ -239,13 +228,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                             title: const Text('Configurar vista'),
                             onTap: () {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    '⚙️ Configuración - Próximamente',
-                                  ),
-                                ),
-                              );
+                              _showSettingsDialog(context, ref);
                             },
                           ),
                         ],
@@ -487,6 +470,53 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             },
           ),
       ],
+    );
+  }
+
+  /// Muestra el diálogo de configuración
+  void _showSettingsDialog(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('⚙️ Configuración'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.brightness_6),
+              title: const Text('Tema de la aplicación'),
+              subtitle: Text(themeMode == ThemeMode.light ? 'Claro' : 'Oscuro'),
+              trailing: Switch(
+                value: themeMode == ThemeMode.dark,
+                onChanged: (isDark) {
+                  ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
+                },
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Notificaciones'),
+              subtitle: const Text('Gestionar alertas y avisos'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                context.push('/alarms');
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
     );
   }
 }

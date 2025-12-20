@@ -305,7 +305,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
               children: [
                 if (widget.farmId == null)
                   DropdownButtonFormField<int>(
-                    value: selectedFarmId,
+                    initialValue: selectedFarmId,
                     decoration: const InputDecoration(
                       labelText: 'Granja',
                       border: OutlineInputBorder(),

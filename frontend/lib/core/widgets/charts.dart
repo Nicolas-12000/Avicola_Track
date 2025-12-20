@@ -98,7 +98,7 @@ class FlockWeightChart extends StatelessWidget {
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
             ),
           ),
         ],
@@ -211,7 +211,7 @@ class FlockMortalityChart extends StatelessWidget {
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
             ),
           ),
         ],
