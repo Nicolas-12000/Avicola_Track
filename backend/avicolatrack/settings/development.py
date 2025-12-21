@@ -26,3 +26,6 @@ CACHES = {
 
 # Ensure django-ratelimit uses the local cache name
 RATELIMIT_USE_CACHE = 'default'
+
+# CORS: Allow all origins in development
+CORS_ALLOW_ALL_ORIGINS = True
