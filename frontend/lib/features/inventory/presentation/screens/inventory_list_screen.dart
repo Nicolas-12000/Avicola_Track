@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../../data/models/inventory_item_model.dart';
 import '../providers/inventory_provider.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -16,14 +18,39 @@ class InventoryListScreen extends ConsumerStatefulWidget {
 }
 
 class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = ref.read(authProvider);
+      final userFarmId = authState.user?.assignedFarm;
+      final isAdmin =
+          authState.user?.role == 'admin' ||
+          authState.user?.role == 'superadmin';
+
+      // Si es administrador de granja, solo mostrar su granja
+      final farmIdToLoad = isAdmin ? widget.farmId : userFarmId;
+
       ref
           .read(inventoryProvider.notifier)
-          .loadInventoryItems(farmId: widget.farmId);
+          .loadInventoryItems(farmId: farmIdToLoad);
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(inventoryProvider.notifier).loadMoreItems();
+    }
   }
 
   @override
@@ -31,6 +58,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     final inventoryState = ref.watch(inventoryProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Inventario'),
         backgroundColor: AppColors.primary,
@@ -66,12 +94,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
           : RefreshIndicator(
               onRefresh: () => ref
                   .read(inventoryProvider.notifier)
-                  .loadInventoryItems(farmId: widget.farmId),
+                  .loadInventoryItems(farmId: inventoryState.selectedFarmId),
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(16),
                 children: [
                   // Stats Cards
                   _buildStatsRow(inventoryState),
+                  const SizedBox(height: 16),
+
+                  // Farm Filter (solo para admins)
+                  _buildFarmFilter(),
                   const SizedBox(height: 16),
 
                   // Expiring Items Warning
@@ -109,6 +142,26 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       (item) => _buildInventoryCard(item),
                     ),
                   ],
+
+                  // Loading indicator at bottom
+                  if (inventoryState.isLoadingMore)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+
+                  // End of list indicator
+                  if (!inventoryState.hasMoreData &&
+                      inventoryState.items.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Center(
+                        child: Text(
+                          'No hay más items para mostrar',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -187,6 +240,55 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               label,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFarmFilter() {
+    final authState = ref.watch(authProvider);
+    final isAdmin =
+        authState.user?.role == 'admin' || authState.user?.role == 'superadmin';
+
+    // Si no es admin, no mostrar el filtro
+    if (!isAdmin) return const SizedBox.shrink();
+
+    final farmsState = ref.watch(farmsProvider);
+    final inventoryState = ref.watch(inventoryProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            const Icon(Icons.filter_alt, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: inventoryState.selectedFarmId,
+                decoration: const InputDecoration(
+                  labelText: 'Filtrar por Granja',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Todas las granjas'),
+                  ),
+                  ...farmsState.farms.map((farm) {
+                    return DropdownMenuItem<int?>(
+                      value: farm.id,
+                      child: Text(farm.name),
+                    );
+                  }),
+                ],
+                onChanged: (farmId) {
+                  ref.read(inventoryProvider.notifier).filterByFarm(farmId);
+                },
+              ),
             ),
           ],
         ),

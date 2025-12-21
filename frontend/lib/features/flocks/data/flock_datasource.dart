@@ -234,4 +234,62 @@ class FlockDataSource {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> getDashboard({int? flockId}) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (flockId != null) {
+        queryParams['flock_id'] = flockId;
+      }
+
+      final response = await dio.get(
+        '/flocks/dashboard/',
+        queryParameters: queryParams,
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load flock dashboard',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> importExcel({
+    required String filePath,
+    required String importType,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath),
+        'import_type': importType,
+      });
+
+      final response = await dio.post('/flocks/import-excel/', data: formData);
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to import Excel file',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getBreedReferences() async {
+    try {
+      final response = await dio.get('/flocks/breed-references/');
+      return List<Map<String, dynamic>>.from(response.data as List);
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load breed references',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
 }

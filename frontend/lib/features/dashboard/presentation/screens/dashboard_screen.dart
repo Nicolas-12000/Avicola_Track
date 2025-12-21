@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../farms/presentation/providers/farms_provider.dart';
+import '../../../flocks/presentation/providers/flocks_provider.dart';
+import '../../../alarms/presentation/providers/alarms_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -11,6 +14,20 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final farmsState = ref.watch(farmsProvider);
+    final flocksState = ref.watch(flocksProvider);
+    final alarmsState = ref.watch(alarmsProvider);
+
+    // Cargar datos al iniciar si no están cargados
+    if (farmsState.farms.isEmpty && !farmsState.isLoading) {
+      Future.microtask(() => ref.read(farmsProvider.notifier).loadFarms());
+    }
+    if (flocksState.flocks.isEmpty && !flocksState.isLoading) {
+      Future.microtask(() => ref.read(flocksProvider.notifier).loadFlocks());
+    }
+    if (alarmsState.alarms.isEmpty && !alarmsState.isLoading) {
+      Future.microtask(() => ref.read(alarmsProvider.notifier).loadAlarms());
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -18,7 +35,7 @@ class DashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+            onPressed: () => context.push('/alarms'),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -51,80 +68,152 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: 32),
 
             // KPIs
-            _buildKPISection(context),
+            _buildKPISection(context, ref),
 
             const SizedBox(height: 32),
 
-            // Mensaje temporal
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.construction,
-                      size: 48,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '¡Bienvenido a AvícolaTrack!',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+            // Mensaje informativo si no hay datos
+            if (farmsState.farms.isEmpty &&
+                flocksState.flocks.isEmpty &&
+                !farmsState.isLoading &&
+                !flocksState.isLoading)
+              Card(
+                color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 48,
+                        color: AppColors.primary,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Gestiona tus granjas, lotes, inventario y más desde el menú lateral',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay datos todavía',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        _QuickAccessCard(
-                          icon: Icons.agriculture,
-                          label: 'Mis Granjas',
-                          color: AppColors.primary,
-                          onTap: () => context.push('/farms'),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Comienza creando tu primera granja desde el menú lateral',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
                         ),
-                        _QuickAccessCard(
-                          icon: Icons.pets,
-                          label: 'Lotes',
-                          color: AppColors.secondary,
-                          onTap: () => context.push('/flocks'),
-                        ),
-                        _QuickAccessCard(
-                          icon: Icons.inventory,
-                          label: 'Inventario',
-                          color: AppColors.success,
-                          onTap: () => context.push('/inventory'),
-                        ),
-                        _QuickAccessCard(
-                          icon: Icons.notifications_active,
-                          label: 'Alarmas',
-                          color: AppColors.warning,
-                          onTap: () => context.push('/alarms'),
-                        ),
-                      ],
-                    ),
-                  ],
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+
+            // Mensaje temporal
+            if (farmsState.farms.isNotEmpty ||
+                flocksState.flocks.isNotEmpty ||
+                farmsState.isLoading ||
+                flocksState.isLoading)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.construction,
+                        size: 48,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '¡Bienvenido a AvícolaTrack!',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Gestiona tus granjas, lotes, inventario y más desde el menú lateral',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isLargeScreen = constraints.maxWidth > 600;
+                          final cardWidth = isLargeScreen
+                              ? (constraints.maxWidth - 48) / 4
+                              : (constraints.maxWidth - 32) / 2;
+
+                          return Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: cardWidth,
+                                child: _QuickAccessCard(
+                                  icon: Icons.agriculture,
+                                  label: 'Mis Granjas',
+                                  color: AppColors.primary,
+                                  onTap: () => context.push('/farms'),
+                                ),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: _QuickAccessCard(
+                                  icon: Icons.pets,
+                                  label: 'Lotes',
+                                  color: AppColors.secondary,
+                                  onTap: () => context.push('/flocks'),
+                                ),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: _QuickAccessCard(
+                                  icon: Icons.inventory,
+                                  label: 'Inventario',
+                                  color: AppColors.success,
+                                  onTap: () => context.push('/inventory'),
+                                ),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: _QuickAccessCard(
+                                  icon: Icons.notifications_active,
+                                  label: 'Alarmas',
+                                  color: AppColors.warning,
+                                  onTap: () => context.push('/alarms'),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildKPISection(BuildContext context) {
+  Widget _buildKPISection(BuildContext context, WidgetRef ref) {
+    final farmsState = ref.watch(farmsProvider);
+    final flocksState = ref.watch(flocksProvider);
+    final alarmsState = ref.watch(alarmsProvider);
+
+    // Calcular total de aves vivas actualmente
+    final totalBirds = flocksState.activeFlocks.fold<int>(
+      0,
+      (sum, flock) => sum + flock.currentQuantity,
+    );
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -136,28 +225,28 @@ class DashboardScreen extends ConsumerWidget {
         _buildKPICard(
           context,
           title: 'Granjas',
-          value: '0',
+          value: '${farmsState.farms.length}',
           icon: Icons.business,
           color: AppColors.primary,
         ),
         _buildKPICard(
           context,
           title: 'Lotes Activos',
-          value: '0',
+          value: '${flocksState.activeFlocks.length}',
           icon: Icons.agriculture,
           color: AppColors.secondary,
         ),
         _buildKPICard(
           context,
           title: 'Aves Totales',
-          value: '0',
+          value: '$totalBirds',
           icon: Icons.pets,
           color: AppColors.accent,
         ),
         _buildKPICard(
           context,
           title: 'Alarmas',
-          value: '0',
+          value: '${alarmsState.unresolvedCount}',
           icon: Icons.warning,
           color: AppColors.warning,
         ),
@@ -220,7 +309,7 @@ class _QuickAccessCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        width: 120,
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
@@ -234,8 +323,14 @@ class _QuickAccessCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(fontWeight: FontWeight.w600, color: color),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: color,
+                fontSize: 14,
+              ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

@@ -54,8 +54,57 @@ class ApiConstants {
   // Reports
   static const String reports = '$apiPrefix/reports/';
   static String reportDetail(int id) => '$reports$id/';
-  static String reportGenerate = '$reports/generate/';
+  static const String reportGenerate = '$reports/generate/';
   static String reportDownload(int id) => '$reports$id/download/';
+  static const String reportTypes = '$reports/types/';
+  static const String quickProductivity = '$reports/quick_productivity/';
+  static const String reportTemplates = '$reports/templates/';
+
+  // Veterinary
+  static const String veterinary = '$apiPrefix/veterinary/';
+  static const String veterinaryVisits = '$veterinary/visits/';
+  static String veterinaryVisitDetail(int id) => '$veterinaryVisits$id/';
+  static String veterinaryVisitComplete(int id) =>
+      '$veterinaryVisits$id/complete/';
+  static const String veterinaryVisitsTodayUpcoming =
+      '$veterinaryVisits/today_upcoming/';
+  static const String vaccinations = '$veterinary/vaccinations/';
+  static String vaccinationDetail(int id) => '$vaccinations$id/';
+  static String vaccinationApply(int id) => '$vaccinations$id/apply/';
+  static const String vaccinationsUpcoming = '$vaccinations/upcoming/';
+  static const String medications = '$veterinary/medications/';
+  static String medicationDetail(int id) => '$medications$id/';
+  static String medicationRecordApplication(int id) =>
+      '$medications$id/record_application/';
+  static const String medicationsActive = '$medications/active/';
+  static const String medicationsWithdrawal = '$medications/withdrawal/';
+  static const String diseases = '$veterinary/diseases/';
+  static String diseaseDetail(int id) => '$diseases$id/';
+  static const String biosecurityChecklists =
+      '$veterinary/biosecurity-checklists/';
+  static String biosecurityChecklistDetail(int id) =>
+      '$biosecurityChecklists$id/';
+  static const String biosecurityComplianceStats =
+      '$biosecurityChecklists/compliance_stats/';
+
+  // Alarms - endpoints adicionales
+  static const String alarmsDashboard = '$alarms/dashboard/';
+  static String alarmAcknowledge(int id) => '$alarms$id/acknowledge/';
+  static const String alarmsBulkAcknowledge = '$alarms/bulk-acknowledge/';
+  static const String notificationsUnread = '$apiPrefix/notifications/unread/';
+  static const String notificationsRecent = '$apiPrefix/notifications/recent/';
+
+  // Flocks - endpoints adicionales
+  static const String flocksDashboard = '$apiPrefix/dashboard/';
+  static const String flocksImportExcel = '$flocks/import-excel/';
+  static const String breedReferences = '$apiPrefix/references/';
+
+  // Inventory - endpoints adicionales
+  static const String inventoryStockAlerts = '$inventory/stock-alerts/';
+  static const String inventoryBulkUpdateStock =
+      '$inventory/bulk-update-stock/';
+  static String inventoryConsumeFifo(int id) => '$inventory$id/consume-fifo/';
+  static String inventoryFifoBatches(int id) => '$inventory$id/fifo-batches/';
 
   // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);

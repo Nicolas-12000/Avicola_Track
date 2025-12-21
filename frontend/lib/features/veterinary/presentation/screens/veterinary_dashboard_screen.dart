@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/veterinary_visits_provider.dart';
 import '../providers/veterinary_other_providers.dart';
 
@@ -45,7 +46,7 @@ class _VeterinaryDashboardScreenState
               label: Text('${visitsState.totalOverdue}'),
               child: const Icon(Icons.notifications),
             ),
-            onPressed: () {},
+            onPressed: () => context.push('/alarms'),
           ),
         ],
       ),
@@ -205,7 +206,7 @@ class _VeterinaryDashboardScreenState
                 leading: const Icon(Icons.event_busy, color: Colors.red),
                 title: Text('${visitsState.totalOverdue} visitas atrasadas'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
+                onTap: () => context.push('/alarms'),
               ),
             if (vaccinationsState.totalOverdue > 0)
               ListTile(
@@ -214,7 +215,7 @@ class _VeterinaryDashboardScreenState
                   '${vaccinationsState.totalOverdue} vacunas atrasadas',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
+                onTap: () => context.push('/alarms'),
               ),
           ],
         ),
@@ -259,7 +260,7 @@ class _VeterinaryDashboardScreenState
               title: Text('Lote #${visit.flockId}'),
               subtitle: Text(visit.visitType),
               trailing: ElevatedButton(
-                onPressed: () {},
+                onPressed: () => context.push('/flocks/${visit.flockId}'),
                 child: const Text('Iniciar'),
               ),
             ),
@@ -325,7 +326,10 @@ class _VeterinaryDashboardScreenState
               'Medicamentos Activos',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            TextButton(onPressed: () {}, child: const Text('Ver todos')),
+            TextButton(
+              onPressed: () => context.push('/inventory'),
+              child: const Text('Ver todos'),
+            ),
           ],
         ),
         const SizedBox(height: 12),

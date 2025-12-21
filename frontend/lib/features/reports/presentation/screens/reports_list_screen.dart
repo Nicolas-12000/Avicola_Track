@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../providers/reports_provider.dart';
 import '../../domain/reports_repository.dart';
@@ -40,6 +41,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
     final farmsState = ref.watch(farmsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Reportes'),
         backgroundColor: AppColors.primary,
@@ -160,19 +162,29 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
           ),
           const SizedBox(height: 16),
 
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: reportsState.templates.length,
-            itemBuilder: (context, index) {
-              final template = reportsState.templates[index];
-              return _buildTemplateCard(template);
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth > 900
+                  ? 4
+                  : constraints.maxWidth > 600
+                  ? 3
+                  : 2;
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: reportsState.templates.length,
+                itemBuilder: (context, index) {
+                  final template = reportsState.templates[index];
+                  return _buildTemplateCard(template);
+                },
+              );
             },
           ),
         ],

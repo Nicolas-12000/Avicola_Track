@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/alarm_model.dart';
 import '../providers/alarms_provider.dart';
+import '../../../farms/presentation/providers/farms_provider.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class AlarmsListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -17,14 +19,17 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _selectedSeverity;
+  int? _selectedFarmId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _selectedFarmId = widget.farmId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadAlarms();
-      ref.read(alarmsProvider.notifier).loadAlarmStats(farmId: widget.farmId);
+      ref.read(alarmsProvider.notifier).loadAlarmStats(farmId: _selectedFarmId);
+      ref.read(farmsProvider.notifier).loadFarms();
     });
   }
 
@@ -38,7 +43,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
     ref
         .read(alarmsProvider.notifier)
         .loadAlarms(
-          farmId: widget.farmId,
+          farmId: _selectedFarmId,
           severity: _selectedSeverity,
           isResolved: isResolved,
         );
@@ -47,8 +52,10 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
   @override
   Widget build(BuildContext context) {
     final alarmsState = ref.watch(alarmsProvider);
+    final farmsState = ref.watch(farmsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Alarmas'),
         backgroundColor: AppColors.primary,
@@ -111,6 +118,9 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
       ),
       body: Column(
         children: [
+          // Farm Filter
+          _buildFarmFilter(farmsState),
+
           // Stats Card
           if (alarmsState.stats != null) _buildStatsCard(alarmsState.stats!),
 
@@ -132,6 +142,54 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
       //   backgroundColor: AppColors.primary,
       //   child: const Icon(Icons.add_alert),
       // ),
+    );
+  }
+
+  Widget _buildFarmFilter(FarmsState farmsState) {
+    if (farmsState.farms.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.filter_list, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: _selectedFarmId,
+                decoration: const InputDecoration(
+                  labelText: 'Filtrar por Granja',
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Todas las granjas'),
+                  ),
+                  ...farmsState.farms.map((farm) {
+                    return DropdownMenuItem<int?>(
+                      value: farm.id,
+                      child: Text(farm.name),
+                    );
+                  }),
+                ],
+                onChanged: (farmId) {
+                  setState(() {
+                    _selectedFarmId = farmId;
+                  });
+                  _loadAlarms(isResolved: _tabController.index == 1);
+                  ref
+                      .read(alarmsProvider.notifier)
+                      .loadAlarmStats(farmId: farmId);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

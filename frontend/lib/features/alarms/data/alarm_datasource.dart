@@ -112,4 +112,86 @@ class AlarmDataSource {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> getDashboardData() async {
+    try {
+      final response = await dio.get('/alarms/dashboard/');
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load alarm dashboard',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> acknowledgeAlarm({
+    required int id,
+    String? notes,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/alarms/$id/acknowledge/',
+        data: {'notes': notes ?? ''},
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to acknowledge alarm',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkAcknowledgeAlarms({
+    required List<int> alarmIds,
+    String? notes,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/alarms/bulk-acknowledge/',
+        data: {'alarm_ids': alarmIds, 'notes': notes ?? ''},
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to bulk acknowledge alarms',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getUnreadNotifications() async {
+    try {
+      final response = await dio.get('/notifications/unread/');
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load unread notifications',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getRecentNotifications() async {
+    try {
+      final response = await dio.get('/notifications/recent/');
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load recent notifications',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
 }

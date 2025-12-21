@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/stat_card.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
+import '../../../flocks/presentation/providers/flocks_provider.dart';
+import '../../../alarms/presentation/providers/alarms_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
@@ -26,6 +28,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     // Cargar datos al iniciar
     Future.microtask(() {
       ref.read(farmsProvider.notifier).loadFarms();
+      ref.read(flocksProvider.notifier).loadFlocks();
+      ref.read(alarmsProvider.notifier).loadAlarms();
     });
   }
 
@@ -33,10 +37,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final farmsState = ref.watch(farmsProvider);
+    final flocksState = ref.watch(flocksProvider);
+    final alarmsState = ref.watch(alarmsProvider);
     final user = authState.user;
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
@@ -91,7 +98,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // KPIs Grid
-                    _buildKPIsGrid(farmsState.farms.length),
+                    _buildKPIsGrid(
+                      farmsState.farms.length,
+                      flocksState,
+                      alarmsState,
+                    ),
 
                     const SizedBox(height: 32),
 
@@ -117,7 +128,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildKPIsGrid(int totalFarms) {
+  Widget _buildKPIsGrid(int totalFarms, flocksState, alarmsState) {
+    // Calcular total de aves vivas actualmente
+    final totalBirds = flocksState.activeFlocks.fold<int>(
+      0,
+      (sum, flock) => sum + flock.currentQuantity,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Responsive grid
@@ -143,23 +160,23 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               trend: '+12%',
               isPositiveTrend: true,
             ),
-            const StatCard(
+            StatCard(
               title: 'Lotes Activos',
-              value: '0',
+              value: '${flocksState.activeFlocks.length}',
               icon: Icons.egg_outlined,
               color: AppColors.secondary,
               subtitle: 'En producción',
             ),
-            const StatCard(
+            StatCard(
               title: 'Aves Vivas',
-              value: '0',
+              value: '$totalBirds',
               icon: Icons.pets_outlined,
               color: AppColors.accent,
               subtitle: 'Total en sistema',
             ),
-            const StatCard(
+            StatCard(
               title: 'Alarmas Pendientes',
-              value: '0',
+              value: '${alarmsState.unresolvedCount}',
               icon: Icons.warning_amber_outlined,
               color: AppColors.warning,
               subtitle: 'Requieren atención',
@@ -200,27 +217,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           ListTile(
-                            leading: const Icon(Icons.file_download),
-                            title: const Text('Exportar datos'),
+                            leading: const Icon(Icons.assessment),
+                            title: const Text('Ver reportes completos'),
                             onTap: () {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('📊 Exportando datos...'),
-                                ),
-                              );
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.refresh),
-                            title: const Text('Actualizar gráfico'),
-                            onTap: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('🔄 Actualizando...'),
-                                ),
-                              );
+                              context.push('/reports');
                             },
                           ),
                           ListTile(
@@ -240,84 +241,45 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 20,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: AppColors.textDisabled.withValues(alpha: 0.2),
-                      strokeWidth: 1,
-                    );
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toInt().toString(),
-                          style: AppTextStyles.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        const days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-                        if (value.toInt() >= 0 && value.toInt() < days.length) {
-                          return Text(
-                            days[value.toInt()],
-                            style: AppTextStyles.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: [
-                      const FlSpot(0, 40),
-                      const FlSpot(1, 45),
-                      const FlSpot(2, 42),
-                      const FlSpot(3, 50),
-                      const FlSpot(4, 48),
-                      const FlSpot(5, 55),
-                      const FlSpot(6, 60),
-                    ],
-                    isCurved: true,
-                    color: AppColors.primary,
-                    barWidth: 3,
-                    dotData: const FlDotData(show: true),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
+          // Mensaje para indicar que los datos vienen de reportes
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
               ),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.assessment, size: 48, color: AppColors.primary),
+                const SizedBox(height: 16),
+                Text(
+                  'Datos de Producción',
+                  style: AppTextStyles.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Los gráficos de producción detallados están disponibles en la sección de Reportes',
+                  style: AppTextStyles.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/reports'),
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Ver Reportes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -348,7 +310,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ),
         const SizedBox(height: 16),
         if (farmsState.farms.isEmpty)
-          Center(
+          Card(
+            color: AppColors.surfaceVariant.withValues(alpha: 0.5),
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
@@ -356,20 +319,31 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Icon(
                     Icons.business_outlined,
                     size: 64,
-                    color: AppColors.textDisabled,
+                    color: AppColors.primary,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No hay granjas registradas',
-                    style: AppTextStyles.textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                    style: AppTextStyles.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Crea tu primera granja para comenzar',
-                    style: AppTextStyles.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textDisabled,
+                    'Crea tu primera granja para comenzar a gestionar tu producción avícola',
+                    style: AppTextStyles.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => context.push('/farms'),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Crear Granja'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
                     ),
                   ),
                 ],

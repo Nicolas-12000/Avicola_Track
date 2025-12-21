@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../../data/models/shed_model.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../providers/sheds_provider.dart';
@@ -18,14 +19,15 @@ class ShedsListScreen extends ConsumerStatefulWidget {
 }
 
 class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
+  int? _selectedFarmId;
+
   @override
   void initState() {
     super.initState();
+    _selectedFarmId = widget.farmId;
     Future.microtask(() {
-      ref.read(shedsProvider.notifier).loadSheds(farmId: widget.farmId);
-      if (widget.farmId == null) {
-        ref.read(farmsProvider.notifier).loadFarms();
-      }
+      ref.read(shedsProvider.notifier).loadSheds(farmId: _selectedFarmId);
+      ref.read(farmsProvider.notifier).loadFarms();
     });
   }
 
@@ -35,6 +37,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
     final farmsState = ref.watch(farmsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Galpones', style: TextStyle(color: Colors.white)),
         backgroundColor: AppColors.primary,
@@ -47,7 +50,9 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
-              ref.read(shedsProvider.notifier).loadSheds(farmId: widget.farmId);
+              ref
+                  .read(shedsProvider.notifier)
+                  .loadSheds(farmId: _selectedFarmId);
             },
           ),
         ],
@@ -61,7 +66,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
                 onRetry: () {
                   ref
                       .read(shedsProvider.notifier)
-                      .loadSheds(farmId: widget.farmId);
+                      .loadSheds(farmId: _selectedFarmId);
                 },
               ),
             )
@@ -96,23 +101,32 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
               onRefresh: () async {
                 await ref
                     .read(shedsProvider.notifier)
-                    .loadSheds(farmId: widget.farmId);
+                    .loadSheds(farmId: _selectedFarmId);
               },
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width > 600
-                      ? 3
-                      : 2,
-                  childAspectRatio: 0.85,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                itemCount: shedsState.sheds.length,
-                itemBuilder: (context, index) {
-                  final shed = shedsState.sheds[index];
-                  return _buildShedCard(shed, farmsState.farms);
-                },
+              child: Column(
+                children: [
+                  // Farm Filter
+                  _buildFarmFilter(farmsState),
+
+                  Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: MediaQuery.of(context).size.width > 600
+                            ? 3
+                            : 2,
+                        childAspectRatio: 0.85,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: shedsState.sheds.length,
+                      itemBuilder: (context, index) {
+                        final shed = shedsState.sheds[index];
+                        return _buildShedCard(shed, farmsState.farms);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
@@ -122,6 +136,51 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
         label: const Text(
           'Nuevo Galpón',
           style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFarmFilter(FarmsState farmsState) {
+    if (farmsState.farms.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.filter_list, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: _selectedFarmId,
+                decoration: const InputDecoration(
+                  labelText: 'Filtrar por Granja',
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Todas las granjas'),
+                  ),
+                  ...farmsState.farms.map((farm) {
+                    return DropdownMenuItem<int?>(
+                      value: farm.id,
+                      child: Text(farm.name),
+                    );
+                  }),
+                ],
+                onChanged: (farmId) {
+                  setState(() {
+                    _selectedFarmId = farmId;
+                  });
+                  ref.read(shedsProvider.notifier).loadSheds(farmId: farmId);
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

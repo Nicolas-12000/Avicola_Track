@@ -155,4 +155,124 @@ class InventoryDataSource {
       rethrow;
     }
   }
+
+  Future<List<Map<String, dynamic>>> getStockAlerts({int? warehouseId}) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (warehouseId != null) {
+        queryParams['warehouse'] = warehouseId;
+      }
+
+      final response = await dio.get(
+        '/inventory/stock-alerts/',
+        queryParameters: queryParams,
+      );
+      return List<Map<String, dynamic>>.from(response.data as List);
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load stock alerts',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> bulkUpdateStock({
+    required List<Map<String, dynamic>> updates,
+  }) async {
+    try {
+      await dio.post(
+        '/inventory/bulk-update-stock/',
+        data: {'updates': updates},
+      );
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to bulk update stock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> addStock({
+    required int itemId,
+    required double quantity,
+    required double unitCost,
+    DateTime? expirationDate,
+    String? batchNumber,
+    String? supplier,
+    String? notes,
+  }) async {
+    try {
+      final data = {
+        'item': itemId,
+        'quantity': quantity,
+        'unit_cost': unitCost,
+        if (expirationDate != null)
+          'expiration_date': expirationDate.toIso8601String().split('T')[0],
+        if (batchNumber != null) 'batch_number': batchNumber,
+        if (supplier != null) 'supplier': supplier,
+        if (notes != null) 'notes': notes,
+      };
+
+      final response = await dio.post('/inventory/add-stock/', data: data);
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to add stock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> consumeFifo({
+    required int itemId,
+    required double quantity,
+    required int usedBy,
+    String usedByType = 'Flock',
+    String? notes,
+  }) async {
+    try {
+      final data = {
+        'item': itemId,
+        'quantity': quantity,
+        'used_by': usedBy,
+        'used_by_type': usedByType,
+        if (notes != null) 'notes': notes,
+      };
+
+      final response = await dio.post('/inventory/consume-fifo/', data: data);
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to consume stock',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFifoBatches({
+    required int itemId,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/inventory/fifo-batches/',
+        queryParameters: {'item': itemId},
+      );
+      return List<Map<String, dynamic>>.from(response.data as List);
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load FIFO batches',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
 }

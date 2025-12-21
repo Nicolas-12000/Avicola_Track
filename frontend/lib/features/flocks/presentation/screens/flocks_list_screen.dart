@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../../data/models/flock_model.dart';
 import '../providers/flocks_provider.dart';
 import '../../../sheds/presentation/providers/sheds_provider.dart';
+import '../../../farms/presentation/providers/farms_provider.dart';
 
 class FlocksListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -22,16 +24,19 @@ class FlocksListScreen extends ConsumerStatefulWidget {
 class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int? _selectedFarmId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _selectedFarmId = widget.farmId;
     Future.microtask(() {
       ref
           .read(flocksProvider.notifier)
-          .loadFlocks(farmId: widget.farmId, shedId: widget.shedId);
-      ref.read(shedsProvider.notifier).loadSheds(farmId: widget.farmId);
+          .loadFlocks(farmId: _selectedFarmId, shedId: widget.shedId);
+      ref.read(shedsProvider.notifier).loadSheds(farmId: _selectedFarmId);
+      ref.read(farmsProvider.notifier).loadFarms();
     });
   }
 
@@ -45,8 +50,10 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
   Widget build(BuildContext context) {
     final flocksState = ref.watch(flocksProvider);
     final shedsState = ref.watch(shedsProvider);
+    final farmsState = ref.watch(farmsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Lotes', style: TextStyle(color: Colors.white)),
         backgroundColor: AppColors.primary,
@@ -72,7 +79,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
             onPressed: () {
               ref
                   .read(flocksProvider.notifier)
-                  .loadFlocks(farmId: widget.farmId, shedId: widget.shedId);
+                  .loadFlocks(farmId: _selectedFarmId, shedId: widget.shedId);
             },
           ),
         ],
@@ -86,18 +93,34 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                 onRetry: () {
                   ref
                       .read(flocksProvider.notifier)
-                      .loadFlocks(farmId: widget.farmId, shedId: widget.shedId);
+                      .loadFlocks(
+                        farmId: _selectedFarmId,
+                        shedId: widget.shedId,
+                      );
                 },
               ),
             )
-          : TabBarView(
-              controller: _tabController,
+          : Column(
               children: [
-                _buildFlocksList(flocksState.activeFlocks, shedsState.sheds),
-                _buildFlocksList(flocksState.soldFlocks, shedsState.sheds),
-                _buildFlocksList(
-                  flocksState.terminatedFlocks,
-                  shedsState.sheds,
+                _buildFarmFilter(farmsState),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildFlocksList(
+                        flocksState.activeFlocks,
+                        shedsState.sheds,
+                      ),
+                      _buildFlocksList(
+                        flocksState.soldFlocks,
+                        shedsState.sheds,
+                      ),
+                      _buildFlocksList(
+                        flocksState.terminatedFlocks,
+                        shedsState.sheds,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -106,6 +129,54 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Nuevo Lote', style: TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _buildFarmFilter(FarmsState farmsState) {
+    if (farmsState.farms.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.filter_list, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: _selectedFarmId,
+                decoration: const InputDecoration(
+                  labelText: 'Filtrar por Granja',
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Todas las granjas'),
+                  ),
+                  ...farmsState.farms.map((farm) {
+                    return DropdownMenuItem<int?>(
+                      value: farm.id,
+                      child: Text(farm.name),
+                    );
+                  }),
+                ],
+                onChanged: (farmId) {
+                  setState(() {
+                    _selectedFarmId = farmId;
+                  });
+                  ref
+                      .read(flocksProvider.notifier)
+                      .loadFlocks(farmId: farmId, shedId: widget.shedId);
+                  ref.read(shedsProvider.notifier).loadSheds(farmId: farmId);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -8,19 +8,39 @@ import '../../domain/inventory_repository.dart';
 class InventoryState {
   final List<InventoryItemModel> items;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final bool hasMoreData;
+  final int? selectedFarmId;
 
-  InventoryState({this.items = const [], this.isLoading = false, this.error});
+  InventoryState({
+    this.items = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.error,
+    this.currentPage = 1,
+    this.hasMoreData = true,
+    this.selectedFarmId,
+  });
 
   InventoryState copyWith({
     List<InventoryItemModel>? items,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    bool? hasMoreData,
+    int? selectedFarmId,
   }) {
     return InventoryState(
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
+      selectedFarmId: selectedFarmId ?? this.selectedFarmId,
     );
   }
 
@@ -50,17 +70,59 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
 
   InventoryNotifier(this.repository) : super(InventoryState());
 
-  Future<void> loadInventoryItems({int? farmId}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> loadInventoryItems({int? farmId, bool refresh = true}) async {
+    if (refresh) {
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        currentPage: 1,
+        hasMoreData: true,
+        selectedFarmId: farmId,
+      );
+    }
 
     final result = await repository.getInventoryItems(farmId: farmId);
 
     result.fold(
       (failure) =>
           state = state.copyWith(isLoading: false, error: failure.message),
-      (items) =>
-          state = state.copyWith(items: items, isLoading: false, error: null),
+      (items) => state = state.copyWith(
+        items: items,
+        isLoading: false,
+        error: null,
+        hasMoreData: items.length >= 30,
+      ),
     );
+  }
+
+  Future<void> loadMoreItems() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+
+    final result = await repository.getInventoryItems(
+      farmId: state.selectedFarmId,
+    );
+
+    result.fold(
+      (failure) =>
+          state = state.copyWith(isLoadingMore: false, error: failure.message),
+      (newItems) {
+        final allItems = [...state.items, ...newItems];
+        state = state.copyWith(
+          items: allItems,
+          isLoadingMore: false,
+          currentPage: nextPage,
+          hasMoreData: newItems.length >= 30,
+          error: null,
+        );
+      },
+    );
+  }
+
+  void filterByFarm(int? farmId) {
+    loadInventoryItems(farmId: farmId, refresh: true);
   }
 
   Future<void> createInventoryItem({
