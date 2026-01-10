@@ -106,7 +106,7 @@ dependencies:
   internet_connection_checker_plus: ^2.5.2
   
   # Background Tasks
-  workmanager: ^0.5.2
+  workmanager: ^0.9.0
 
 dev_dependencies:
   flutter_test:

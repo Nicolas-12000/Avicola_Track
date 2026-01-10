@@ -1,7 +1,7 @@
-from .base import *
+﻿from .base import *
 
 DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.0.18']
 
 # Development-specific settings
 from pathlib import Path
@@ -29,3 +29,4 @@ RATELIMIT_USE_CACHE = 'default'
 
 # CORS: Allow all origins in development
 CORS_ALLOW_ALL_ORIGINS = True
+

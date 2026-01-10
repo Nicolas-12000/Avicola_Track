@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 
@@ -21,6 +22,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+
+    // Escuchar cambios en el estado para navegar cuando termine la carga
+    ref.listen(authProvider, (previous, next) {
+      if (!next.isLoading) {
+        // Si termina de cargar (con o sin error), navegar al Login
+        // Nota: Si tuvieras persistencia de sesión, aquí verificarías 
+        // si el usuario ya existe para enviarlo directo al '/dashboard'
+        context.go('/login');
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.primary,

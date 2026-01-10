@@ -4,19 +4,20 @@ class ApiConstants {
   // Base URL
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+    // CAMBIO: Usa la IP de tu PC para que el celular pueda conectar. Ejemplo: 192.168.1.15
+    defaultValue: 'http://192.168.0.18:8000/',
   );
 
   // API Endpoints
   static const String apiPrefix = '/api';
 
   // Auth
-  static const String login = '$apiPrefix/users/token/';
-  static const String refreshToken = '$apiPrefix/users/token/refresh/';
-  static const String register = '$apiPrefix/users/register/';
-  static const String passwordReset = '$apiPrefix/users/password-reset/';
+  static const String login = '$apiPrefix/auth/login/';
+  static const String refreshToken = '$apiPrefix/auth/refresh/';
+  static const String register = '$apiPrefix/auth/register/';
+  static const String passwordReset = '$apiPrefix/auth/password-reset/';
   static const String passwordResetConfirm =
-      '$apiPrefix/users/password-reset-confirm/';
+      '$apiPrefix/auth/password-reset-confirm/';
 
   // Users
   static const String users = '$apiPrefix/users/';
