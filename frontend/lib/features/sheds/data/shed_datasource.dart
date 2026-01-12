@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../../data/models/shed_model.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/constants/api_constants.dart';
 
 class ShedDataSource {
   final Dio dio;
@@ -10,9 +11,12 @@ class ShedDataSource {
   Future<List<ShedModel>> getSheds({int? farmId}) async {
     try {
       final queryParams = farmId != null ? {'farm': farmId} : null;
-      final response = await dio.get('/sheds/', queryParameters: queryParams);
+      final response = await dio.get(ApiConstants.sheds, queryParameters: queryParams);
 
-      final List<dynamic> data = response.data as List<dynamic>;
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
+          ? responseData['results'] as List<dynamic>
+          : responseData as List<dynamic>;
       return data
           .map((json) => ShedModel.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -28,7 +32,7 @@ class ShedDataSource {
 
   Future<ShedModel> getShed(int id) async {
     try {
-      final response = await dio.get('/sheds/$id/');
+      final response = await dio.get(ApiConstants.shedDetail(id));
       return ShedModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(

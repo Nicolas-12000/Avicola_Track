@@ -406,6 +406,7 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
       text: farm?.location ?? '',
     );
     final formKey = GlobalKey<FormState>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     showDialog(
       context: context,
@@ -446,6 +447,27 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.warning),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Nota: Necesitas asignar un administrador de granja después',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -460,23 +482,23 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
               if (formKey.currentState!.validate()) {
                 Navigator.pop(context);
 
-                final success = farm == null
-                    ? await ref
-                          .read(farmsProvider.notifier)
-                          .createFarm(
-                            name: nameController.text,
-                            location: locationController.text,
-                          )
-                    : await ref
-                          .read(farmsProvider.notifier)
-                          .updateFarm(
-                            id: farm.id,
-                            name: nameController.text,
-                            location: locationController.text,
-                          );
+                try {
+                  final success = farm == null
+                      ? await ref
+                            .read(farmsProvider.notifier)
+                            .createFarm(
+                              name: nameController.text,
+                              location: locationController.text,
+                            )
+                      : await ref
+                            .read(farmsProvider.notifier)
+                            .updateFarm(
+                              id: farm.id,
+                              name: nameController.text,
+                              location: locationController.text,
+                            );
 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text(
                         success
@@ -488,6 +510,14 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
                       backgroundColor: success
                           ? AppColors.success
                           : AppColors.error,
+                    ),
+                  );
+                } catch (e) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: Por favor crea usuarios con rol "Administrador de Granja" primero'),
+                      backgroundColor: AppColors.error,
+                      duration: const Duration(seconds: 5),
                     ),
                   );
                 }

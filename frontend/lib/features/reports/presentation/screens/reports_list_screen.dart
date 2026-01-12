@@ -204,6 +204,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(template.icon, style: const TextStyle(fontSize: 48)),
               const SizedBox(height: 12),
@@ -220,10 +221,10 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
                 template.description,
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
-                maxLines: 3,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const Spacer(),
+              const SizedBox(height: 8),
               if (!canGenerate)
                 Container(
                   padding: const EdgeInsets.symmetric(

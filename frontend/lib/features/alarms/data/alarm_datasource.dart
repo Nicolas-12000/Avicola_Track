@@ -105,10 +105,14 @@ class AlarmDataSource {
     try {
       final queryParams = farmId != null ? {'farm': farmId} : null;
       final response = await dio.get(
-        '${ApiConstants.alarms}stats/',
+        '${ApiConstants.alarms}dashboard/',
         queryParameters: queryParams,
       );
-      return Map<String, int>.from(response.data as Map<String, dynamic>);
+      
+      // El backend devuelve {summary: {...}, urgent_alarms: [...], last_updated: ...}
+      // Extraemos solo el summary que tiene las estadísticas
+      final summary = response.data['summary'] as Map<String, dynamic>;
+      return Map<String, int>.from(summary);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -175,7 +179,7 @@ class AlarmDataSource {
 
   Future<Map<String, dynamic>> getUnreadNotifications() async {
     try {
-      final response = await dio.get('/notifications/unread/');
+      final response = await dio.get('${ApiConstants.apiPrefix}/notifications/unread/');
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -189,7 +193,7 @@ class AlarmDataSource {
 
   Future<Map<String, dynamic>> getRecentNotifications() async {
     try {
-      final response = await dio.get('/notifications/recent/');
+      final response = await dio.get('${ApiConstants.apiPrefix}/notifications/recent/');
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(

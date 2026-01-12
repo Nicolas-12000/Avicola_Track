@@ -11,7 +11,7 @@ class ReportsDataSource {
   Future<List<Report>> getReports({int? farmId}) async {
     try {
       final queryParams = farmId != null ? {'farm_id': farmId} : null;
-      final response = await dio.get('/reports/', queryParameters: queryParams);
+      final response = await dio.get(ApiConstants.reports, queryParameters: queryParams);
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['results'] ?? response.data;
@@ -34,7 +34,7 @@ class ReportsDataSource {
 
   Future<Report> getReportById(int id) async {
     try {
-      final response = await dio.get('/reports/$id/');
+      final response = await dio.get(ApiConstants.reportDetail(id));
 
       if (response.statusCode == 200) {
         return Report.fromJson(response.data);
@@ -70,7 +70,7 @@ class ReportsDataSource {
         if (filters != null) ...filters,
       };
 
-      final response = await dio.post('/reports/generate/', data: data);
+      final response = await dio.post('${ApiConstants.reports}generate/', data: data);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return Report.fromJson(response.data);
@@ -92,7 +92,7 @@ class ReportsDataSource {
 
   Future<void> deleteReport(int id) async {
     try {
-      final response = await dio.delete('/reports/$id/');
+      final response = await dio.delete(ApiConstants.reportDetail(id));
 
       if (response.statusCode != 204 && response.statusCode != 200) {
         throw DioException(
@@ -178,7 +178,7 @@ class ReportsDataSource {
 
   Future<List<Map<String, dynamic>>> getReportTypes() async {
     try {
-      final response = await dio.get('/reports/types/');
+      final response = await dio.get('${ApiConstants.reports}types/');
       return List<Map<String, dynamic>>.from(response.data as List);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -227,7 +227,7 @@ class ReportsDataSource {
 
   Future<Report> generateReportFromId({required int reportId}) async {
     try {
-      final response = await dio.post('/reports/$reportId/generate/');
+      final response = await dio.post('${ApiConstants.reports}$reportId/generate/');
       return Report.fromJson(response.data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(

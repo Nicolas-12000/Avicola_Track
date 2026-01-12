@@ -11,7 +11,7 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    final isAdmin = user?.role == 'admin' || user?.role == 'superadmin';
+    final isSystemAdmin = user?.role == 'Administrador Sistema';
 
     return Drawer(
       child: ListView(
@@ -52,7 +52,7 @@ class AppDrawer extends ConsumerWidget {
               context.go('/');
             },
           ),
-          if (isAdmin) ...[
+          if (isSystemAdmin) ...[
             const Divider(),
             ListTile(
               leading: const Icon(Icons.agriculture),
@@ -111,7 +111,7 @@ class AppDrawer extends ConsumerWidget {
               context.push('/reports');
             },
           ),
-          if (isAdmin) ...[
+          if (isSystemAdmin) ...[
             const Divider(),
             ListTile(
               leading: const Icon(Icons.people),

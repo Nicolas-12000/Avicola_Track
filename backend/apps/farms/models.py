@@ -17,7 +17,9 @@ class Farm(BaseModel):
 		settings.AUTH_USER_MODEL,
 		on_delete=models.CASCADE,
 		related_name='managed_farms',
-		limit_choices_to={'role__name': 'Administrador de Granja'}
+		limit_choices_to={'role__name': 'Administrador de Granja'},
+		null=True,
+		blank=True
 	)
 
 	total_capacity = models.PositiveIntegerField(default=0)

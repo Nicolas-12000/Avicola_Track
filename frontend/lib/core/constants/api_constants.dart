@@ -20,7 +20,7 @@ class ApiConstants {
       '$apiPrefix/auth/password-reset-confirm/';
 
   // Users
-  static const String users = '$apiPrefix/users/';
+  static const String users = '$apiPrefix/admin-users/';
   static String userDetail(int id) => '$users$id/';
 
   // Farms
@@ -54,12 +54,12 @@ class ApiConstants {
 
   // Reports
   static const String reports = '$apiPrefix/reports/';
-  static String reportDetail(int id) => '$reports$id/';
-  static const String reportGenerate = '$reports/generate/';
-  static String reportDownload(int id) => '$reports$id/download/';
-  static const String reportTypes = '$reports/types/';
-  static const String quickProductivity = '$reports/quick_productivity/';
-  static const String reportTemplates = '$reports/templates/';
+  static String reportDetail(int id) => '${reports}$id/';
+  static const String reportGenerate = '${reports}generate/';
+  static String reportDownload(int id) => '${reports}$id/download/';
+  static const String reportTypes = '${reports}types/';
+  static const String quickProductivity = '${reports}quick_productivity/';
+  static const String reportTemplates = '$apiPrefix/templates/';
 
   // Veterinary
   static const String veterinary = '$apiPrefix/veterinary/';
@@ -89,9 +89,9 @@ class ApiConstants {
       '$biosecurityChecklists/compliance_stats/';
 
   // Alarms - endpoints adicionales
-  static const String alarmsDashboard = '$alarms/dashboard/';
-  static String alarmAcknowledge(int id) => '$alarms$id/acknowledge/';
-  static const String alarmsBulkAcknowledge = '$alarms/bulk-acknowledge/';
+  static const String alarmsDashboard = '${alarms}dashboard/';
+  static String alarmAcknowledge(int id) => '${alarms}$id/acknowledge/';
+  static const String alarmsBulkAcknowledge = '${alarms}bulk-acknowledge/';
   static const String notificationsUnread = '$apiPrefix/notifications/unread/';
   static const String notificationsRecent = '$apiPrefix/notifications/recent/';
 
