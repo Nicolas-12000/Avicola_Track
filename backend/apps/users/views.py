@@ -62,7 +62,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class AdminUserViewSet(viewsets.ModelViewSet):
 	queryset = UserModel.objects.all()
 	serializer_class = AdminUserSerializer
-	permission_classes = [permissions.IsAdminUser]
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get_queryset(self):
+		user = self.request.user
+		role_name = getattr(getattr(user, 'role', None), 'name', None)
+		
+		# Solo Administrador Sistema puede ver todos los usuarios
+		if role_name == 'Administrador Sistema' or user.is_staff:
+			return UserModel.objects.all()
+		
+		# Otros solo pueden ver su propio perfil
+		return UserModel.objects.filter(id=user.id)
 
 
 

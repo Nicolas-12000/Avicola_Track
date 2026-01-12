@@ -171,7 +171,12 @@ class InventoryDataSource {
         '${ApiConstants.inventory}stock-alerts/',
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -269,7 +274,12 @@ class InventoryDataSource {
         '${ApiConstants.inventory}fifo-batches/',
         queryParameters: {'item': itemId},
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,

@@ -13,7 +13,10 @@ class FarmDataSource {
       final response = await _dio.get(ApiConstants.farms);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
+        final responseData = response.data;
+        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+            ? responseData['results']
+            : responseData;
         return data.map((json) => FarmModel.fromJson(json)).toList();
       }
 
@@ -131,7 +134,11 @@ class FarmDataSource {
       final response = await _dio.get(ApiConstants.farmSheds(farmId));
 
       if (response.statusCode == 200) {
-        return response.data as List<dynamic>;
+        final responseData = response.data;
+        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+            ? responseData['results']
+            : responseData;
+        return data;
       }
 
       throw DioException(

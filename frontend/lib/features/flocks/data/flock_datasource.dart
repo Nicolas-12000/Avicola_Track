@@ -139,7 +139,12 @@ class FlockDataSource {
         '/weight-records/',
         queryParameters: {'flock': flockId},
       );
-      final List<dynamic> data = response.data as List<dynamic>;
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
+          ? responseData['results'] as List<dynamic>
+          : response.data as List<dynamic>;
+      
       return data
           .map(
             (json) => WeightRecordModel.fromJson(json as Map<String, dynamic>),
@@ -191,7 +196,12 @@ class FlockDataSource {
         '/mortality-records/',
         queryParameters: {'flock': flockId},
       );
-      final List<dynamic> data = response.data as List<dynamic>;
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
+          ? responseData['results'] as List<dynamic>
+          : response.data as List<dynamic>;
+      
       return data
           .map(
             (json) =>
@@ -288,7 +298,12 @@ class FlockDataSource {
   Future<List<Map<String, dynamic>>> getBreedReferences() async {
     try {
       final response = await dio.get('${ApiConstants.flocks}breed-references/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
+          ? responseData['results'] as List<dynamic>
+          : responseData as List<dynamic>;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,

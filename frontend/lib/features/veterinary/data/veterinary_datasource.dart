@@ -27,7 +27,12 @@ class VeterinaryDataSource {
         ApiConstants.veterinaryVisits,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -150,7 +155,12 @@ class VeterinaryDataSource {
       final response = await dio.get(
         '${ApiConstants.veterinaryVisits}today_upcoming/',
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -181,7 +191,12 @@ class VeterinaryDataSource {
         ApiConstants.vaccinations,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -313,7 +328,12 @@ class VeterinaryDataSource {
   Future<List<Map<String, dynamic>>> getUpcomingVaccinations() async {
     try {
       final response = await dio.get('${ApiConstants.vaccinations}upcoming/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -346,7 +366,12 @@ class VeterinaryDataSource {
         ApiConstants.medications,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -494,7 +519,12 @@ class VeterinaryDataSource {
   Future<List<Map<String, dynamic>>> getActiveMedications() async {
     try {
       final response = await dio.get('${ApiConstants.medications}active/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -508,7 +538,12 @@ class VeterinaryDataSource {
   Future<List<Map<String, dynamic>>> getWithdrawalPeriods() async {
     try {
       final response = await dio.get('${ApiConstants.medications}withdrawal/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -539,7 +574,12 @@ class VeterinaryDataSource {
         ApiConstants.diseases,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -664,7 +704,12 @@ class VeterinaryDataSource {
         ApiConstants.biosecurityChecklists,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,

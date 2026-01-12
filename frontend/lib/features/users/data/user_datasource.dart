@@ -13,7 +13,10 @@ class UserDataSource {
       final response = await _dio.get(ApiConstants.users);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
+        final responseData = response.data;
+        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+            ? responseData['results']
+            : responseData;
         return data.map((json) => UserModel.fromJson(json)).toList();
       }
 
