@@ -74,6 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     bool rememberMe = false,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
+    // Debug: print('🔐 AuthNotifier.login: Iniciando login para $username');
 
     try {
       final user = await repository.login(
@@ -87,6 +88,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
         isLoading: false,
       );
+      
+      // Debug: print('✅ AuthNotifier.login: Login exitoso. isAuthenticated = ${state.isAuthenticated}, user = ${user.username}');
 
       return true;
     } catch (e) {

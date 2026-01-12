@@ -13,7 +13,7 @@ class AuthResponse {
     return AuthResponse(
       accessToken: json['access'] as String,
       refreshToken: json['refresh'] as String,
-      user: json['user'] as Map<String, dynamic>,
+      user: json['user_info'] as Map<String, dynamic>? ?? json['user'] as Map<String, dynamic>,
     );
   }
 

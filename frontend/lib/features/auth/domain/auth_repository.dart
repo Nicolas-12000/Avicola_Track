@@ -15,24 +15,36 @@ class AuthRepository {
     bool rememberMe = false,
   }) async {
     try {
+      // Debug: print('📡 AuthRepository.login: Llamando a dataSource.login');
       final authResponse = await dataSource.login(
         username: username,
         password: password,
       );
 
+      // Debug: print('✅ AuthRepository: Backend respondió exitosamente');
+      // Debug: print('📄 user_info recibido: ${authResponse.user}');
+
       // Guardar tokens
       await SecureStorage.saveToken(authResponse.accessToken);
       await SecureStorage.saveRefreshToken(authResponse.refreshToken);
+      // Debug: print('🔑 Tokens guardados en SecureStorage');
 
       // Guardar datos de usuario
       final userData = jsonEncode(authResponse.user);
       await SecureStorage.saveUserData(userData);
+      // Debug: print('💾 user_data guardado: $userData');
 
       // Guardar preferencia de recordar sesión
       await SecureStorage.setRememberMe(rememberMe);
 
-      return UserModel.fromJson(authResponse.user);
+      // Debug: print('🔄 Parseando UserModel.fromJson...');
+      final user = UserModel.fromJson(authResponse.user);
+      // Debug: print('✅ UserModel parseado exitosamente: id=${user.id}, role=${user.role}');
+      
+      return user;
     } catch (e) {
+      // Debug: print('❌ ERROR en AuthRepository.login: $e');
+      // Debug: print('📚 StackTrace: $stackTrace');
       rethrow;
     }
   }

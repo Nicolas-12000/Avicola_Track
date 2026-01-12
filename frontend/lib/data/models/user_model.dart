@@ -1,9 +1,9 @@
 class UserModel {
   final int id;
-  final String username;
-  final String email;
-  final String firstName;
-  final String lastName;
+  final String? username;
+  final String? email;
+  final String? firstName;
+  final String? lastName;
   final String? identification;
   final String? phone;
   final String? role;
@@ -12,10 +12,10 @@ class UserModel {
 
   UserModel({
     required this.id,
-    required this.username,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
+    this.username,
+    this.email,
+    this.firstName,
+    this.lastName,
     this.identification,
     this.phone,
     this.role,
@@ -23,20 +23,28 @@ class UserModel {
     required this.isActive,
   });
 
-  String get fullName => '$firstName $lastName'.trim();
+  String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    // Manejar el rol que puede venir como String o como objeto
+    String? roleValue;
+    if (json['role'] is String) {
+      roleValue = json['role'] as String?;
+    } else if (json['role'] is Map) {
+      roleValue = json['role']?['name'] as String?;
+    }
+    
     return UserModel(
       id: json['id'] as int,
-      username: json['username'] as String,
-      email: json['email'] as String,
-      firstName: json['first_name'] as String? ?? '',
-      lastName: json['last_name'] as String? ?? '',
+      username: json['username'] as String?,
+      email: json['email'] as String?,
+      firstName: json['first_name'] as String?,
+      lastName: json['last_name'] as String?,
       identification: json['identification'] as String?,
       phone: json['phone'] as String?,
-      role: json['role']?['name'] as String?,
+      role: roleValue,
       assignedFarm: json['assigned_farm'] as int?,
-      isActive: json['is_active'] as bool? ?? true,
+      isActive: json.containsKey('is_active') ? (json['is_active'] as bool) : true,
     );
   }
 

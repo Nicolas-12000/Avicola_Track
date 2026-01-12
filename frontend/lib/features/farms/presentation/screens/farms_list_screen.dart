@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
 import '../providers/farms_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class FarmsListScreen extends ConsumerStatefulWidget {
   const FarmsListScreen({super.key});
@@ -135,13 +136,21 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
                       },
                     ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateFarmDialog(),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Granja'),
-        backgroundColor: AppColors.primary,
-      ),
+      floatingActionButton: _canCreateFarm(ref)
+          ? FloatingActionButton.extended(
+              onPressed: () => _showCreateFarmDialog(),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Granja'),
+              backgroundColor: AppColors.primary,
+            )
+          : null,
     );
+  }
+
+  bool _canCreateFarm(WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userRole = authState.user?.role;
+    return userRole == 'Administrador Sistema';
   }
 
   Widget _buildEmptyState() {

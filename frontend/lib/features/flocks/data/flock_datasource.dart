@@ -3,6 +3,7 @@ import '../../../data/models/flock_model.dart';
 import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/constants/api_constants.dart';
 
 class FlockDataSource {
   final Dio dio;
@@ -20,9 +21,14 @@ class FlockDataSource {
       if (shedId != null) queryParams['shed'] = shedId;
       if (status != null) queryParams['status'] = status;
 
-      final response = await dio.get('/flocks/', queryParameters: queryParams);
+      final response = await dio.get(ApiConstants.flocks, queryParameters: queryParams);
 
-      final List<dynamic> data = response.data as List<dynamic>;
+      // Handle paginated response from Django REST Framework
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
+          ? responseData['results'] as List<dynamic>
+          : responseData as List<dynamic>;
+          
       return data
           .map((json) => FlockModel.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -38,7 +44,7 @@ class FlockDataSource {
 
   Future<FlockModel> getFlock(int id) async {
     try {
-      final response = await dio.get('/flocks/$id/');
+      final response = await dio.get(ApiConstants.flockDetail(id));
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -61,7 +67,7 @@ class FlockDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/flocks/',
+        ApiConstants.flocks,
         data: {
           'shed': shedId,
           'breed': breed,
@@ -101,7 +107,7 @@ class FlockDataSource {
         data['sale_date'] = saleDate.toIso8601String().split('T')[0];
       }
 
-      final response = await dio.patch('/flocks/$id/', data: data);
+      final response = await dio.patch(ApiConstants.flockDetail(id), data: data);
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -115,7 +121,7 @@ class FlockDataSource {
 
   Future<void> deleteFlock(int id) async {
     try {
-      await dio.delete('/flocks/$id/');
+      await dio.delete(ApiConstants.flockDetail(id));
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -243,7 +249,7 @@ class FlockDataSource {
       }
 
       final response = await dio.get(
-        '/flocks/dashboard/',
+        '${ApiConstants.flocks}dashboard/',
         queryParameters: queryParams,
       );
       return response.data as Map<String, dynamic>;
@@ -267,7 +273,7 @@ class FlockDataSource {
         'import_type': importType,
       });
 
-      final response = await dio.post('/flocks/import-excel/', data: formData);
+      final response = await dio.post('${ApiConstants.flocks}import-excel/', data: formData);
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -281,7 +287,7 @@ class FlockDataSource {
 
   Future<List<Map<String, dynamic>>> getBreedReferences() async {
     try {
-      final response = await dio.get('/flocks/breed-references/');
+      final response = await dio.get('${ApiConstants.flocks}breed-references/');
       return List<Map<String, dynamic>>.from(response.data as List);
     } catch (e, stackTrace) {
       ErrorHandler.logError(

@@ -28,8 +28,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOnSplash = state.matchedLocation == '/splash';
       final isOnLogin = state.matchedLocation == '/login';
 
+      print('🚦 Router redirect: location=${state.matchedLocation}, isAuth=$isAuthenticated, isLoading=$isLoading');
+
       // Mientras carga, mostrar splash
       if (isLoading && !isOnSplash) {
+        print('🚦 Router: Redirigiendo a splash (cargando)');
         return '/splash';
       }
 
@@ -37,21 +40,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isLoading) {
         // Si está en splash, redirigir según autenticación
         if (isOnSplash) {
-          return isAuthenticated ? '/' : '/login';
+          final dest = isAuthenticated ? '/' : '/login';
+          print('🚦 Router: Desde splash -> $dest');
+          return dest;
         }
 
         // Si no está autenticado y no está en login, redirigir a login
         if (!isAuthenticated && !isOnLogin) {
+          print('🚦 Router: No autenticado -> /login');
           return '/login';
         }
 
         // Si está autenticado y está en login, redirigir a home
         if (isAuthenticated && isOnLogin) {
+          print('🚦 Router: Autenticado en login -> /');
           return '/';
         }
       }
 
       // No redirigir
+      print('🚦 Router: Sin redirección');
       return null;
     },
     routes: [
@@ -178,14 +186,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/veterinary',
         name: 'veterinary-dashboard',
         builder: (context, state) => const VeterinaryDashboardScreen(),
-      ),
-
-      // Settings Routes
-      GoRoute(
-        path: '/settings',
-        name: 'settings',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Settings - TODO'))),
       ),
     ],
 

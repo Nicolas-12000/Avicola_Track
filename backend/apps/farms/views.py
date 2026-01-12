@@ -8,6 +8,7 @@ from apps.farms.models import Shed
 from apps.farms.serializers import ShedSerializer
 from apps.flocks.permissions import IsAssignedShedWorkerOrFarmAdmin
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from .permissions import IsSystemAdminOrReadOnly
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class FarmViewSet(viewsets.ModelViewSet):
     queryset = Farm.objects.all()
     serializer_class = FarmSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsSystemAdminOrReadOnly]
 
     @extend_schema(parameters=[OpenApiParameter(name='pk', required=True, type=OpenApiTypes.INT)])
     def retrieve(self, request, *args, **kwargs):
@@ -50,7 +51,7 @@ from django.shortcuts import render
 class ShedViewSet(viewsets.ModelViewSet):
     queryset = Shed.objects.all()
     serializer_class = ShedSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAssignedShedWorkerOrFarmAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsSystemAdminOrReadOnly]
 
     @extend_schema(parameters=[OpenApiParameter(name='pk', required=True, type=OpenApiTypes.INT)])
     def retrieve(self, request, *args, **kwargs):

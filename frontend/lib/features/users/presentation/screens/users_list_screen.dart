@@ -206,7 +206,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            user.email,
+                            user.email ?? 'Sin email',
                             style: AppTextStyles.caption.copyWith(
                               color: Colors.grey[600],
                             ),

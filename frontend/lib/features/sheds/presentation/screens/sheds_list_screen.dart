@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_drawer.dart';
 import '../../../../data/models/shed_model.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../providers/sheds_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ShedsListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -129,16 +130,24 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showShedDialog(context, null, farmsState.farms),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Nuevo Galpón',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
+      floatingActionButton: _canCreateShed(ref)
+          ? FloatingActionButton.extended(
+              onPressed: () => _showShedDialog(context, null, farmsState.farms),
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Nuevo Galpón',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : null,
     );
+  }
+
+  bool _canCreateShed(WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userRole = authState.user?.role;
+    return userRole == 'Administrador Sistema';
   }
 
   Widget _buildFarmFilter(FarmsState farmsState) {
