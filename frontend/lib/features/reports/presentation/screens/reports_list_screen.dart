@@ -197,52 +197,109 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
         selectedFarmId != null || !template.requiredFilters.contains('farmId');
 
     return Card(
-      elevation: 2,
+      elevation: canGenerate ? 2 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: canGenerate ? Colors.transparent : Colors.orange.withOpacity(0.3),
+        ),
+      ),
       child: InkWell(
-        onTap: canGenerate ? () => _generateReport(template) : null,
+        borderRadius: BorderRadius.circular(16),
+        onTap: canGenerate ? () => _generateReport(template) : () => _showNoFarmSelectedMessage(),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(template.icon, style: const TextStyle(fontSize: 48)),
-              const SizedBox(height: 12),
-              Text(
-                template.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: canGenerate 
+                      ? AppColors.primary.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  template.icon, 
+                  style: const TextStyle(fontSize: 32),
+                ),
               ),
               const SizedBox(height: 8),
+              
+              // Title
               Text(
-                template.description,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                template.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: canGenerate ? AppColors.textPrimary : Colors.grey,
+                ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              
+              // Description
+              Expanded(
+                child: Text(
+                  template.description,
+                  style: TextStyle(
+                    fontSize: 11, 
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              // Badge
               if (!canGenerate)
                 Container(
+                  margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
-                    vertical: 4,
+                    vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange[100],
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.orange.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
-                    'Requiere granja',
-                    style: TextStyle(fontSize: 10, color: Colors.orange),
+                    'Seleccione granja',
+                    style: TextStyle(
+                      fontSize: 9, 
+                      color: Colors.orange,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showNoFarmSelectedMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.white),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('Seleccione una granja en los filtros para generar este reporte'),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        backgroundColor: Colors.orange[700],
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -425,9 +482,17 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Reporte generado exitosamente'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Reporte generado exitosamente'),
+              ],
+            ),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
         // Switch to history tab
@@ -435,14 +500,64 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
       } else {
         final errorMessage =
             ref.read(reportsProvider).errorMessage ?? 'Error desconocido';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $errorMessage'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        
+        // Mostrar diálogo informativo en lugar de solo snackbar
+        _showNoDataDialog(errorMessage);
       }
     }
+  }
+
+  void _showNoDataDialog(String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: Icon(
+          Icons.info_outline,
+          size: 48,
+          color: Colors.orange[400],
+        ),
+        title: const Text('No hay datos disponibles'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              errorMessage.contains('404') || errorMessage.contains('No data')
+                  ? 'No se encontró información suficiente para generar este reporte.'
+                  : errorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lightbulb_outline, color: Colors.blue[600], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Asegúrese de tener lotes activos y registros de producción en la granja seleccionada.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleReportAction(String action, Report report) {

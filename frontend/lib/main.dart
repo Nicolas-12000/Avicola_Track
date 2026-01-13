@@ -5,14 +5,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/offline_sync_service.dart';
+import 'core/services/connectivity_service.dart';
 import 'core/utils/error_handler.dart';
+import 'core/widgets/connection_status_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializar servicio de conectividad
+  try {
+    await ConnectivityService().initialize();
+    ErrorHandler.logInfo('Connectivity service initialized');
+  } catch (e, stackTrace) {
+    ErrorHandler.logError(
+      e,
+      context: 'Connectivity initialization',
+      stackTrace: stackTrace,
+    );
+  }
+
   // Inicializar Hive para offline sync
   try {
     await OfflineSyncService().initialize();
+    ErrorHandler.logInfo('Offline sync service initialized');
   } catch (e, stackTrace) {
     ErrorHandler.logError(
       e,
@@ -36,6 +51,12 @@ class AvicolaTrackApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      builder: (context, child) {
+        // Envolver con widget de estado de conexión
+        return ConnectionSnackBarWrapper(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

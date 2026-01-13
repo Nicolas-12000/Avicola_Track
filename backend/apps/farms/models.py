@@ -21,6 +21,14 @@ class Farm(BaseModel):
 		null=True,
 		blank=True
 	)
+	
+	# Veterinarios asignados a esta granja (para visitas veterinarias)
+	veterinarians = models.ManyToManyField(
+		settings.AUTH_USER_MODEL,
+		related_name='assigned_farms',
+		limit_choices_to={'role__name': 'Veterinario'},
+		blank=True
+	)
 
 	total_capacity = models.PositiveIntegerField(default=0)
 	active_sheds = models.PositiveIntegerField(default=0)

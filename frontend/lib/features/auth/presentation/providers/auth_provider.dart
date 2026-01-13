@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/user_model.dart';
+import '../../../../core/storage/secure_storage.dart';
 import '../../domain/auth_repository.dart';
 
 class AuthState {
@@ -48,6 +49,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> checkAuth() async {
     try {
+      // Primero verificar si el usuario eligió recordar la sesión
+      final rememberMe = await SecureStorage.getRememberMe();
+      final hasToken = await SecureStorage.getToken() != null;
+      
+      // Si hay token pero NO eligió recordar sesión, limpiar todo
+      // Esto maneja el caso donde el usuario cerró la app sin haber elegido "recordarme"
+      if (hasToken && !rememberMe) {
+        print('🔐 checkAuth: Usuario no eligió recordar sesión, limpiando tokens');
+        await SecureStorage.clearAll();
+        state = state.copyWith(isAuthenticated: false, isLoading: false);
+        return;
+      }
+      
       final isAuth = await repository.isAuthenticated();
       if (isAuth) {
         final user = await repository.getCurrentUser();

@@ -1,3 +1,5 @@
+import '../../core/constants/user_roles.dart';
+
 class UserModel {
   final int id;
   final String? username;
@@ -24,6 +26,21 @@ class UserModel {
   });
 
   String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
+  
+  /// Obtiene el rol tipado del usuario
+  UserRole? get userRole => role.asUserRole;
+  
+  /// Verifica si es administrador del sistema
+  bool get isSystemAdmin => userRole?.isSystemAdmin ?? false;
+  
+  /// Verifica si es administrador de granja
+  bool get isFarmAdmin => userRole?.isFarmAdmin ?? false;
+  
+  /// Verifica si es galponero
+  bool get isShedKeeper => userRole?.isShedKeeper ?? false;
+  
+  /// Verifica si es veterinario
+  bool get isVeterinarian => userRole?.isVeterinarian ?? false;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     // Manejar el rol que puede venir como String o como objeto

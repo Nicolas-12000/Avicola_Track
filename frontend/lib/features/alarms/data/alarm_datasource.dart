@@ -19,7 +19,7 @@ class AlarmDataSource {
       if (severity != null) queryParams['severity'] = severity;
       if (isResolved != null) queryParams['is_resolved'] = isResolved;
 
-      final response = await dio.get(ApiConstants.alarms, queryParameters: queryParams);
+      final response = await dio.get(ApiConstants.alarmsManage, queryParameters: queryParams);
 
       // Handle paginated response from Django REST Framework
       final responseData = response.data;
@@ -105,7 +105,7 @@ class AlarmDataSource {
     try {
       final queryParams = farmId != null ? {'farm': farmId} : null;
       final response = await dio.get(
-        '${ApiConstants.alarms}dashboard/',
+        ApiConstants.alarmsDashboard,
         queryParameters: queryParams,
       );
       
@@ -125,7 +125,7 @@ class AlarmDataSource {
 
   Future<Map<String, dynamic>> getDashboardData() async {
     try {
-      final response = await dio.get('${ApiConstants.alarms}dashboard/');
+      final response = await dio.get(ApiConstants.alarmsDashboard);
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(

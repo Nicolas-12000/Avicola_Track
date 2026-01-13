@@ -1,11 +1,31 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Base URL
+  // ============================================================
+  // CONFIGURACIÓN DE URL BASE
+  // ============================================================
+  // Prioridades de configuración:
+  // 1. Variable de entorno --dart-define=API_BASE_URL=http://...
+  // 2. Valor por defecto según el modo de ejecución
+  //
+  // Para desarrollo en emulador Android: http://10.0.2.2:8000/
+  // Para desarrollo en dispositivo físico: http://TU_IP_LOCAL:8000/
+  // Para producción: https://api.tudominio.com/
+  // ============================================================
+
+  /// URL base del servidor. Configurable via --dart-define=API_BASE_URL
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    // CAMBIO: Usa la IP de tu PC para que el celular pueda conectar. Ejemplo: 192.168.1.15
-    defaultValue: 'http://192.168.0.18:8000/',
+    // NOTA: Cambia esta IP a la de tu máquina cuando uses dispositivo físico
+    // Para emulador Android usa: http://10.0.2.2:8000/
+    // Para iOS Simulator usa: http://localhost:8000/
+    defaultValue: 'http://10.0.2.2:8000/',
+  );
+
+  /// Modo debug: muestra logs adicionales
+  static const bool debugMode = bool.fromEnvironment(
+    'DEBUG_MODE',
+    defaultValue: true,
   );
 
   // API Endpoints
@@ -48,17 +68,18 @@ class ApiConstants {
 
   // Alarms
   static const String alarms = '$apiPrefix/alarms/';
-  static String alarmDetail(int id) => '$alarms$id/';
-  static String alarmResolve(int id) => '$alarms$id/resolve/';
-  static const String alarmConfigurations = '$apiPrefix/alarm-configurations/';
+  static const String alarmsManage = '$apiPrefix/manage/alarms/';
+  static String alarmDetail(int id) => '$alarmsManage$id/';
+  static String alarmResolve(int id) => '$alarmsManage$id/resolve/';
+  static const String alarmConfigurations = '$apiPrefix/configs/';
 
   // Reports
   static const String reports = '$apiPrefix/reports/';
-  static String reportDetail(int id) => '${reports}$id/';
-  static const String reportGenerate = '${reports}generate/';
-  static String reportDownload(int id) => '${reports}$id/download/';
-  static const String reportTypes = '${reports}types/';
-  static const String quickProductivity = '${reports}quick_productivity/';
+  static String reportDetail(int id) => '$reports$id/';
+  static String reportGenerate() => '${reports}generate/';
+  static String reportDownload(int id) => '$reports$id/download/';
+  static String reportTypes() => '${reports}types/';
+  static String quickProductivity() => '${reports}quick_productivity/';
   static const String reportTemplates = '$apiPrefix/templates/';
 
   // Veterinary
@@ -89,9 +110,9 @@ class ApiConstants {
       '$biosecurityChecklists/compliance_stats/';
 
   // Alarms - endpoints adicionales
-  static const String alarmsDashboard = '${alarms}dashboard/';
-  static String alarmAcknowledge(int id) => '${alarms}$id/acknowledge/';
-  static const String alarmsBulkAcknowledge = '${alarms}bulk-acknowledge/';
+  static const String alarmsDashboard = '${alarmsManage}dashboard/';
+  static String alarmAcknowledge(int id) => '$alarmsManage$id/acknowledge/';
+  static const String alarmsBulkAcknowledge = '${alarmsManage}bulk-acknowledge/';
   static const String notificationsUnread = '$apiPrefix/notifications/unread/';
   static const String notificationsRecent = '$apiPrefix/notifications/recent/';
 
@@ -107,9 +128,22 @@ class ApiConstants {
   static String inventoryConsumeFifo(int id) => '$inventory$id/consume-fifo/';
   static String inventoryFifoBatches(int id) => '$inventory$id/fifo-batches/';
 
-  // Timeouts
+  // ============================================================
+  // TIMEOUTS DE RED
+  // ============================================================
+  // Configurados para manejar conexiones lentas en zonas rurales
+
+  /// Tiempo máximo para establecer conexión
   static const Duration connectionTimeout = Duration(seconds: 30);
+
+  /// Tiempo máximo para recibir respuesta del servidor
   static const Duration receiveTimeout = Duration(seconds: 30);
+
+  /// Tiempo máximo para enviar datos al servidor
+  static const Duration sendTimeout = Duration(seconds: 30);
+
+  /// Timeout corto para operaciones rápidas (health check, etc.)
+  static const Duration shortTimeout = Duration(seconds: 10);
 
   // Headers
   static Map<String, String> get defaultHeaders => {

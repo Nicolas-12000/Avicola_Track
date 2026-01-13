@@ -15,7 +15,7 @@ class FlockModel {
   final String? supplier;
   final String status;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
 
   FlockModel({
     required this.id,
@@ -34,30 +34,36 @@ class FlockModel {
     this.supplier,
     required this.status,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
   factory FlockModel.fromJson(Map<String, dynamic> json) {
     return FlockModel(
       id: json['id'] as int,
-      shedId: json['shed'] as int,
+      shedId: json['shed'] as int? ?? 0,
       shedName: json['shed_name'] as String?,
-      farmId: json['farm'] as int,
+      farmId: json['farm'] as int? ?? 0,
       farmName: json['farm_name'] as String?,
-      breed: json['breed'] as String,
-      initialQuantity: json['initial_quantity'] as int,
-      currentQuantity: json['current_quantity'] as int,
+      breed: json['breed'] as String? ?? 'Desconocida',
+      initialQuantity: json['initial_quantity'] as int? ?? 0,
+      currentQuantity: json['current_quantity'] as int? ?? 0,
       initialWeight: (json['initial_weight'] as num?)?.toDouble(),
       currentWeight: (json['current_weight'] as num?)?.toDouble(),
-      gender: json['gender'] as String,
-      arrivalDate: DateTime.parse(json['arrival_date'] as String),
+      gender: json['gender'] as String? ?? 'Mixed',
+      arrivalDate: json['arrival_date'] != null 
+          ? DateTime.parse(json['arrival_date'] as String)
+          : DateTime.now(),
       saleDate: json['sale_date'] != null
           ? DateTime.parse(json['sale_date'] as String)
           : null,
       supplier: json['supplier'] as String?,
-      status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      status: json['status'] as String? ?? 'Active',
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
     );
   }
 
@@ -77,7 +83,7 @@ class FlockModel {
       'supplier': supplier,
       'status': status,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
