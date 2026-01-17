@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:logger/logger.dart';
+import '../constants/api_constants.dart';
 
 /// Modelo de notificación del backend
 class BackendNotification {
@@ -159,7 +160,7 @@ class NotificationsService {
     }
 
     try {
-      final response = await _dio!.get('/alarms/notifications/unread/');
+      final response = await _dio!.get(ApiConstants.notificationsUnread);
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -233,7 +234,7 @@ class NotificationsService {
     if (_dio == null) return [];
 
     try {
-      final response = await _dio!.get('/alarms/notifications/recent/');
+      final response = await _dio!.get(ApiConstants.notificationsRecent);
 
       if (response.statusCode == 200) {
         final data = response.data;

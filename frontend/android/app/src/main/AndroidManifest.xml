@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="avicola_track_app"
+        android:label="Avicola San Lorenzo"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/icono">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,6 +1,6 @@
 {
-    "name": "avicola_track_app",
-    "short_name": "avicola_track_app",
+    "name": "Avicola San Lorenzo",
+    "short_name": "Avicola San Lorenzo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

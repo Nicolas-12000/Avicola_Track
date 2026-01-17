@@ -10,12 +10,17 @@ class ReportsDataSource {
 
   Future<List<Report>> getReports({int? farmId}) async {
     try {
-      final queryParams = farmId != null ? {'farm_id': farmId} : null;
-      final response = await dio.get('/reports/', queryParameters: queryParams);
+      final queryParams = farmId != null ? {'farm': farmId} : null;
+      final response = await dio.get(
+        ApiConstants.reports,
+        queryParameters: queryParams,
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['results'] ?? response.data;
-        return data.map((json) => Report.fromJson(json)).toList();
+        return data
+            .map((json) => Report.fromJson(_mapReportJson(json)))
+            .toList();
       }
       throw DioException(
         requestOptions: response.requestOptions,
@@ -34,10 +39,10 @@ class ReportsDataSource {
 
   Future<Report> getReportById(int id) async {
     try {
-      final response = await dio.get('/reports/$id/');
+      final response = await dio.get(ApiConstants.reportDetail(id));
 
       if (response.statusCode == 200) {
-        return Report.fromJson(response.data);
+        return Report.fromJson(_mapReportJson(response.data));
       }
       throw DioException(
         requestOptions: response.requestOptions,
@@ -62,18 +67,24 @@ class ReportsDataSource {
     Map<String, dynamic>? filters,
   }) async {
     try {
+      final fromDate =
+          startDate ?? DateTime.now().subtract(const Duration(days: 7));
+      final toDate = endDate ?? DateTime.now();
+      final apiType = _mapTypeToApi(type);
+
       final data = {
-        'type': type,
-        'farm_id': farmId,
-        if (startDate != null) 'start_date': startDate.toIso8601String(),
-        if (endDate != null) 'end_date': endDate.toIso8601String(),
+        'name': 'Reporte $apiType',
+        'report_type': apiType,
+        'farm': farmId,
+        'date_from': fromDate.toIso8601String().split('T')[0],
+        'date_to': toDate.toIso8601String().split('T')[0],
         if (filters != null) ...filters,
       };
 
-      final response = await dio.post('/reports/generate/', data: data);
+      final response = await dio.post(ApiConstants.reports, data: data);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return Report.fromJson(response.data);
+        return Report.fromJson(_mapReportJson(response.data));
       }
       throw DioException(
         requestOptions: response.requestOptions,
@@ -92,7 +103,7 @@ class ReportsDataSource {
 
   Future<void> deleteReport(int id) async {
     try {
-      final response = await dio.delete('/reports/$id/');
+      final response = await dio.delete(ApiConstants.reportDetail(id));
 
       if (response.statusCode != 204 && response.statusCode != 200) {
         throw DioException(
@@ -178,7 +189,7 @@ class ReportsDataSource {
 
   Future<List<Map<String, dynamic>>> getReportTypes() async {
     try {
-      final response = await dio.get('/reports/types/');
+      final response = await dio.get(ApiConstants.reportTypes);
       return List<Map<String, dynamic>>.from(response.data as List);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -211,7 +222,7 @@ class ReportsDataSource {
       };
 
       final response = await dio.post(
-        '/reports/quick_productivity/',
+        ApiConstants.quickProductivity,
         data: data,
       );
       return response.data as Map<String, dynamic>;
@@ -227,8 +238,8 @@ class ReportsDataSource {
 
   Future<Report> generateReportFromId({required int reportId}) async {
     try {
-      final response = await dio.post('/reports/$reportId/generate/');
-      return Report.fromJson(response.data);
+      final response = await dio.post(ApiConstants.reportGenerate(reportId));
+      return Report.fromJson(_mapReportJson(response.data));
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -237,5 +248,44 @@ class ReportsDataSource {
       );
       rethrow;
     }
+  }
+
+  Map<String, dynamic> _mapReportJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      return {};
+    }
+
+    return {
+      'id': json['id'],
+      'title': json['name'] ?? json['title'] ?? '',
+      'type': _mapTypeFromApi(json['report_type'] ?? json['type']),
+      'generated_at': json['created_at'] ?? json['generated_at'],
+      'farm_id': json['farm'] ?? json['farm_id'] ?? 0,
+      'farm_name': json['farm_name'],
+      'start_date': json['date_from'] ?? json['start_date'],
+      'end_date': json['date_to'] ?? json['end_date'],
+      'data': json['data'] ?? <String, dynamic>{},
+      'pdf_path': json['export_format'] == 'pdf' ? json['file_path'] : null,
+      'excel_path':
+          json['export_format'] == 'excel' ? json['file_path'] : null,
+    };
+  }
+
+  String _mapTypeToApi(String type) {
+    switch (type) {
+      case 'production':
+        return 'productivity';
+      case 'complete':
+        return 'productivity';
+      default:
+        return type;
+    }
+  }
+
+  String _mapTypeFromApi(dynamic type) {
+    if (type == 'productivity') {
+      return 'production';
+    }
+    return type?.toString() ?? '';
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../data/models/inventory_item_model.dart';
 import '../../../core/utils/error_handler.dart';
 
@@ -11,7 +12,7 @@ class InventoryDataSource {
     try {
       final queryParams = farmId != null ? {'farm': farmId} : null;
       final response = await dio.get(
-        '/inventory/',
+        ApiConstants.inventory,
         queryParameters: queryParams,
       );
 
@@ -33,7 +34,7 @@ class InventoryDataSource {
 
   Future<InventoryItemModel> getInventoryItem(int id) async {
     try {
-      final response = await dio.get('/inventory/$id/');
+      final response = await dio.get(ApiConstants.inventoryDetail(id));
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -58,7 +59,7 @@ class InventoryDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/inventory/',
+        ApiConstants.inventory,
         data: {
           'farm': farmId,
           'name': name,
@@ -110,7 +111,10 @@ class InventoryDataSource {
       }
       if (supplier != null) data['supplier'] = supplier;
 
-      final response = await dio.patch('/inventory/$id/', data: data);
+      final response = await dio.patch(
+        ApiConstants.inventoryDetail(id),
+        data: data,
+      );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -124,7 +128,7 @@ class InventoryDataSource {
 
   Future<void> deleteInventoryItem(int id) async {
     try {
-      await dio.delete('/inventory/$id/');
+      await dio.delete(ApiConstants.inventoryDetail(id));
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -142,7 +146,7 @@ class InventoryDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/inventory/$id/adjust-stock/',
+        '${ApiConstants.inventoryDetail(id)}adjust-stock/',
         data: {'quantity_change': quantityChange, 'reason': reason},
       );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
@@ -164,7 +168,7 @@ class InventoryDataSource {
       }
 
       final response = await dio.get(
-        '/inventory/stock-alerts/',
+        ApiConstants.inventoryStockAlerts,
         queryParameters: queryParams,
       );
       return List<Map<String, dynamic>>.from(response.data as List);
@@ -183,7 +187,7 @@ class InventoryDataSource {
   }) async {
     try {
       await dio.post(
-        '/inventory/bulk-update-stock/',
+        ApiConstants.inventoryBulkUpdateStock,
         data: {'updates': updates},
       );
     } catch (e, stackTrace) {
@@ -217,7 +221,10 @@ class InventoryDataSource {
         if (notes != null) 'notes': notes,
       };
 
-      final response = await dio.post('/inventory/add-stock/', data: data);
+      final response = await dio.post(
+        ApiConstants.inventoryAddStock(itemId),
+        data: data,
+      );
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -245,7 +252,10 @@ class InventoryDataSource {
         if (notes != null) 'notes': notes,
       };
 
-      final response = await dio.post('/inventory/consume-fifo/', data: data);
+      final response = await dio.post(
+        ApiConstants.inventoryConsumeFifo(itemId),
+        data: data,
+      );
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -261,10 +271,7 @@ class InventoryDataSource {
     required int itemId,
   }) async {
     try {
-      final response = await dio.get(
-        '/inventory/fifo-batches/',
-        queryParameters: {'item': itemId},
-      );
+      final response = await dio.get(ApiConstants.inventoryFifoBatches(itemId));
       return List<Map<String, dynamic>>.from(response.data as List);
     } catch (e, stackTrace) {
       ErrorHandler.logError(

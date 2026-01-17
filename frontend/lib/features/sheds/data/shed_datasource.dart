@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../data/models/shed_model.dart';
 import '../../../core/utils/error_handler.dart';
 
@@ -10,7 +11,10 @@ class ShedDataSource {
   Future<List<ShedModel>> getSheds({int? farmId}) async {
     try {
       final queryParams = farmId != null ? {'farm': farmId} : null;
-      final response = await dio.get('/sheds/', queryParameters: queryParams);
+      final response = await dio.get(
+        ApiConstants.sheds,
+        queryParameters: queryParams,
+      );
 
       final List<dynamic> data = response.data as List<dynamic>;
       return data
@@ -28,7 +32,7 @@ class ShedDataSource {
 
   Future<ShedModel> getShed(int id) async {
     try {
-      final response = await dio.get('/sheds/$id/');
+      final response = await dio.get(ApiConstants.shedDetail(id));
       return ShedModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -48,7 +52,7 @@ class ShedDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/sheds/',
+        ApiConstants.sheds,
         data: {
           'name': name,
           'farm': farmId,
@@ -75,7 +79,7 @@ class ShedDataSource {
   }) async {
     try {
       final response = await dio.put(
-        '/sheds/$id/',
+        ApiConstants.shedDetail(id),
         data: {
           'name': name,
           'capacity': capacity,
@@ -95,7 +99,7 @@ class ShedDataSource {
 
   Future<void> deleteShed(int id) async {
     try {
-      await dio.delete('/sheds/$id/');
+      await dio.delete(ApiConstants.shedDetail(id));
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,

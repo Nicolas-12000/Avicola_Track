@@ -34,58 +34,53 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
+                boxShadow: AppColors.cardShadow,
               ),
-              child: const Icon(
-                Icons.agriculture,
-                size: 80,
-                color: AppColors.primary,
+              child: Image.asset(
+                'assets/images/icono.png',
+                width: 110,
+                height: 110,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 24),
 
             // Título
             const Text(
-              'AvícolaTrack',
+              'Avicola San Lorenzo',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'Gestión Inteligente de Granjas',
-              style: TextStyle(fontSize: 16, color: Colors.white70),
+              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 48),
 
             // Indicador de carga
             if (authState.isLoading)
-              const CircularProgressIndicator(color: Colors.white)
+              const CircularProgressIndicator(color: AppColors.primary)
             else if (authState.error != null)
               Column(
                 children: [
                   const Icon(
                     Icons.error_outline,
-                    color: Colors.white,
+                    color: AppColors.primary,
                     size: 48,
                   ),
                   const SizedBox(height: 16),
@@ -94,7 +89,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     child: Text(
                       authState.error!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
+                      style: const TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                 ],

@@ -107,6 +107,20 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+### Demo usuarios (desarrollo)
+
+Crear roles y usuarios de prueba:
+```bash
+python manage.py setup_avicola_roles
+python manage.py create_demo_users
+```
+
+Credenciales de prueba creadas por `create_demo_users`:
+- admin1 / admin1234 (Administrador Sistema)
+- granja1 / granja1234 (Administrador de Granja)
+- vet1 / vet1234 (Veterinario)
+- galpon1 / galpon1234 (Galponero)
+
 ## 🧪 Testing
 
 El proyecto cuenta con una suite completa de 44 tests que cubren todas las funcionalidades principales.

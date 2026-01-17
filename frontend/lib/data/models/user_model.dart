@@ -26,15 +26,27 @@ class UserModel {
   String get fullName => '$firstName $lastName'.trim();
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final idValue = json['id'];
+    final id = idValue is int
+        ? idValue
+        : int.tryParse(idValue?.toString() ?? '') ?? 0;
+
+    final roleValue = json['role'];
+    final role = roleValue is Map<String, dynamic>
+        ? roleValue['name'] as String?
+        : roleValue is String
+            ? roleValue
+            : null;
+
     return UserModel(
-      id: json['id'] as int,
-      username: json['username'] as String,
-      email: json['email'] as String,
+      id: id,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
       identification: json['identification'] as String?,
       phone: json['phone'] as String?,
-      role: json['role']?['name'] as String?,
+      role: role,
       assignedFarm: json['assigned_farm'] as int?,
       isActive: json['is_active'] as bool? ?? true,
     );

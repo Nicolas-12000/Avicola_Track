@@ -22,16 +22,18 @@ class AuthRepository {
 
       // Guardar tokens
       await SecureStorage.saveToken(authResponse.accessToken);
-      await SecureStorage.saveRefreshToken(authResponse.refreshToken);
+      if (authResponse.refreshToken != null) {
+        await SecureStorage.saveRefreshToken(authResponse.refreshToken!);
+      }
 
       // Guardar datos de usuario
-      final userData = jsonEncode(authResponse.user);
+      final userData = jsonEncode(authResponse.user ?? {});
       await SecureStorage.saveUserData(userData);
 
       // Guardar preferencia de recordar sesión
       await SecureStorage.setRememberMe(rememberMe);
 
-      return UserModel.fromJson(authResponse.user);
+      return UserModel.fromJson(authResponse.user ?? {});
     } catch (e) {
       rethrow;
     }

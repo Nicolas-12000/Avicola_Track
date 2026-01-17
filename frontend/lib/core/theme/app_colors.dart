@@ -7,29 +7,29 @@ class AppColors {
   // ==================== TEMA CLARO ====================
 
   // Primarios - Azul Profesional (Confianza, Estabilidad)
-  static const Color primary = Color(0xFF1E3A5F);
-  static const Color primaryLight = Color(0xFF2E5077);
-  static const Color primaryDark = Color(0xFF0F1E36);
+  static const Color primary = Color(0xFFE10600);
+  static const Color primaryLight = Color(0xFFE10600);
+  static const Color primaryDark = Color(0xFFB00400);
 
   // Secundarios - Verde Avícola (Naturaleza, Vida)
-  static const Color secondary = Color(0xFF4CAF50);
-  static const Color secondaryLight = Color(0xFF81C784);
-  static const Color secondaryDark = Color(0xFF388E3C);
+  static const Color secondary = Color(0xFF000000);
+  static const Color secondaryLight = Color(0xFF4A4A4A);
+  static const Color secondaryDark = Color(0xFF000000);
 
   // Acento - Naranja Energético (CTAs, Alertas)
-  static const Color accent = Color(0xFFFF8A65);
-  static const Color accentLight = Color(0xFFFFAB91);
-  static const Color accentDark = Color(0xFFFF6F43);
+  static const Color accent = Color(0xFFB00400);
+  static const Color accentLight = Color(0xFFE10600);
+  static const Color accentDark = Color(0xFFB00400);
 
   // Fondos y Superficies
-  static const Color background = Color(0xFFF8F9FA);
+  static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF1F3F5);
+  static const Color surfaceVariant = Color(0xFFF2F2F2);
 
   // Textos
-  static const Color textPrimary = Color(0xFF212529);
-  static const Color textSecondary = Color(0xFF6C757D);
-  static const Color textDisabled = Color(0xFFADB5BD);
+  static const Color textPrimary = Color(0xFF000000);
+  static const Color textSecondary = Color(0xFF4A4A4A);
+  static const Color textDisabled = Color(0xFFBDBDBD);
 
   // Estados Semánticos
   static const Color success = Color(0xFF28A745);

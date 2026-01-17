@@ -19,9 +19,16 @@ import '../../features/veterinary/presentation/screens/veterinary_dashboard_scre
 // Router Provider
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final refreshNotifier = ValueNotifier(0);
+
+  ref.listen<AuthState>(authProvider, (_, __) {
+    refreshNotifier.value++;
+  });
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isLoading = authState.isLoading;

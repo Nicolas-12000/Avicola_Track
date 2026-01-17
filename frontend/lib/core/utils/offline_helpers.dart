@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/providers/offline_provider.dart';
 
 /// Ejemplo de cómo usar el sistema offline en un provider existente
@@ -28,7 +29,7 @@ extension OfflineCapable on StateNotifierProvider {
       await ref
           .read(offlineProvider.notifier)
           .addToQueue(
-            endpoint: '/flocks/weight/',
+            endpoint: ApiConstants.dailyWeights,
             method: 'POST',
             data: data,
             entityType: 'weight_record',
@@ -53,7 +54,7 @@ extension OfflineCapable on StateNotifierProvider {
         await ref
             .read(offlineProvider.notifier)
             .addToQueue(
-              endpoint: '/flocks/weight/',
+            endpoint: ApiConstants.dailyWeights,
               method: 'POST',
               data: data,
               entityType: 'weight_record',
@@ -86,7 +87,7 @@ extension OfflineCapable on StateNotifierProvider {
       await ref
           .read(offlineProvider.notifier)
           .addToQueue(
-            endpoint: '/flocks/mortality/',
+            endpoint: ApiConstants.mortality,
             method: 'POST',
             data: data,
             entityType: 'mortality_record',
@@ -100,7 +101,7 @@ extension OfflineCapable on StateNotifierProvider {
         await ref
             .read(offlineProvider.notifier)
             .addToQueue(
-              endpoint: '/flocks/mortality/',
+            endpoint: ApiConstants.mortality,
               method: 'POST',
               data: data,
               entityType: 'mortality_record',
@@ -132,7 +133,7 @@ extension OfflineCapable on StateNotifierProvider {
       await ref
           .read(offlineProvider.notifier)
           .addToQueue(
-            endpoint: '/inventory/items/$itemId/adjust/',
+            endpoint: '${ApiConstants.inventoryDetail(itemId)}adjust-stock/',
             method: 'POST',
             data: data,
             entityType: 'inventory_adjustment',
@@ -146,7 +147,7 @@ extension OfflineCapable on StateNotifierProvider {
         await ref
             .read(offlineProvider.notifier)
             .addToQueue(
-              endpoint: '/inventory/items/$itemId/adjust/',
+            endpoint: '${ApiConstants.inventoryDetail(itemId)}adjust-stock/',
               method: 'POST',
               data: data,
               entityType: 'inventory_adjustment',

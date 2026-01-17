@@ -48,18 +48,21 @@ class ApiConstants {
 
   // Alarms
   static const String alarms = '$apiPrefix/alarms/';
+  static const String alarmsManage = '$apiPrefix/manage/alarms/';
   static String alarmDetail(int id) => '$alarms$id/';
-  static String alarmResolve(int id) => '$alarms$id/resolve/';
+  static String alarmManageDetail(int id) => '$alarmsManage$id/';
+  static String alarmResolve(int id) => '$alarmsManage$id/resolve/';
+  static String alarmEscalate(int id) => '$alarmsManage$id/escalate/';
   static const String alarmConfigurations = '$apiPrefix/alarm-configurations/';
 
   // Reports
   static const String reports = '$apiPrefix/reports/';
   static String reportDetail(int id) => '$reports$id/';
-  static const String reportGenerate = '$reports/generate/';
+  static String reportGenerate(int id) => '$reports$id/generate/';
   static String reportDownload(int id) => '$reports$id/download/';
   static const String reportTypes = '$reports/types/';
   static const String quickProductivity = '$reports/quick_productivity/';
-  static const String reportTemplates = '$reports/templates/';
+  static const String reportTemplates = '$apiPrefix/templates/';
 
   // Veterinary
   static const String veterinary = '$apiPrefix/veterinary/';
@@ -89,9 +92,9 @@ class ApiConstants {
       '$biosecurityChecklists/compliance_stats/';
 
   // Alarms - endpoints adicionales
-  static const String alarmsDashboard = '$alarms/dashboard/';
-  static String alarmAcknowledge(int id) => '$alarms$id/acknowledge/';
-  static const String alarmsBulkAcknowledge = '$alarms/bulk-acknowledge/';
+  static const String alarmsDashboard = '$alarmsManage/dashboard/';
+  static String alarmAcknowledge(int id) => '$alarmsManage$id/acknowledge/';
+  static const String alarmsBulkAcknowledge = '$alarmsManage/bulk-acknowledge/';
   static const String notificationsUnread = '$apiPrefix/notifications/unread/';
   static const String notificationsRecent = '$apiPrefix/notifications/recent/';
 
@@ -99,6 +102,8 @@ class ApiConstants {
   static const String flocksDashboard = '$apiPrefix/dashboard/';
   static const String flocksImportExcel = '$flocks/import-excel/';
   static const String breedReferences = '$apiPrefix/references/';
+  static const String dailyWeights = '$apiPrefix/daily-weights/';
+  static const String mortality = '$apiPrefix/mortality/';
 
   // Inventory - endpoints adicionales
   static const String inventoryStockAlerts = '$inventory/stock-alerts/';

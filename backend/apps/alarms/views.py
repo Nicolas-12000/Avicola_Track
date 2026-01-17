@@ -1,5 +1,5 @@
 from rest_framework import viewsets, permissions
-from .models import AlarmConfiguration, Alarm, NotificationLog
+from .models import AlarmConfiguration, Alarm, AlarmEscalation, NotificationLog
 from .serializers import AlarmConfigurationSerializer, AlarmSerializer
 from .serializers_notifications import NotificationLogSerializer
 
@@ -71,7 +71,8 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         stats = user_alarms.aggregate(
             total=Count('id'),
             pending=Count('id', filter=dj_models.Q(status='PENDING')),
-            acknowledged=Count('id', filter=dj_models.Q(status='ACKNOWLEDGED')),
+            resolved=Count('id', filter=dj_models.Q(status='RESOLVED')),
+            escalated=Count('id', filter=dj_models.Q(status='ESCALATED')),
         )
 
         priority_stats = user_alarms.filter(status='PENDING').aggregate(
@@ -111,15 +112,12 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         if alarm.status != 'PENDING':
             return Response({'error': 'Solo se pueden atender alarmas pendientes'}, status=400)
 
-        alarm.status = 'ACKNOWLEDGED'
-        alarm.acknowledged_by = request.user
-        alarm.acknowledged_at = timezone.now()
-        alarm.resolution_notes = request.data.get('notes', '')
-        alarm.save()
+        alarm.status = 'RESOLVED'
+        alarm.save(update_fields=['status'])
 
-        logger.info(f"Alarm {alarm.id} acknowledged by {request.user.username}")
+        logger.info(f"Alarm {alarm.id} resolved by {request.user.username}")
 
-        return Response({'message': 'Alarma marcada como atendida', 'acknowledged_at': alarm.acknowledged_at.isoformat()})
+        return Response({'message': 'Alarma resuelta'})
 
     @action(detail=False, methods=['post'], url_path='bulk-acknowledge')
     def bulk_acknowledge(self, request):
@@ -130,14 +128,45 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         user_alarms = self.get_queryset()
         alarms_to_update = user_alarms.filter(id__in=alarm_ids, status='PENDING')
 
-        updated_count = alarms_to_update.update(
-            status='ACKNOWLEDGED',
-            acknowledged_by=request.user,
-            acknowledged_at=timezone.now(),
-            resolution_notes=notes
+        updated_count = alarms_to_update.update(status='RESOLVED')
+
+        return Response({'updated_count': updated_count, 'message': f'{updated_count} alarmas resueltas'})
+
+    @action(detail=True, methods=['post'])
+    def resolve(self, request, pk=None):
+        """Resolver alarma manualmente"""
+        alarm = self.get_object()
+
+        if alarm.status != 'PENDING':
+            return Response({'error': 'Solo se pueden resolver alarmas pendientes'}, status=400)
+
+        alarm.status = 'RESOLVED'
+        alarm.save(update_fields=['status'])
+
+        logger.info(f"Alarm {alarm.id} resolved by {request.user.username}")
+
+        return Response({'message': 'Alarma resuelta'})
+
+    @action(detail=True, methods=['post'])
+    def escalate(self, request, pk=None):
+        """Escalar alarma manualmente"""
+        alarm = self.get_object()
+
+        if alarm.status != 'PENDING':
+            return Response({'error': 'Solo se pueden escalar alarmas pendientes'}, status=400)
+
+        alarm.status = 'ESCALATED'
+        alarm.save(update_fields=['status'])
+
+        AlarmEscalation.objects.create(
+            alarm=alarm,
+            escalated_to=request.user,
+            escalation_reason=request.data.get('reason', 'manual'),
         )
 
-        return Response({'updated_count': updated_count, 'message': f'{updated_count} alarmas atendidas'})
+        logger.info(f"Alarm {alarm.id} escalated by {request.user.username}")
+
+        return Response({'message': 'Alarma escalada'})
 
 
 class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):

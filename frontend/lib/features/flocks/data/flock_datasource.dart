@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../data/models/flock_model.dart';
 import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
@@ -20,7 +21,10 @@ class FlockDataSource {
       if (shedId != null) queryParams['shed'] = shedId;
       if (status != null) queryParams['status'] = status;
 
-      final response = await dio.get('/flocks/', queryParameters: queryParams);
+      final response = await dio.get(
+        ApiConstants.flocks,
+        queryParameters: queryParams,
+      );
 
       final List<dynamic> data = response.data as List<dynamic>;
       return data
@@ -38,7 +42,7 @@ class FlockDataSource {
 
   Future<FlockModel> getFlock(int id) async {
     try {
-      final response = await dio.get('/flocks/$id/');
+      final response = await dio.get(ApiConstants.flockDetail(id));
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -61,7 +65,7 @@ class FlockDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/flocks/',
+        ApiConstants.flocks,
         data: {
           'shed': shedId,
           'breed': breed,
@@ -101,7 +105,7 @@ class FlockDataSource {
         data['sale_date'] = saleDate.toIso8601String().split('T')[0];
       }
 
-      final response = await dio.patch('/flocks/$id/', data: data);
+      final response = await dio.patch(ApiConstants.flockDetail(id), data: data);
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -115,7 +119,7 @@ class FlockDataSource {
 
   Future<void> deleteFlock(int id) async {
     try {
-      await dio.delete('/flocks/$id/');
+      await dio.delete(ApiConstants.flockDetail(id));
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -130,7 +134,7 @@ class FlockDataSource {
   Future<List<WeightRecordModel>> getWeightRecords(int flockId) async {
     try {
       final response = await dio.get(
-        '/weight-records/',
+        ApiConstants.dailyWeights,
         queryParameters: {'flock': flockId},
       );
       final List<dynamic> data = response.data as List<dynamic>;
@@ -158,7 +162,7 @@ class FlockDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/weight-records/',
+        ApiConstants.dailyWeights,
         data: {
           'flock': flockId,
           'average_weight': averageWeight,
@@ -182,7 +186,7 @@ class FlockDataSource {
   Future<List<MortalityRecordModel>> getMortalityRecords(int flockId) async {
     try {
       final response = await dio.get(
-        '/mortality-records/',
+        ApiConstants.mortality,
         queryParameters: {'flock': flockId},
       );
       final List<dynamic> data = response.data as List<dynamic>;
@@ -212,7 +216,7 @@ class FlockDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/mortality-records/',
+        ApiConstants.mortality,
         data: {
           'flock': flockId,
           'quantity': quantity,
@@ -243,7 +247,7 @@ class FlockDataSource {
       }
 
       final response = await dio.get(
-        '/flocks/dashboard/',
+        ApiConstants.flocksDashboard,
         queryParameters: queryParams,
       );
       return response.data as Map<String, dynamic>;
@@ -267,7 +271,10 @@ class FlockDataSource {
         'import_type': importType,
       });
 
-      final response = await dio.post('/flocks/import-excel/', data: formData);
+      final response = await dio.post(
+        ApiConstants.flocksImportExcel,
+        data: formData,
+      );
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -281,7 +288,7 @@ class FlockDataSource {
 
   Future<List<Map<String, dynamic>>> getBreedReferences() async {
     try {
-      final response = await dio.get('/flocks/breed-references/');
+      final response = await dio.get(ApiConstants.breedReferences);
       return List<Map<String, dynamic>>.from(response.data as List);
     } catch (e, stackTrace) {
       ErrorHandler.logError(

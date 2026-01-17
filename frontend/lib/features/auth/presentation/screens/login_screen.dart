@@ -68,12 +68,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo
-                    Icon(Icons.agriculture, size: 80, color: AppColors.primary),
+                    Image.asset(
+                      'assets/images/login.png',
+                      height: 160,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(height: 16),
 
                     // Título
                     Text(
-                      'AvícolaTrack',
+                      'Iniciar Sesión',
                       style: Theme.of(context).textTheme.displayMedium
                           ?.copyWith(
                             color: AppColors.primary,

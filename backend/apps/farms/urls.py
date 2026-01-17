@@ -1,17 +1,9 @@
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ShedViewSet
+from .views import FarmViewSet, ShedViewSet
 
 router = DefaultRouter()
 router.register(r'sheds', ShedViewSet, basename='shed')
+router.register(r'farms', FarmViewSet, basename='farm')
 
-urlpatterns = router.urls
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import FarmViewSet
-
-router = DefaultRouter()
-router.register('farms', FarmViewSet, basename='farm')
-
-urlpatterns = [
-    path('', include(router.urls)),
-]
+urlpatterns = [path('', include(router.urls))]
