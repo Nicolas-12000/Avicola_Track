@@ -20,6 +20,12 @@ class IsAssignedShedWorkerOrFarmAdmin(permissions.BasePermission):
         if user.is_staff:
             return True
 
+        role_name = getattr(getattr(user, 'role', None), 'name', None)
+        
+        # Administrador Sistema can do everything
+        if role_name == 'Administrador Sistema':
+            return True
+
         # For creation (POST) validate against the target shed
         if request.method == 'POST':
             shed_id = request.data.get('shed')
@@ -30,7 +36,6 @@ class IsAssignedShedWorkerOrFarmAdmin(permissions.BasePermission):
             except Shed.DoesNotExist:
                 return False
 
-            role_name = getattr(getattr(user, 'role', None), 'name', None)
             if role_name == 'Galponero':
                 return shed.assigned_worker == user
             if role_name == 'Administrador de Granja':
@@ -47,7 +52,7 @@ class IsAssignedShedWorkerOrFarmAdmin(permissions.BasePermission):
         role_name = getattr(getattr(user, 'role', None), 'name', None)
 
         # Staff and system admins allowed
-        if user.is_staff:
+        if user.is_staff or role_name == 'Administrador Sistema':
             return True
 
         # If object is a Flock, get its shed

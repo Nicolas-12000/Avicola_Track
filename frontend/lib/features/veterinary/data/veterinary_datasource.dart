@@ -27,7 +27,12 @@ class VeterinaryDataSource {
         ApiConstants.veterinaryVisits,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -92,8 +97,9 @@ class VeterinaryDataSource {
       if (visitDate != null) {
         data['visit_date'] = visitDate.toIso8601String().split('T')[0];
       }
-      if (veterinarianName != null)
+      if (veterinarianName != null) {
         data['veterinarian_name'] = veterinarianName;
+      }
       if (reasonForVisit != null) data['reason_for_visit'] = reasonForVisit;
       if (diagnosis != null) data['diagnosis'] = diagnosis;
       if (treatment != null) data['treatment'] = treatment;
@@ -149,7 +155,12 @@ class VeterinaryDataSource {
       final response = await dio.get(
         '${ApiConstants.veterinaryVisits}today_upcoming/',
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -180,7 +191,12 @@ class VeterinaryDataSource {
         ApiConstants.vaccinations,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -245,8 +261,9 @@ class VeterinaryDataSource {
       if (appliedDate != null) {
         data['applied_date'] = appliedDate.toIso8601String().split('T')[0];
       }
-      if (applicationMethod != null)
+      if (applicationMethod != null) {
         data['application_method'] = applicationMethod;
+      }
       if (dosage != null) data['dosage'] = dosage;
       if (batchNumber != null) data['batch_number'] = batchNumber;
       if (appliedBy != null) data['applied_by'] = appliedBy;
@@ -311,7 +328,12 @@ class VeterinaryDataSource {
   Future<List<Map<String, dynamic>>> getUpcomingVaccinations() async {
     try {
       final response = await dio.get('${ApiConstants.vaccinations}upcoming/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -344,7 +366,12 @@ class VeterinaryDataSource {
         ApiConstants.medications,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -423,8 +450,9 @@ class VeterinaryDataSource {
       if (withdrawalPeriodDays != null) {
         data['withdrawal_period_days'] = withdrawalPeriodDays;
       }
-      if (applicationMethod != null)
+      if (applicationMethod != null) {
         data['application_method'] = applicationMethod;
+      }
       if (frequency != null) data['frequency'] = frequency;
       if (prescribedBy != null) data['prescribed_by'] = prescribedBy;
       if (reason != null) data['reason'] = reason;
@@ -491,7 +519,12 @@ class VeterinaryDataSource {
   Future<List<Map<String, dynamic>>> getActiveMedications() async {
     try {
       final response = await dio.get('${ApiConstants.medications}active/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -505,7 +538,12 @@ class VeterinaryDataSource {
   Future<List<Map<String, dynamic>>> getWithdrawalPeriods() async {
     try {
       final response = await dio.get('${ApiConstants.medications}withdrawal/');
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -536,7 +574,12 @@ class VeterinaryDataSource {
         ApiConstants.diseases,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -661,7 +704,12 @@ class VeterinaryDataSource {
         ApiConstants.biosecurityChecklists,
         queryParameters: queryParams,
       );
-      return List<Map<String, dynamic>>.from(response.data as List);
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -728,8 +776,9 @@ class VeterinaryDataSource {
       }
       if (description != null) data['description'] = description;
       if (frequency != null) data['frequency'] = frequency;
-      if (responsiblePerson != null)
+      if (responsiblePerson != null) {
         data['responsible_person'] = responsiblePerson;
+      }
       if (notes != null) data['notes'] = notes;
 
       final response = await dio.put(

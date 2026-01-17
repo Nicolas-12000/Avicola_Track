@@ -11,142 +11,359 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    final isAdmin = user?.role == 'admin' || user?.role == 'superadmin';
+    final userRole = user?.userRole;
+    
+    // Permisos basados en el rol
+    final canViewAllFarms = userRole?.canViewAllFarms ?? false;
+    final canViewReports = userRole?.canViewReports ?? false;
+    final canCreateUsers = userRole?.canCreateUsers ?? false;
+    final isVeterinarian = userRole?.isVeterinarian ?? false;
+    final isShedKeeper = userRole?.isShedKeeper ?? false;
+    final isFarmAdmin = userRole?.isFarmAdmin ?? false;
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: AppColors.primary),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const CircleAvatar(
-                  radius: 32,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 40, color: AppColors.primary),
+          // Header con información del usuario
+          InkWell(
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/profile');
+            },
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  user?.fullName ?? 'Usuario',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+              ),
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 24,
+                bottom: 24,
+                left: 20,
+                right: 20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 36,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Settings icon
+                      IconButton(
+                        icon: const Icon(Icons.settings, color: Colors.white70),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          context.push('/profile');
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Nombre
+                  Text(
+                    user?.fullName.isNotEmpty == true 
+                        ? user!.fullName 
+                        : (user?.username ?? 'Usuario'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  
+                  // Rol badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      user?.role ?? 'Sin rol',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Menu items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                // Dashboard - varía según el rol
+                _buildMenuItem(
+                  context: context,
+                  icon: Icons.dashboard_outlined,
+                  activeIcon: Icons.dashboard,
+                  title: 'Dashboard',
+                  onTap: () {
+                    Navigator.pop(context);
+                    if (isShedKeeper) {
+                      context.go('/shed-keeper-dashboard');
+                    } else if (isVeterinarian) {
+                      context.go('/veterinary');
+                    } else if (isFarmAdmin) {
+                      context.go('/farms/dashboard');
+                    } else {
+                      context.go('/');
+                    }
+                  },
+                ),
+                
+                // Granjas - Solo admin sistema y admin granja
+                if (canViewAllFarms || isFarmAdmin) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'GESTIÓN',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.agriculture_outlined,
+                    activeIcon: Icons.agriculture,
+                    title: 'Granjas',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/farms');
+                    },
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.warehouse_outlined,
+                    activeIcon: Icons.warehouse,
+                    title: 'Galpones',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/sheds');
+                    },
+                  ),
+                ],
+                
+                // Lotes - Todos menos veterinario
+                if (!isVeterinarian)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.egg_outlined,
+                    activeIcon: Icons.egg,
+                    title: 'Lotes',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/flocks');
+                    },
+                  ),
+                
+                // Inventario - Solo admin sistema y admin granja
+                if (canViewAllFarms || isFarmAdmin)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.inventory_2_outlined,
+                    activeIcon: Icons.inventory_2,
+                    title: 'Inventario',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/inventory');
+                    },
+                  ),
+                
+                // Veterinaria - Solo veterinarios y admins
+                if (isVeterinarian || canViewAllFarms || isFarmAdmin)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.medical_services_outlined,
+                    activeIcon: Icons.medical_services,
+                    title: 'Veterinaria',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/veterinary');
+                    },
+                  ),
+                
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'MONITOREO',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
-                Text(
-                  user?.email ?? '',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                
+                // Alarmas - Todos pueden ver
+                _buildMenuItem(
+                  context: context,
+                  icon: Icons.notifications_outlined,
+                  activeIcon: Icons.notifications,
+                  title: 'Alarmas',
+                  badgeColor: Colors.red,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/alarms');
+                  },
                 ),
+                
+                // Reportes - Solo admin sistema y admin granja
+                if (canViewReports)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.assessment_outlined,
+                    activeIcon: Icons.assessment,
+                    title: 'Reportes',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/reports');
+                    },
+                  ),
+                
+                // Usuarios - Solo quienes pueden crear usuarios
+                if (canCreateUsers) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'ADMINISTRACIÓN',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.people_outline,
+                    activeIcon: Icons.people,
+                    title: 'Usuarios',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/users');
+                    },
+                  ),
+                ],
               ],
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.dashboard),
-            title: const Text('Dashboard'),
-            onTap: () {
-              Navigator.pop(context);
-              context.go('/');
-            },
-          ),
-          if (isAdmin) ...[
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.agriculture),
-              title: const Text('Granjas'),
-              onTap: () {
+          
+          // Footer con logout
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.logout, color: Colors.red, size: 20),
+              ),
+              title: const Text(
+                'Cerrar Sesión',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () async {
                 Navigator.pop(context);
-                context.push('/farms');
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.warehouse),
-              title: const Text('Galpones'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/sheds');
-              },
-            ),
-          ],
-          ListTile(
-            leading: const Icon(Icons.pets),
-            title: const Text('Lotes'),
-            onTap: () {
-              Navigator.pop(context);
-              context.push('/flocks');
-            },
           ),
-          ListTile(
-            leading: const Icon(Icons.inventory_2),
-            title: const Text('Inventario'),
-            onTap: () {
-              Navigator.pop(context);
-              context.push('/inventory');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.medical_services),
-            title: const Text('Veterinaria'),
-            onTap: () {
-              Navigator.pop(context);
-              context.push('/veterinary');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.warning_amber),
-            title: const Text('Alarmas'),
-            onTap: () {
-              Navigator.pop(context);
-              context.push('/alarms');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.assessment),
-            title: const Text('Reportes'),
-            onTap: () {
-              Navigator.pop(context);
-              context.push('/reports');
-            },
-          ),
-          if (isAdmin) ...[
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text('Usuarios'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/users');
-              },
-            ),
-          ],
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Configuración'),
-            onTap: () {
-              Navigator.pop(context);
-              context.push('/settings');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: Colors.red),
-            ),
-            onTap: () async {
-              Navigator.pop(context);
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                context.go('/login');
-              }
-            },
-          ),
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required BuildContext context,
+    required IconData icon,
+    required IconData activeIcon,
+    required String title,
+    required VoidCallback onTap,
+    Color? badgeColor,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: AppColors.primary, size: 22),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 15,
+        ),
+      ),
+      trailing: badgeColor != null
+          ? Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: badgeColor,
+                shape: BoxShape.circle,
+              ),
+            )
+          : null,
+      onTap: onTap,
     );
   }
 }

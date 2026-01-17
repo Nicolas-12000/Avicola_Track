@@ -249,7 +249,44 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
     }
 
     if (state.error != null) {
-      return Center(child: Text('Error: ${state.error}'));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cloud_off_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Error al cargar las alarmas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                state.error!.contains('404') 
+                    ? 'No hay datos de alarmas disponibles'
+                    : 'Verifique su conexión e intente de nuevo',
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () => _loadAlarms(isResolved: isResolved),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final alarms = isResolved ? state.resolvedAlarms : state.unresolvedAlarms;

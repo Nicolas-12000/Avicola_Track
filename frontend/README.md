@@ -115,9 +115,42 @@ flutter run
 ## 🔧 Configuración
 
 ### API Backend
-Editar `lib/core/constants/api_constants.dart`:
+
+#### Ejecución en red local (desarrollo)
+
+1. Inicia el backend escuchando en todas las interfaces:
+    ```bash
+    python manage.py runserver 0.0.0.0:8000
+    ```
+2. Obtén la IP local de tu PC con:
+    ```bash
+    ipconfig
+    ```
+    Usa la dirección IPv4 (ejemplo: 192.168.1.34).
+3. Permite el puerto 8000 en el firewall de Windows.
+4. Ejecuta la app Flutter indicando la IP del backend:
+    ```bash
+    flutter run --dart-define=API_BASE_URL=http://TU_IP_LOCAL:8000/
+    ```
+
+#### Ejecución en producción
+
+1. Despliega el backend en un servidor con IP pública o dominio (ejemplo: https://api.tuservidor.com).
+2. Ejecuta la app Flutter indicando la URL pública:
+    ```bash
+    flutter build apk --dart-define=API_BASE_URL=https://api.tuservidor.com/
+    ```
+
+#### Configuración flexible
+
+La URL del backend se define en `lib/core/constants/api_constants.dart` usando la variable de entorno `API_BASE_URL`. Así, cada usuario puede configurar la URL sin modificar el código fuente.
+
+Ejemplo de uso en código:
 ```dart
-static const String BASE_URL = 'http://localhost:8000'; // Cambiar en producción
+static const String baseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:8000/',
+);
 ```
 
 ## 🧪 Testing

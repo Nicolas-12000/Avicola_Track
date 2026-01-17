@@ -10,6 +10,7 @@ class ReportsDataSource {
 
   Future<List<Report>> getReports({int? farmId}) async {
     try {
+<<<<<<< HEAD
       final queryParams = farmId != null ? {'farm': farmId} : null;
       final response = await dio.get(
         ApiConstants.reports,
@@ -21,6 +22,17 @@ class ReportsDataSource {
         return data
             .map((json) => Report.fromJson(_mapReportJson(json)))
             .toList();
+=======
+      final queryParams = farmId != null ? {'farm_id': farmId} : null;
+      final response = await dio.get(ApiConstants.reports, queryParameters: queryParams);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+            ? responseData['results']
+            : responseData;
+        return data.map((json) => Report.fromJson(json)).toList();
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       }
       throw DioException(
         requestOptions: response.requestOptions,
@@ -81,7 +93,11 @@ class ReportsDataSource {
         if (filters != null) ...filters,
       };
 
+<<<<<<< HEAD
       final response = await dio.post(ApiConstants.reports, data: data);
+=======
+      final response = await dio.post('${ApiConstants.reports}generate/', data: data);
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return Report.fromJson(_mapReportJson(response.data));
@@ -125,7 +141,13 @@ class ReportsDataSource {
   Future<List<dynamic>> getReportTemplates() async {
     try {
       final response = await dio.get(ApiConstants.reportTemplates);
-      return (response.data as List).map((template) {
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      
+      return data.map((template) {
         return ReportTemplate(
           id: template['id'].toString(),
           name: template['name'] as String,
@@ -189,8 +211,18 @@ class ReportsDataSource {
 
   Future<List<Map<String, dynamic>>> getReportTypes() async {
     try {
+<<<<<<< HEAD
       final response = await dio.get(ApiConstants.reportTypes);
       return List<Map<String, dynamic>>.from(response.data as List);
+=======
+      final response = await dio.get('${ApiConstants.reports}types/');
+      
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
+          ? responseData['results']
+          : responseData;
+      return List<Map<String, dynamic>>.from(data);
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -238,8 +270,13 @@ class ReportsDataSource {
 
   Future<Report> generateReportFromId({required int reportId}) async {
     try {
+<<<<<<< HEAD
       final response = await dio.post(ApiConstants.reportGenerate(reportId));
       return Report.fromJson(_mapReportJson(response.data));
+=======
+      final response = await dio.post('${ApiConstants.reports}$reportId/generate/');
+      return Report.fromJson(response.data);
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,

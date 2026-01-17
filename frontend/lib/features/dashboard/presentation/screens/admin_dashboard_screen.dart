@@ -7,11 +7,11 @@ import '../../../../core/widgets/stat_card.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
 import '../../../../core/widgets/app_drawer.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../../../flocks/presentation/providers/flocks_provider.dart';
 import '../../../alarms/presentation/providers/alarms_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../data/models/flock_model.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -72,10 +72,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               context.push('/alarms');
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white),
-            onPressed: () => _showSettingsDialog(context, ref),
-          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -132,7 +128,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     // Calcular total de aves vivas actualmente
     final totalBirds = flocksState.activeFlocks.fold<int>(
       0,
-      (sum, flock) => sum + flock.currentQuantity,
+      (int sum, FlockModel flock) => sum + flock.currentQuantity,
     );
 
     return LayoutBuilder(
@@ -222,14 +218,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                             onTap: () {
                               Navigator.pop(context);
                               context.push('/reports');
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.settings),
-                            title: const Text('Configurar vista'),
-                            onTap: () {
-                              Navigator.pop(context);
-                              _showSettingsDialog(context, ref);
                             },
                           ),
                         ],
@@ -444,53 +432,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             },
           ),
       ],
-    );
-  }
-
-  /// Muestra el diálogo de configuración
-  void _showSettingsDialog(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('⚙️ Configuración'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.brightness_6),
-              title: const Text('Tema de la aplicación'),
-              subtitle: Text(themeMode == ThemeMode.light ? 'Claro' : 'Oscuro'),
-              trailing: Switch(
-                value: themeMode == ThemeMode.dark,
-                onChanged: (isDark) {
-                  ref
-                      .read(themeModeProvider.notifier)
-                      .setThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
-                },
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.notifications_outlined),
-              title: const Text('Notificaciones'),
-              subtitle: const Text('Gestionar alertas y avisos'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.pop(dialogContext);
-                context.push('/alarms');
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
     );
   }
 }

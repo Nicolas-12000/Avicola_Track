@@ -14,7 +14,7 @@ class AlarmModel {
   final String? resolutionNotes;
   final Map<String, dynamic>? metadata;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
 
   AlarmModel({
     required this.id,
@@ -32,29 +32,33 @@ class AlarmModel {
     this.resolutionNotes,
     this.metadata,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
   factory AlarmModel.fromJson(Map<String, dynamic> json) {
     return AlarmModel(
       id: json['id'] as int,
-      farmId: json['farm'] as int,
+      farmId: json['farm'] as int? ?? 0,
       farmName: json['farm_name'] as String?,
       flockId: json['flock'] as int?,
       flockInfo: json['flock_info'] as String?,
-      alarmType: json['alarm_type'] as String,
-      severity: json['severity'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      isResolved: json['is_resolved'] as bool,
+      alarmType: json['alarm_type'] as String? ?? 'general',
+      severity: json['severity'] as String? ?? 'low',
+      title: json['title'] as String? ?? 'Alarma',
+      description: json['description'] as String? ?? '',
+      isResolved: json['is_resolved'] as bool? ?? false,
       resolvedBy: json['resolved_by'] as String?,
       resolvedAt: json['resolved_at'] != null
           ? DateTime.parse(json['resolved_at'] as String)
           : null,
       resolutionNotes: json['resolution_notes'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
     );
   }
 
@@ -73,7 +77,7 @@ class AlarmModel {
       'resolution_notes': resolutionNotes,
       'metadata': metadata,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/models/alarm_model.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/constants/api_constants.dart';
 
 class AlarmDataSource {
   final Dio dio;
@@ -19,12 +20,21 @@ class AlarmDataSource {
       if (severity != null) queryParams['severity'] = severity;
       if (isResolved != null) queryParams['is_resolved'] = isResolved;
 
+<<<<<<< HEAD
       final response = await dio.get(
         ApiConstants.alarmsManage,
         queryParameters: queryParams,
       );
+=======
+      final response = await dio.get(ApiConstants.alarmsManage, queryParameters: queryParams);
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
 
-      final List<dynamic> data = response.data as List<dynamic>;
+      // Handle paginated response from Django REST Framework
+      final responseData = response.data;
+      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
+          ? responseData['results'] as List<dynamic>
+          : responseData as List<dynamic>;
+          
       return data
           .map((json) => AlarmModel.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -40,7 +50,11 @@ class AlarmDataSource {
 
   Future<AlarmModel> getAlarm(int id) async {
     try {
+<<<<<<< HEAD
       final response = await dio.get(ApiConstants.alarmManageDetail(id));
+=======
+      final response = await dio.get(ApiConstants.alarmDetail(id));
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -58,8 +72,13 @@ class AlarmDataSource {
   }) async {
     try {
       final response = await dio.post(
+<<<<<<< HEAD
         ApiConstants.alarmResolve(id),
         data: {'notes': resolutionNotes},
+=======
+        '${ApiConstants.alarms}$id/resolve/',
+        data: {'resolution_notes': resolutionNotes},
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       );
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
@@ -74,7 +93,11 @@ class AlarmDataSource {
 
   Future<AlarmModel> escalateAlarm(int id) async {
     try {
+<<<<<<< HEAD
       final response = await dio.post(ApiConstants.alarmEscalate(id));
+=======
+      final response = await dio.post('${ApiConstants.alarms}$id/escalate/');
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -88,7 +111,11 @@ class AlarmDataSource {
 
   Future<void> deleteAlarm(int id) async {
     try {
+<<<<<<< HEAD
       await dio.delete(ApiConstants.alarmManageDetail(id));
+=======
+      await dio.delete(ApiConstants.alarmDetail(id));
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -106,6 +133,7 @@ class AlarmDataSource {
         ApiConstants.alarmsDashboard,
         queryParameters: queryParams,
       );
+<<<<<<< HEAD
       final data = response.data as Map<String, dynamic>;
       final summary = data['summary'] as Map<String, dynamic>? ?? {};
       return {
@@ -116,6 +144,13 @@ class AlarmDataSource {
             (summary['resolved'] as int?) ??
             0,
       };
+=======
+      
+      // El backend devuelve {summary: {...}, urgent_alarms: [...], last_updated: ...}
+      // Extraemos solo el summary que tiene las estadísticas
+      final summary = response.data['summary'] as Map<String, dynamic>;
+      return Map<String, int>.from(summary);
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
@@ -146,7 +181,11 @@ class AlarmDataSource {
   }) async {
     try {
       final response = await dio.post(
+<<<<<<< HEAD
         ApiConstants.alarmAcknowledge(id),
+=======
+        '${ApiConstants.alarms}$id/acknowledge/',
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
         data: {'notes': notes ?? ''},
       );
       return response.data as Map<String, dynamic>;
@@ -166,7 +205,11 @@ class AlarmDataSource {
   }) async {
     try {
       final response = await dio.post(
+<<<<<<< HEAD
         ApiConstants.alarmsBulkAcknowledge,
+=======
+        '${ApiConstants.alarms}bulk-acknowledge/',
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
         data: {'alarm_ids': alarmIds, 'notes': notes ?? ''},
       );
       return response.data as Map<String, dynamic>;
@@ -182,7 +225,11 @@ class AlarmDataSource {
 
   Future<Map<String, dynamic>> getUnreadNotifications() async {
     try {
+<<<<<<< HEAD
       final response = await dio.get(ApiConstants.notificationsUnread);
+=======
+      final response = await dio.get('${ApiConstants.apiPrefix}/notifications/unread/');
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -196,7 +243,11 @@ class AlarmDataSource {
 
   Future<Map<String, dynamic>> getRecentNotifications() async {
     try {
+<<<<<<< HEAD
       final response = await dio.get(ApiConstants.notificationsRecent);
+=======
+      final response = await dio.get('${ApiConstants.apiPrefix}/notifications/recent/');
+>>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(

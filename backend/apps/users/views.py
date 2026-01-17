@@ -50,10 +50,30 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 			if user:
 				logger.info(f"Login exitoso: {user.username} - IP: {request.META.get('REMOTE_ADDR')}")
+				
+				# Obtener la granja asignada según el rol
+				assigned_farm_id = None
+				if user.role and user.role.name == 'Administrador de Granja':
+					managed = user.managed_farms.first()
+					if managed:
+						assigned_farm_id = managed.id
+				elif user.role and user.role.name == 'Galponero':
+					assigned_sheds = getattr(user, 'assigned_sheds', None)
+					if assigned_sheds and assigned_sheds.exists():
+						assigned_farm_id = assigned_sheds.first().farm.id
+				
 				response.data['user_info'] = {
 					'id': user.id,
+					'username': user.username,
+					'email': user.email,
+					'first_name': user.first_name,
+					'last_name': user.last_name,
+					'identification': user.identification,
+					'phone': user.phone,
 					'role': user.role.name if user.role else None,
-					'permissions': list(user.role.permissions.values_list('codename', flat=True)) if user.role else []
+					'permissions': list(user.role.permissions.values_list('codename', flat=True)) if user.role else [],
+					'assigned_farm': assigned_farm_id,
+					'is_active': user.is_active,
 				}
 
 		return response
@@ -62,7 +82,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class AdminUserViewSet(viewsets.ModelViewSet):
 	queryset = UserModel.objects.all()
 	serializer_class = AdminUserSerializer
-	permission_classes = [permissions.IsAdminUser]
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get_queryset(self):
+		user = self.request.user
+		role_name = getattr(getattr(user, 'role', None), 'name', None)
+		
+		# Solo Administrador Sistema puede ver todos los usuarios
+		if role_name == 'Administrador Sistema' or user.is_staff:
+			return UserModel.objects.all()
+		
+		# Otros solo pueden ver su propio perfil
+		return UserModel.objects.filter(id=user.id)
 
 
 

@@ -10,6 +10,7 @@ import '../../../../data/models/flock_model.dart';
 import '../providers/flocks_provider.dart';
 import '../../../sheds/presentation/providers/sheds_provider.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class FlocksListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -124,13 +125,21 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showFlockDialog(context, null, shedsState.sheds),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nuevo Lote', style: TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: _canCreateFlock(ref)
+          ? FloatingActionButton.extended(
+              onPressed: () => _showFlockDialog(context, null, shedsState.sheds),
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('Nuevo Lote', style: TextStyle(color: Colors.white)),
+            )
+          : null,
     );
+  }
+
+  bool _canCreateFlock(WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userRole = authState.user?.role;
+    return userRole == 'Administrador Sistema';
   }
 
   Widget _buildFarmFilter(FarmsState farmsState) {

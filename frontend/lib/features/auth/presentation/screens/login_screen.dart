@@ -30,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Debug: print('🔑 LoginScreen: Iniciando proceso de login');
     final success = await ref
         .read(authProvider.notifier)
         .login(
@@ -40,9 +41,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (!mounted) return;
 
+    // Debug: print('🔑 LoginScreen: Login result = $success, isAuthenticated = ${ref.read(authProvider).isAuthenticated}');
+    
     if (success) {
       // El router redirigirá automáticamente al home cuando detecte isAuthenticated = true
+      // Debug: print('🔑 LoginScreen: Llamando context.go("/")');
       context.go('/');
+      // Debug: print('🔑 LoginScreen: context.go("/") ejecutado');
     } else {
       final error = ref.read(authProvider).error;
       SnackBarHelper.showError(context, error ?? 'Error al iniciar sesión');

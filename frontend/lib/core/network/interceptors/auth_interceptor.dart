@@ -3,8 +3,15 @@ import 'package:logger/logger.dart';
 import '../../constants/api_constants.dart';
 import '../../storage/secure_storage.dart';
 
-/// Interceptor que agrega JWT token a todas las requests
-/// y maneja refresh token automático
+/// Interceptor para autenticación JWT (DEPRECATED)
+/// 
+/// NOTA: Este interceptor ya no se usa directamente.
+/// La lógica de autenticación está integrada en dio_client.dart
+/// para evitar problemas de refresh token y race conditions.
+/// 
+/// Se mantiene como referencia y para casos específicos donde
+/// se necesite un Dio separado con autenticación.
+@Deprecated('Use the built-in auth interceptor in dio_client.dart instead')
 class AuthInterceptor extends Interceptor {
   final Logger _logger = Logger();
 
@@ -47,9 +54,14 @@ class AuthInterceptor extends Interceptor {
         final refreshToken = await SecureStorage.getRefreshToken();
 
         if (refreshToken != null) {
-          final dio = Dio();
+          // IMPORTANTE: Usar Dio sin interceptores para evitar loops
+          final dio = Dio(BaseOptions(
+            baseUrl: ApiConstants.baseUrl,
+            headers: ApiConstants.defaultHeaders,
+          ));
+          
           final response = await dio.post(
-            '${ApiConstants.baseUrl}${ApiConstants.refreshToken}',
+            ApiConstants.refreshToken,
             data: {'refresh': refreshToken},
           );
 

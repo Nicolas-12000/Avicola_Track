@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../constants/user_roles.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
@@ -15,6 +16,13 @@ import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart
 import '../../features/dashboard/presentation/screens/shed_keeper_dashboard_screen.dart';
 import '../../features/reports/presentation/screens/reports_list_screen.dart';
 import '../../features/veterinary/presentation/screens/veterinary_dashboard_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
+
+/// Helper para obtener la ruta inicial según el rol del usuario
+String _getInitialRouteForRole(UserRole? role) {
+  if (role == null) return '/';
+  return role.initialRoute;
+}
 
 // Router Provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -32,33 +40,87 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isLoading = authState.isLoading;
+      final user = authState.user;
+      final userRole = user?.userRole;
       final isOnSplash = state.matchedLocation == '/splash';
       final isOnLogin = state.matchedLocation == '/login';
 
+      print('🚦 Router redirect: location=${state.matchedLocation}, isAuth=$isAuthenticated, isLoading=$isLoading, role=${userRole?.name}');
+
       // Mientras carga, mostrar splash
       if (isLoading && !isOnSplash) {
+        print('🚦 Router: Redirigiendo a splash (cargando)');
         return '/splash';
       }
 
       // Si terminó de cargar
       if (!isLoading) {
-        // Si está en splash, redirigir según autenticación
+        // Si está en splash, redirigir según autenticación y rol
         if (isOnSplash) {
-          return isAuthenticated ? '/' : '/login';
+          if (isAuthenticated) {
+            final dest = _getInitialRouteForRole(userRole);
+            print('🚦 Router: Desde splash -> $dest (rol: ${userRole?.name})');
+            return dest;
+          } else {
+            print('🚦 Router: Desde splash -> /login');
+            return '/login';
+          }
         }
 
         // Si no está autenticado y no está en login, redirigir a login
         if (!isAuthenticated && !isOnLogin) {
+          print('🚦 Router: No autenticado -> /login');
           return '/login';
         }
 
-        // Si está autenticado y está en login, redirigir a home
+        // Si está autenticado y está en login, redirigir según rol
         if (isAuthenticated && isOnLogin) {
-          return '/';
+          final dest = _getInitialRouteForRole(userRole);
+          print('🚦 Router: Autenticado en login -> $dest');
+          return dest;
+        }
+        
+        // Proteger rutas según el rol
+        if (isAuthenticated && userRole != null) {
+          final location = state.matchedLocation;
+          
+          // Galponero solo puede acceder a su dashboard y registro de datos
+          if (userRole.isShedKeeper) {
+            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alarms'];
+            final isAllowed = allowedPaths.any((p) => location.startsWith(p));
+            if (!isAllowed && location != '/') {
+              print('🚦 Router: Galponero sin acceso a $location -> /shed-keeper-dashboard');
+              return '/shed-keeper-dashboard';
+            }
+            if (location == '/') {
+              return '/shed-keeper-dashboard';
+            }
+          }
+          
+          // Veterinario solo puede acceder a veterinary
+          if (userRole.isVeterinarian) {
+            final allowedPaths = ['/veterinary', '/alarms'];
+            final isAllowed = allowedPaths.any((p) => location.startsWith(p));
+            if (!isAllowed && location != '/') {
+              print('🚦 Router: Veterinario sin acceso a $location -> /veterinary');
+              return '/veterinary';
+            }
+            if (location == '/') {
+              return '/veterinary';
+            }
+          }
+          
+          // Admin de granja puede acceder a casi todo menos a crear granjas/usuarios generales
+          if (userRole.isFarmAdmin) {
+            if (location == '/') {
+              return '/farms/dashboard';
+            }
+          }
         }
       }
 
       // No redirigir
+      print('🚦 Router: Sin redirección');
       return null;
     },
     routes: [
@@ -187,12 +249,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VeterinaryDashboardScreen(),
       ),
 
-      // Settings Routes
+      // Profile/Settings Routes
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
       GoRoute(
         path: '/settings',
         name: 'settings',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Settings - TODO'))),
+        redirect: (context, state) => '/profile',
       ),
     ],
 
