@@ -43,7 +43,6 @@ class UserModel {
   bool get isVeterinarian => userRole?.isVeterinarian ?? false;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-<<<<<<< HEAD
     final idValue = json['id'];
     final id = idValue is int
         ? idValue
@@ -65,25 +64,6 @@ class UserModel {
       identification: json['identification'] as String?,
       phone: json['phone'] as String?,
       role: role,
-=======
-    // Manejar el rol que puede venir como String o como objeto
-    String? roleValue;
-    if (json['role'] is String) {
-      roleValue = json['role'] as String?;
-    } else if (json['role'] is Map) {
-      roleValue = json['role']?['name'] as String?;
-    }
-    
-    return UserModel(
-      id: json['id'] as int,
-      username: json['username'] as String?,
-      email: json['email'] as String?,
-      firstName: json['first_name'] as String?,
-      lastName: json['last_name'] as String?,
-      identification: json['identification'] as String?,
-      phone: json['phone'] as String?,
-      role: roleValue,
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       assignedFarm: json['assigned_farm'] as int?,
       isActive: json.containsKey('is_active') ? (json['is_active'] as bool) : true,
     );

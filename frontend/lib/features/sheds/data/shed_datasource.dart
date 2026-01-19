@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import '../../../core/constants/api_constants.dart';
 import '../../../data/models/shed_model.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
@@ -12,14 +11,10 @@ class ShedDataSource {
   Future<List<ShedModel>> getSheds({int? farmId}) async {
     try {
       final queryParams = farmId != null ? {'farm': farmId} : null;
-<<<<<<< HEAD
       final response = await dio.get(
         ApiConstants.sheds,
         queryParameters: queryParams,
       );
-=======
-      final response = await dio.get(ApiConstants.sheds, queryParameters: queryParams);
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
 
       final responseData = response.data;
       final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')

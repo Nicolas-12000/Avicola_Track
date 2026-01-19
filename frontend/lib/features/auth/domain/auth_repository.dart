@@ -26,14 +26,9 @@ class AuthRepository {
 
       // Guardar tokens
       await SecureStorage.saveToken(authResponse.accessToken);
-<<<<<<< HEAD
       if (authResponse.refreshToken != null) {
         await SecureStorage.saveRefreshToken(authResponse.refreshToken!);
       }
-=======
-      await SecureStorage.saveRefreshToken(authResponse.refreshToken);
-      // Debug: print('🔑 Tokens guardados en SecureStorage');
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
 
       // Guardar datos de usuario
       final userData = jsonEncode(authResponse.user ?? {});
@@ -43,15 +38,7 @@ class AuthRepository {
       // Guardar preferencia de recordar sesión
       await SecureStorage.setRememberMe(rememberMe);
 
-<<<<<<< HEAD
       return UserModel.fromJson(authResponse.user ?? {});
-=======
-      // Debug: print('🔄 Parseando UserModel.fromJson...');
-      final user = UserModel.fromJson(authResponse.user);
-      // Debug: print('✅ UserModel parseado exitosamente: id=${user.id}, role=${user.role}');
-      
-      return user;
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     } catch (e) {
       // Debug: print('❌ ERROR en AuthRepository.login: $e');
       // Debug: print('📚 StackTrace: $stackTrace');

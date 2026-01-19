@@ -21,15 +21,9 @@ class AuthResponse {
         userData is Map<String, dynamic> ? userData : null;
 
     return AuthResponse(
-<<<<<<< HEAD
       accessToken: accessToken,
       refreshToken: refreshToken is String ? refreshToken : null,
       user: user,
-=======
-      accessToken: json['access'] as String,
-      refreshToken: json['refresh'] as String,
-      user: json['user_info'] as Map<String, dynamic>? ?? json['user'] as Map<String, dynamic>,
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     );
   }
 

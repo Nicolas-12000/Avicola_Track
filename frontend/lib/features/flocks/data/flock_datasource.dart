@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
-import '../../../core/constants/api_constants.dart';
 import '../../../data/models/flock_model.dart';
 import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/api_constants.dart';
 
 class FlockDataSource {
@@ -22,14 +22,10 @@ class FlockDataSource {
       if (shedId != null) queryParams['shed'] = shedId;
       if (status != null) queryParams['status'] = status;
 
-<<<<<<< HEAD
       final response = await dio.get(
         ApiConstants.flocks,
         queryParameters: queryParams,
       );
-=======
-      final response = await dio.get(ApiConstants.flocks, queryParameters: queryParams);
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
 
       // Handle paginated response from Django REST Framework
       final responseData = response.data;
@@ -267,11 +263,7 @@ class FlockDataSource {
       }
 
       final response = await dio.get(
-<<<<<<< HEAD
         ApiConstants.flocksDashboard,
-=======
-        '${ApiConstants.flocks}dashboard/',
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
         queryParameters: queryParams,
       );
       return response.data as Map<String, dynamic>;
@@ -295,14 +287,10 @@ class FlockDataSource {
         'import_type': importType,
       });
 
-<<<<<<< HEAD
       final response = await dio.post(
         ApiConstants.flocksImportExcel,
         data: formData,
       );
-=======
-      final response = await dio.post('${ApiConstants.flocks}import-excel/', data: formData);
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
       ErrorHandler.logError(
@@ -316,18 +304,8 @@ class FlockDataSource {
 
   Future<List<Map<String, dynamic>>> getBreedReferences() async {
     try {
-<<<<<<< HEAD
       final response = await dio.get(ApiConstants.breedReferences);
       return List<Map<String, dynamic>>.from(response.data as List);
-=======
-      final response = await dio.get('${ApiConstants.flocks}breed-references/');
-      
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
-          ? responseData['results'] as List<dynamic>
-          : responseData as List<dynamic>;
-      return List<Map<String, dynamic>>.from(data);
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,

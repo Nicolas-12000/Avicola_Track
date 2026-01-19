@@ -69,32 +69,19 @@ class ApiConstants {
   // Alarms
   static const String alarms = '$apiPrefix/alarms/';
   static const String alarmsManage = '$apiPrefix/manage/alarms/';
-<<<<<<< HEAD
   static String alarmDetail(int id) => '$alarms$id/';
   static String alarmManageDetail(int id) => '$alarmsManage$id/';
   static String alarmResolve(int id) => '$alarmsManage$id/resolve/';
   static String alarmEscalate(int id) => '$alarmsManage$id/escalate/';
-  static const String alarmConfigurations = '$apiPrefix/alarm-configurations/';
-=======
-  static String alarmDetail(int id) => '$alarmsManage$id/';
-  static String alarmResolve(int id) => '$alarmsManage$id/resolve/';
   static const String alarmConfigurations = '$apiPrefix/configs/';
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
 
   // Reports
   static const String reports = '$apiPrefix/reports/';
   static String reportDetail(int id) => '$reports$id/';
-<<<<<<< HEAD
   static String reportGenerate(int id) => '$reports$id/generate/';
   static String reportDownload(int id) => '$reports$id/download/';
   static const String reportTypes = '$reports/types/';
   static const String quickProductivity = '$reports/quick_productivity/';
-=======
-  static String reportGenerate() => '${reports}generate/';
-  static String reportDownload(int id) => '$reports$id/download/';
-  static String reportTypes() => '${reports}types/';
-  static String quickProductivity() => '${reports}quick_productivity/';
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
   static const String reportTemplates = '$apiPrefix/templates/';
 
   // Veterinary
@@ -125,15 +112,9 @@ class ApiConstants {
       '$biosecurityChecklists/compliance_stats/';
 
   // Alarms - endpoints adicionales
-<<<<<<< HEAD
   static const String alarmsDashboard = '$alarmsManage/dashboard/';
   static String alarmAcknowledge(int id) => '$alarmsManage$id/acknowledge/';
   static const String alarmsBulkAcknowledge = '$alarmsManage/bulk-acknowledge/';
-=======
-  static const String alarmsDashboard = '${alarmsManage}dashboard/';
-  static String alarmAcknowledge(int id) => '$alarmsManage$id/acknowledge/';
-  static const String alarmsBulkAcknowledge = '${alarmsManage}bulk-acknowledge/';
->>>>>>> f1b2309ea19ed2efeab1b30d6ce7889d34b57579
   static const String notificationsUnread = '$apiPrefix/notifications/unread/';
   static const String notificationsRecent = '$apiPrefix/notifications/recent/';
 
