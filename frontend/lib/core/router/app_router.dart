@@ -7,6 +7,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dashboard/presentation/screens/admin_dashboard_screen.dart';
 import '../../features/farms/presentation/screens/farms_list_screen.dart';
+import '../../features/farms/presentation/screens/farm_detail_screen.dart';
 import '../../features/users/presentation/screens/users_list_screen.dart';
 import '../../features/sheds/presentation/screens/sheds_list_screen.dart';
 import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
@@ -161,10 +162,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: ':id',
             name: 'farm-detail',
             builder: (context, state) {
-              final id = state.pathParameters['id'];
-              return Scaffold(
-                body: Center(child: Text('Farm Detail $id - TODO')),
-              );
+              final idParam = state.pathParameters['id'];
+              final id = int.tryParse(idParam ?? '');
+              if (id == null) {
+                return const Scaffold(
+                  body: Center(child: Text('ID de granja inválido')),
+                );
+              }
+              return FarmDetailScreen(farmId: id);
             },
           ),
           GoRoute(

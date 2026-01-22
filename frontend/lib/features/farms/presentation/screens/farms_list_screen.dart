@@ -215,15 +215,7 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
                       title: const Text('Ver detalles'),
                       onTap: () {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('🏢 Ver detalles de ${farm.name}'),
-                            action: SnackBarAction(
-                              label: 'OK',
-                              onPressed: () {},
-                            ),
-                          ),
-                        );
+                        context.push('/farms/${farm.id}');
                       },
                     ),
                     ListTile(
@@ -483,35 +475,54 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
                 Navigator.pop(context);
 
                 try {
-                  final success = farm == null
-                      ? await ref
-                            .read(farmsProvider.notifier)
-                            .createFarm(
-                              name: nameController.text,
-                              location: locationController.text,
-                            )
-                      : await ref
-                            .read(farmsProvider.notifier)
-                            .updateFarm(
-                              id: farm.id,
-                              name: nameController.text,
-                              location: locationController.text,
-                            );
+                  if (farm == null) {
+                    final createdFarm = await ref
+                        .read(farmsProvider.notifier)
+                        .createFarm(
+                          name: nameController.text,
+                          location: locationController.text,
+                        );
 
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success
-                            ? farm == null
-                                  ? 'Granja creada exitosamente'
-                                  : 'Granja actualizada exitosamente'
-                            : 'Error al guardar la granja',
+                    final error = ref.read(farmsProvider).error;
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          createdFarm != null
+                              ? 'Granja creada exitosamente'
+                              : 'Error al guardar la granja${error != null ? ': $error' : ''}',
+                        ),
+                        backgroundColor:
+                            createdFarm != null ? AppColors.success : AppColors.error,
                       ),
-                      backgroundColor: success
-                          ? AppColors.success
-                          : AppColors.error,
-                    ),
-                  );
+                    );
+
+                    if (createdFarm != null) {
+                      // Navegar al detalle recién creada
+                      if (mounted) {
+                        context.push('/farms/${createdFarm.id}');
+                      }
+                    }
+                  } else {
+                    final success = await ref
+                        .read(farmsProvider.notifier)
+                        .updateFarm(
+                          id: farm.id,
+                          name: nameController.text,
+                          location: locationController.text,
+                        );
+
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Granja actualizada exitosamente'
+                              : 'Error al guardar la granja',
+                        ),
+                        backgroundColor:
+                            success ? AppColors.success : AppColors.error,
+                      ),
+                    );
+                  }
                 } catch (e) {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(

@@ -465,7 +465,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
     );
 
     int? selectedShedId = flock?.shedId ?? widget.shedId;
-    String selectedGender = flock?.gender ?? 'Mixed';
+    String selectedGender = flock?.gender ?? 'X';
     DateTime selectedDate = flock?.arrivalDate ?? DateTime.now();
 
     showDialog(
@@ -526,9 +526,9 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                       border: OutlineInputBorder(),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'Male', child: Text('Macho')),
-                      DropdownMenuItem(value: 'Female', child: Text('Hembra')),
-                      DropdownMenuItem(value: 'Mixed', child: Text('Mixto')),
+                      DropdownMenuItem(value: 'M', child: Text('Macho')),   // Backend espera 'M'
+                      DropdownMenuItem(value: 'F', child: Text('Hembra')),  // Backend espera 'F'
+                      DropdownMenuItem(value: 'X', child: Text('Mixto')),   // Backend espera 'X'
                     ],
                     onChanged: (value) => selectedGender = value!,
                   ),
@@ -602,14 +602,22 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                               : supplierController.text,
                         );
                   }
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Lote creado exitosamente'),
+
+                  if (!mounted) return;
+
+                  final error = ref.read(flocksProvider).error;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error == null
+                            ? '✅ Lote creado exitosamente'
+                            : 'Error: ${error}',
                       ),
-                    );
-                  }
+                      backgroundColor:
+                          error == null ? null : AppColors.error,
+                    ),
+                  );
                 }
               },
               child: const Text('Guardar'),

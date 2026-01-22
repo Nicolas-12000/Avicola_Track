@@ -38,6 +38,13 @@ class FlockModel {
   });
 
   factory FlockModel.fromJson(Map<String, dynamic> json) {
+    double? toDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return FlockModel(
       id: json['id'] as int,
       shedId: json['shed'] as int? ?? 0,
@@ -47,8 +54,8 @@ class FlockModel {
       breed: json['breed'] as String? ?? 'Desconocida',
       initialQuantity: json['initial_quantity'] as int? ?? 0,
       currentQuantity: json['current_quantity'] as int? ?? 0,
-      initialWeight: (json['initial_weight'] as num?)?.toDouble(),
-      currentWeight: (json['current_weight'] as num?)?.toDouble(),
+      initialWeight: toDouble(json['initial_weight']),
+      currentWeight: toDouble(json['current_weight']),
       gender: json['gender'] as String? ?? 'Mixed',
       arrivalDate: json['arrival_date'] != null 
           ? DateTime.parse(json['arrival_date'] as String)

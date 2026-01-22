@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart';
 import '../../../core/errors/failures.dart';
 import '../../../data/models/flock_model.dart';
 import '../../../data/models/weight_record_model.dart';
@@ -61,10 +62,25 @@ class FlockRepository {
       );
       return Right(flock);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Failed to create flock: ${e.toString()}'),
-      );
+      // Propagar mensaje detallado si viene del backend
+      final msg = _extractMessage(e, defaultMsg: 'Failed to create flock');
+      return Left(ServerFailure(message: msg));
     }
+  }
+
+  String _extractMessage(Object e, {required String defaultMsg}) {
+    if (e is DioException && e.response?.data is Map) {
+      final map = e.response!.data as Map;
+      if (map.isNotEmpty) {
+        final firstKey = map.keys.first;
+        final val = map[firstKey];
+        if (val is List && val.isNotEmpty) {
+          return val.first.toString();
+        }
+        return val.toString();
+      }
+    }
+    return '$defaultMsg: ${e.toString()}';
   }
 
   Future<Either<Failure, FlockModel>> updateFlock({

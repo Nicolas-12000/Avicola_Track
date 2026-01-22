@@ -59,7 +59,7 @@ class FarmsNotifier extends StateNotifier<FarmsState> {
     }
   }
 
-  Future<bool> createFarm({
+  Future<FarmModel?> createFarm({
     required String name,
     required String location,
     int? farmManager,
@@ -74,12 +74,12 @@ class FarmsNotifier extends StateNotifier<FarmsState> {
 
     if (result.failure != null) {
       state = state.copyWith(isLoading: false, error: result.failure!.message);
-      return false;
+      return null;
     }
 
-    // Recargar lista
+    // Recargar lista y devolver la granja creada
     await loadFarms();
-    return true;
+    return result.farm;
   }
 
   Future<bool> updateFarm({

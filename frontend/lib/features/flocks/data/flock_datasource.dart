@@ -4,7 +4,6 @@ import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
-import '../../../core/constants/api_constants.dart';
 
 class FlockDataSource {
   final Dio dio;
@@ -80,11 +79,19 @@ class FlockDataSource {
           'gender': gender,
           'arrival_date': arrivalDate.toIso8601String().split('T')[0],
           'initial_weight': initialWeight,
-          'supplier': supplier,
-          'status': 'Active',
+          'supplier': supplier ?? '', // backend no acepta null
+          'status': 'ACTIVE', // backend choice
         },
       );
-      return FlockModel.fromJson(response.data as Map<String, dynamic>);
+      if (response.statusCode == 201) {
+        return FlockModel.fromJson(response.data as Map<String, dynamic>);
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: response.data,
+      );
     } catch (e, stackTrace) {
       ErrorHandler.logError(
         e,
