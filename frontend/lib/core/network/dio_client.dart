@@ -17,7 +17,8 @@ final dioProvider = Provider<Dio>((ref) {
       receiveTimeout: ApiConstants.receiveTimeout,
       sendTimeout: ApiConstants.sendTimeout,
       headers: ApiConstants.defaultHeaders,
-      validateStatus: (status) => status != null && status < 500,
+      // Treat 4xx as errors so 401 triggers refresh/logout handling
+      validateStatus: (status) => status != null && status < 400,
     ),
   );
 

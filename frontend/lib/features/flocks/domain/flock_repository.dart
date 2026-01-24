@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../../data/models/flock_model.dart';
 import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
@@ -24,9 +25,12 @@ class FlockRepository {
       );
       return Right(flocks);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Failed to load flocks: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to load flocks',
+        ),
+      ));
     }
   }
 
@@ -35,9 +39,12 @@ class FlockRepository {
       final flock = await dataSource.getFlock(id);
       return Right(flock);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Failed to load flock: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to load flock',
+        ),
+      ));
     }
   }
 
@@ -64,7 +71,9 @@ class FlockRepository {
     } catch (e) {
       // Propagar mensaje detallado si viene del backend
       final msg = _extractMessage(e, defaultMsg: 'Failed to create flock');
-      return Left(ServerFailure(message: msg));
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(e, context: msg),
+      ));
     }
   }
 
@@ -100,9 +109,12 @@ class FlockRepository {
       );
       return Right(flock);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Failed to update flock: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to update flock',
+        ),
+      ));
     }
   }
 
@@ -111,9 +123,12 @@ class FlockRepository {
       await dataSource.deleteFlock(id);
       return const Right(null);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Failed to delete flock: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to delete flock',
+        ),
+      ));
     }
   }
 
@@ -125,11 +140,12 @@ class FlockRepository {
       final records = await dataSource.getWeightRecords(flockId);
       return Right(records);
     } catch (e) {
-      return Left(
-        ServerFailure(
-          message: 'Failed to load weight records: ${e.toString()}',
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to load weight records',
         ),
-      );
+      ));
     }
   }
 
@@ -150,11 +166,12 @@ class FlockRepository {
       );
       return Right(record);
     } catch (e) {
-      return Left(
-        ServerFailure(
-          message: 'Failed to create weight record: ${e.toString()}',
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to create weight record',
         ),
-      );
+      ));
     }
   }
 
@@ -166,11 +183,12 @@ class FlockRepository {
       final records = await dataSource.getMortalityRecords(flockId);
       return Right(records);
     } catch (e) {
-      return Left(
-        ServerFailure(
-          message: 'Failed to load mortality records: ${e.toString()}',
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to load mortality records',
         ),
-      );
+      ));
     }
   }
 
@@ -193,11 +211,12 @@ class FlockRepository {
       );
       return Right(record);
     } catch (e) {
-      return Left(
-        ServerFailure(
-          message: 'Failed to create mortality record: ${e.toString()}',
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Failed to create mortality record',
         ),
-      );
+      ));
     }
   }
 }

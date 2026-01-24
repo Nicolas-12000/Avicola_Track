@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../../data/models/alarm_model.dart';
 import '../data/alarm_datasource.dart';
 
@@ -21,9 +22,12 @@ class AlarmRepository {
       );
       return Right(alarms);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Error al cargar alarmas: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Error al cargar alarmas',
+        ),
+      ));
     }
   }
 
@@ -32,9 +36,12 @@ class AlarmRepository {
       final alarm = await dataSource.getAlarm(id);
       return Right(alarm);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Error al cargar alarma: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Error al cargar alarma',
+        ),
+      ));
     }
   }
 
@@ -51,9 +58,12 @@ class AlarmRepository {
       );
       return Right(alarm);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Error al resolver alarma: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Error al resolver alarma',
+        ),
+      ));
     }
   }
 
@@ -62,9 +72,12 @@ class AlarmRepository {
       final alarm = await dataSource.escalateAlarm(id);
       return Right(alarm);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Error al escalar alarma: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Error al escalar alarma',
+        ),
+      ));
     }
   }
 
@@ -73,9 +86,12 @@ class AlarmRepository {
       await dataSource.deleteAlarm(id);
       return const Right(null);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Error al eliminar alarma: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Error al eliminar alarma',
+        ),
+      ));
     }
   }
 
@@ -86,9 +102,12 @@ class AlarmRepository {
       final stats = await dataSource.getAlarmStats(farmId: farmId);
       return Right(stats);
     } catch (e) {
-      return Left(
-        ServerFailure(message: 'Error al cargar estadísticas: ${e.toString()}'),
-      );
+      return Left(ServerFailure(
+        message: ErrorHandler.getUserMessage(
+          e,
+          context: 'Error al cargar estadísticas',
+        ),
+      ));
     }
   }
 }
