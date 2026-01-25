@@ -77,6 +77,7 @@ class ShedDataSource {
   Future<ShedModel> updateShed({
     required int id,
     required String name,
+    required int farmId,
     required int capacity,
     int? assignedWorkerId,
   }) async {
@@ -85,6 +86,7 @@ class ShedDataSource {
         ApiConstants.shedDetail(id),
         data: {
           'name': name,
+          'farm': farmId,
           'capacity': capacity,
           if (assignedWorkerId != null) 'assigned_worker': assignedWorkerId,
         },

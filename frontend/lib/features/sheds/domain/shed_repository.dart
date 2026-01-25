@@ -54,6 +54,7 @@ class ShedRepository {
   Future<Either<Failure, ShedModel>> updateShed({
     required int id,
     required String name,
+    required int farmId,
     required int capacity,
     int? assignedWorkerId,
   }) async {
@@ -61,6 +62,7 @@ class ShedRepository {
       final shed = await dataSource.updateShed(
         id: id,
         name: name,
+        farmId: farmId,
         capacity: capacity,
         assignedWorkerId: assignedWorkerId,
       );

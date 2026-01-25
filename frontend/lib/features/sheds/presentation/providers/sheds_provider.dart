@@ -9,18 +9,30 @@ class ShedsState {
   final List<ShedModel> sheds;
   final bool isLoading;
   final String? error;
+  final DateTime? lastFetched;
+  final int? lastFarmId;
 
-  ShedsState({this.sheds = const [], this.isLoading = false, this.error});
+  ShedsState({
+    this.sheds = const [],
+    this.isLoading = false,
+    this.error,
+    this.lastFetched,
+    this.lastFarmId,
+  });
 
   ShedsState copyWith({
     List<ShedModel>? sheds,
     bool? isLoading,
     String? error,
+    DateTime? lastFetched,
+    int? lastFarmId,
   }) {
     return ShedsState(
       sheds: sheds ?? this.sheds,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      lastFetched: lastFetched ?? this.lastFetched,
+      lastFarmId: lastFarmId ?? this.lastFarmId,
     );
   }
 }
@@ -31,7 +43,16 @@ class ShedsNotifier extends StateNotifier<ShedsState> {
 
   ShedsNotifier(this.repository) : super(ShedsState());
 
-  Future<void> loadSheds({int? farmId}) async {
+  Future<void> loadSheds({int? farmId, bool force = false}) async {
+    const cacheTtl = Duration(minutes: 5);
+    final isSameFarm = state.lastFarmId == farmId;
+    final isFresh = state.lastFetched != null &&
+        DateTime.now().difference(state.lastFetched!) < cacheTtl;
+
+    if (!force && isSameFarm && isFresh && state.sheds.isNotEmpty) {
+      return; // cache hit, skip network
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     final result = await repository.getSheds(farmId: farmId);
@@ -39,8 +60,13 @@ class ShedsNotifier extends StateNotifier<ShedsState> {
     result.fold(
       (failure) =>
           state = state.copyWith(isLoading: false, error: failure.message),
-      (sheds) =>
-          state = state.copyWith(sheds: sheds, isLoading: false, error: null),
+      (sheds) => state = state.copyWith(
+        sheds: sheds,
+        isLoading: false,
+        error: null,
+        lastFetched: DateTime.now(),
+        lastFarmId: farmId,
+      ),
     );
   }
 
@@ -60,19 +86,26 @@ class ShedsNotifier extends StateNotifier<ShedsState> {
     result.fold((failure) => state = state.copyWith(error: failure.message), (
       shed,
     ) {
-      state = state.copyWith(sheds: [...state.sheds, shed], error: null);
+      state = state.copyWith(
+        sheds: [...state.sheds, shed],
+        error: null,
+        lastFetched: DateTime.now(),
+        lastFarmId: farmId,
+      );
     });
   }
 
   Future<void> updateShed({
     required int id,
     required String name,
+    required int farmId,
     required int capacity,
     int? assignedWorkerId,
   }) async {
     final result = await repository.updateShed(
       id: id,
       name: name,
+      farmId: farmId,
       capacity: capacity,
       assignedWorkerId: assignedWorkerId,
     );
@@ -83,7 +116,12 @@ class ShedsNotifier extends StateNotifier<ShedsState> {
       final updatedSheds = state.sheds.map((shed) {
         return shed.id == id ? updatedShed : shed;
       }).toList();
-      state = state.copyWith(sheds: updatedSheds, error: null);
+      state = state.copyWith(
+        sheds: updatedSheds,
+        error: null,
+        lastFetched: DateTime.now(),
+        lastFarmId: farmId,
+      );
     });
   }
 
@@ -94,7 +132,11 @@ class ShedsNotifier extends StateNotifier<ShedsState> {
       _,
     ) {
       final updatedSheds = state.sheds.where((shed) => shed.id != id).toList();
-      state = state.copyWith(sheds: updatedSheds, error: null);
+      state = state.copyWith(
+        sheds: updatedSheds,
+        error: null,
+        lastFetched: DateTime.now(),
+      );
     });
   }
 }

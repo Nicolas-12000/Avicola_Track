@@ -53,7 +53,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
             onPressed: () {
               ref
                   .read(shedsProvider.notifier)
-                  .loadSheds(farmId: _selectedFarmId);
+                  .loadSheds(farmId: _selectedFarmId, force: true);
             },
           ),
         ],
@@ -102,7 +102,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
               onRefresh: () async {
                 await ref
                     .read(shedsProvider.notifier)
-                    .loadSheds(farmId: _selectedFarmId);
+                    .loadSheds(farmId: _selectedFarmId, force: true);
               },
               child: Column(
                 children: [
@@ -185,7 +185,9 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
                   setState(() {
                     _selectedFarmId = farmId;
                   });
-                  ref.read(shedsProvider.notifier).loadSheds(farmId: farmId);
+                  ref
+                      .read(shedsProvider.notifier)
+                      .loadSheds(farmId: farmId, force: true);
                 },
               ),
             ),
@@ -435,11 +437,13 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
                         capacity: int.parse(capacityController.text),
                       );
                 } else {
+                  final targetFarmId = selectedFarmId ?? shed.farm;
                   await ref
                       .read(shedsProvider.notifier)
                       .updateShed(
                         id: shed.id,
                         name: nameController.text,
+                        farmId: targetFarmId,
                         capacity: int.parse(capacityController.text),
                       );
                 }
