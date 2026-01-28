@@ -57,6 +57,7 @@ class FlockSerializer(serializers.ModelSerializer):
         model = Flock
         fields = [
             'id', 'arrival_date', 'initial_quantity', 'current_quantity', 'initial_weight',
+            'weight_alert_low', 'weight_alert_high',
             'breed', 'gender', 'supplier', 'shed', 'status', 'current_age_days', 'survival_rate', 'created_by'
         ]
         read_only_fields = ['current_quantity', 'status', 'current_age_days', 'survival_rate', 'created_by']
@@ -82,9 +83,9 @@ class FlockSerializer(serializers.ModelSerializer):
         if data.get('arrival_date') > timezone.now().date():
             raise ValidationError("La fecha de llegada no puede ser futura")
 
-        # 4. Validar peso inicial realista (gramos)
-        if data.get('initial_weight') < 30 or data.get('initial_weight') > 60:
-            raise ValidationError("Peso inicial fuera del rango normal (30-60 gramos)")
+        # 4. Peso inicial: no bloquear la creación aunque esté fuera del rango.
+        # Se aceptan pesos bajos/altos y la detección de anormalidad se maneja
+        # creando una alarma después de la creación del lote.
 
         return data
 
@@ -119,6 +120,46 @@ class FlockSerializer(serializers.ModelSerializer):
                 )
             except Exception:
                 logger.exception('Error registrando log del lote')
+
+            # Generar alarma si el peso inicial está fuera de umbrales configurados
+            try:
+                from apps.alarms.models import Alarm, AlarmConfiguration
+
+                iw = float(flock.initial_weight) if flock.initial_weight is not None else None
+                abnormal = False
+
+                # Preferir umbrales definidos por lote si existen
+                if getattr(flock, 'weight_alert_low', None) is not None or getattr(flock, 'weight_alert_high', None) is not None:
+                    low = float(flock.weight_alert_low) if flock.weight_alert_low is not None else None
+                    high = float(flock.weight_alert_high) if flock.weight_alert_high is not None else None
+                    if low is not None and iw is not None and iw < low:
+                        abnormal = True
+                    if high is not None and iw is not None and iw > high:
+                        abnormal = True
+                else:
+                    # Fallback a rango por defecto (30-60g)
+                    if iw is not None and (iw < 30 or iw > 60):
+                        abnormal = True
+
+                if abnormal:
+                    # Buscar configuración de alarmas de la granja para tipo WEIGHT
+                    config = AlarmConfiguration.objects.filter(alarm_type='WEIGHT', farm=flock.shed.farm, is_active=True).first()
+                    priority = 'HIGH' if (iw is not None and (iw < 20 or iw > 80)) else 'MEDIUM'
+
+                    Alarm.objects.create(
+                        alarm_type='WEIGHT',
+                        description=f'Peso inicial anómalo para lote {flock.id}: {iw}g',
+                        priority=priority,
+                        source_type='flock',
+                        source_date=flock.arrival_date,
+                        source_id=flock.id,
+                        farm=flock.shed.farm,
+                        flock=flock,
+                        shed=flock.shed,
+                        configuration=config
+                    )
+            except Exception:
+                logger.exception('Error creando alarma de peso inicial')
 
             return flock
 

@@ -32,7 +32,11 @@ class Flock(BaseModel):
 	arrival_date = models.DateField()
 	initial_quantity = models.PositiveIntegerField()
 	current_quantity = models.PositiveIntegerField()
-	initial_weight = models.DecimalField(max_digits=5, decimal_places=2)
+	initial_weight = models.DecimalField(max_digits=6, decimal_places=2)
+
+	# Umbrales personalizables por lote (opcionales)
+	weight_alert_low = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+	weight_alert_high = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
 	breed = models.CharField(max_length=50)
 	gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
 	supplier = models.CharField(max_length=100)

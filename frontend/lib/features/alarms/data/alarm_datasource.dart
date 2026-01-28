@@ -288,4 +288,52 @@ class AlarmDataSource {
       rethrow;
     }
   }
+
+  // Alarm configuration endpoints
+  Future<List<Map<String, dynamic>>> getAlarmConfigs({int? farmId, String? alarmType}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (farmId != null) qp['farm'] = farmId;
+      if (alarmType != null) qp['alarm_type'] = alarmType;
+
+      final response = await dio.get(ApiConstants.alarmConfigurations, queryParameters: qp);
+      final data = response.data as List<dynamic>;
+      return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to load alarm configurations',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createAlarmConfig(Map<String, dynamic> payload) async {
+    try {
+      final response = await dio.post(ApiConstants.alarmConfigurations, data: payload);
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to create alarm configuration',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateAlarmConfig(int id, Map<String, dynamic> payload) async {
+    try {
+      final response = await dio.patch('${ApiConstants.alarmConfigurations}$id/', data: payload);
+      return response.data as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      ErrorHandler.logError(
+        e,
+        context: 'Failed to update alarm configuration',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
 }

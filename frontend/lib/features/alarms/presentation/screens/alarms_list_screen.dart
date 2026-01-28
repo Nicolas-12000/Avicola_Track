@@ -546,9 +546,136 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
           ),
         ),
         actions: [
+          if (alarm.farmId != 0 && alarm.alarmType.isNotEmpty) ...[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showConfigDialog(alarm);
+              },
+              child: const Text('Editar límites'),
+            ),
+          ],
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showConfigDialog(AlarmModel alarm) {
+    final formKey = GlobalKey<FormState>();
+    final thresholdController = TextEditingController();
+    final criticalController = TextEditingController();
+    final evalController = TextEditingController(text: '24');
+    final consecutiveController = TextEditingController(text: '1');
+    bool notifyFarm = true;
+    bool notifyVet = true;
+    bool notifyGalponero = false;
+    bool isActive = true;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Configurar límites - ${alarm.alarmType}'),
+        content: StatefulBuilder(builder: (context, setState) {
+          return SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: thresholdController,
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Threshold (valor)'),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: criticalController,
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Critical threshold (opcional)'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: evalController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Periodo evaluación (horas)'),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: consecutiveController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Ocurrencias consecutivas'),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    title: const Text('Notificar encargado de granja'),
+                    value: notifyFarm,
+                    onChanged: (v) => setState(() => notifyFarm = v ?? true),
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Notificar veterinario'),
+                    value: notifyVet,
+                    onChanged: (v) => setState(() => notifyVet = v ?? true),
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Notificar galponeros'),
+                    value: notifyGalponero,
+                    onChanged: (v) => setState(() => notifyGalponero = v ?? false),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Activo'),
+                    value: isActive,
+                    onChanged: (v) => setState(() => isActive = v),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final ds = ref.read(alarmDataSourceProvider);
+              final payload = {
+                'alarm_type': alarm.alarmType,
+                'farm': alarm.farmId,
+                'threshold_value': double.parse(thresholdController.text),
+                'critical_threshold': criticalController.text.isEmpty ? null : double.parse(criticalController.text),
+                'evaluation_period_hours': int.parse(evalController.text),
+                'consecutive_occurrences': int.parse(consecutiveController.text),
+                'notify_farm_manager': notifyFarm,
+                'notify_veterinarian': notifyVet,
+                'notify_galponeros': notifyGalponero,
+                'is_active': isActive,
+              };
+
+              try {
+                // try to find existing config
+                final configs = await ds.getAlarmConfigs(farmId: alarm.farmId, alarmType: alarm.alarmType);
+                if (configs.isNotEmpty) {
+                  final existing = configs.first;
+                  await ds.updateAlarmConfig(existing['id'] as int, payload);
+                } else {
+                  await ds.createAlarmConfig(payload);
+                }
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Configuración guardada')));
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: ${e.toString()}')));
+              }
+            },
+            child: const Text('Guardar'),
           ),
         ],
       ),
