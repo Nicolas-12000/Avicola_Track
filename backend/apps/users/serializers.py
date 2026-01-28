@@ -142,3 +142,40 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer para cambio de contraseña de usuario autenticado"""
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise ValidationError('La contraseña actual es incorrecta')
+        return value
+
+    def validate(self, data):
+        if data.get('new_password') != data.get('new_password_confirm'):
+            raise ValidationError({'new_password_confirm': 'Las contraseñas no coinciden'})
+
+        # password policy
+        pwd = data.get('new_password')
+        if len(pwd) < 8:
+            raise ValidationError({'new_password': 'Contraseña debe tener mínimo 8 caracteres'})
+        import re
+        if not re.search(r'[A-Z]', pwd):
+            raise ValidationError({'new_password': 'Debe contener al menos una mayúscula'})
+        if not re.search(r'[a-z]', pwd):
+            raise ValidationError({'new_password': 'Debe contener al menos una minúscula'})
+        if not re.search(r'\d', pwd):
+            raise ValidationError({'new_password': 'Debe contener al menos un número'})
+
+        return data
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/providers/offline_provider.dart';
+import '../../../../core/services/connectivity_service.dart';
 import '../../../../data/models/inventory_item_model.dart';
 import '../../data/inventory_datasource.dart';
 import '../../domain/inventory_repository.dart';
@@ -13,6 +15,8 @@ class InventoryState {
   final int currentPage;
   final bool hasMoreData;
   final int? selectedFarmId;
+  final Set<String> activeStockFilters; // Filtros de estado de stock activos
+  final String? searchQuery; // Búsqueda por nombre
 
   InventoryState({
     this.items = const [],
@@ -22,6 +26,8 @@ class InventoryState {
     this.currentPage = 1,
     this.hasMoreData = true,
     this.selectedFarmId,
+    this.activeStockFilters = const {},
+    this.searchQuery,
   });
 
   InventoryState copyWith({
@@ -32,6 +38,9 @@ class InventoryState {
     int? currentPage,
     bool? hasMoreData,
     int? selectedFarmId,
+    Set<String>? activeStockFilters,
+    String? searchQuery,
+    bool clearSearchQuery = false,
   }) {
     return InventoryState(
       items: items ?? this.items,
@@ -41,27 +50,54 @@ class InventoryState {
       currentPage: currentPage ?? this.currentPage,
       hasMoreData: hasMoreData ?? this.hasMoreData,
       selectedFarmId: selectedFarmId ?? this.selectedFarmId,
+      activeStockFilters: activeStockFilters ?? this.activeStockFilters,
+      searchQuery: clearSearchQuery ? null : (searchQuery ?? this.searchQuery),
     );
   }
 
-  // Getters por estado de stock
+  /// Items filtrados según filtros activos
+  List<InventoryItemModel> get filteredItems {
+    var result = items;
+
+    // Filtrar por búsqueda
+    if (searchQuery != null && searchQuery!.isNotEmpty) {
+      final query = searchQuery!.toLowerCase();
+      result = result.where((item) => 
+        item.name.toLowerCase().contains(query) ||
+        (item.description?.toLowerCase().contains(query) ?? false)
+      ).toList();
+    }
+
+    // Filtrar por estado de stock
+    if (activeStockFilters.isNotEmpty) {
+      result = result.where((item) => 
+        activeStockFilters.contains(item.stockStatusLabel)
+      ).toList();
+    }
+
+    return result;
+  }
+
+  bool get hasActiveFilters => activeStockFilters.isNotEmpty || (searchQuery?.isNotEmpty ?? false);
+
+  // Getters por estado de stock (ahora usando filteredItems)
   List<InventoryItemModel> get criticalItems =>
-      items.where((i) => i.stockStatus == 'out_of_stock').toList();
+      filteredItems.where((i) => i.stockStatusLabel == 'out_of_stock').toList();
 
   List<InventoryItemModel> get lowStockItems =>
-      items.where((i) => i.stockStatus == 'low_stock').toList();
+      filteredItems.where((i) => i.stockStatusLabel == 'low_stock').toList();
 
   List<InventoryItemModel> get warningItems =>
-      items.where((i) => i.stockStatus == 'warning').toList();
+      filteredItems.where((i) => i.stockStatusLabel == 'warning').toList();
 
   List<InventoryItemModel> get normalItems =>
-      items.where((i) => i.stockStatus == 'normal').toList();
+      filteredItems.where((i) => i.stockStatusLabel == 'normal' || i.stockStatusLabel == 'unknown').toList();
 
-  List<InventoryItemModel> get expiringItems =>
-      items.where((i) => i.isExpiringSoon && !i.isExpired).toList();
+  List<InventoryItemModel> get alertItems =>
+      items.where((i) => i.isAlert).toList();
 
-  List<InventoryItemModel> get expiredItems =>
-      items.where((i) => i.isExpired).toList();
+  List<InventoryItemModel> get criticalThresholdItems =>
+      items.where((i) => i.isCritical).toList();
 }
 
 // Notifier
@@ -125,27 +161,59 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
     loadInventoryItems(farmId: farmId, refresh: true);
   }
 
+  /// Actualizar filtros de estado de stock
+  void setStockFilters(Set<String> filters) {
+    state = state.copyWith(activeStockFilters: filters);
+  }
+
+  /// Toggle un filtro de estado de stock
+  void toggleStockFilter(String filter) {
+    final newFilters = Set<String>.from(state.activeStockFilters);
+    if (newFilters.contains(filter)) {
+      newFilters.remove(filter);
+    } else {
+      newFilters.add(filter);
+    }
+    state = state.copyWith(activeStockFilters: newFilters);
+  }
+
+  /// Actualizar búsqueda por nombre
+  void setSearchQuery(String? query) {
+    state = state.copyWith(
+      searchQuery: query,
+      clearSearchQuery: query == null || query.isEmpty,
+    );
+  }
+
+  /// Limpiar todos los filtros
+  void clearFilters() {
+    state = state.copyWith(
+      activeStockFilters: {},
+      clearSearchQuery: true,
+    );
+  }
+
   Future<void> createInventoryItem({
     required int farmId,
     required String name,
-    required String category,
+    String? description,
     required String unit,
     required double currentStock,
     required double minimumStock,
-    double? averageConsumption,
-    DateTime? expirationDate,
-    String? supplier,
+    int? shedId,
+    int alertThresholdDays = 5,
+    int criticalThresholdDays = 2,
   }) async {
     final result = await repository.createInventoryItem(
       farmId: farmId,
       name: name,
-      category: category,
+      description: description,
       unit: unit,
       currentStock: currentStock,
       minimumStock: minimumStock,
-      averageConsumption: averageConsumption,
-      expirationDate: expirationDate,
-      supplier: supplier,
+      shedId: shedId,
+      alertThresholdDays: alertThresholdDays,
+      criticalThresholdDays: criticalThresholdDays,
     );
 
     result.fold((failure) => state = state.copyWith(error: failure.message), (
@@ -157,21 +225,21 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
 
   Future<void> updateInventoryItem({
     required int id,
-    required String name,
-    required String category,
-    required String unit,
-    required double minimumStock,
-    double? averageConsumption,
-    String? supplier,
+    String? name,
+    String? description,
+    String? unit,
+    double? minimumStock,
+    int? alertThresholdDays,
+    int? criticalThresholdDays,
   }) async {
     final result = await repository.updateInventoryItem(
       id: id,
       name: name,
-      category: category,
+      description: description,
       unit: unit,
       minimumStock: minimumStock,
-      averageConsumption: averageConsumption,
-      supplier: supplier,
+      alertThresholdDays: alertThresholdDays,
+      criticalThresholdDays: criticalThresholdDays,
     );
 
     result.fold((failure) => state = state.copyWith(error: failure.message), (
@@ -220,7 +288,9 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
 // Providers
 final inventoryDataSourceProvider = Provider<InventoryDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return InventoryDataSource(dio);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return InventoryDataSource(dio, offline, connectivity);
 });
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {

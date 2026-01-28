@@ -35,25 +35,25 @@ class InventoryRepository {
   Future<Either<Failure, InventoryItemModel>> createInventoryItem({
     required int farmId,
     required String name,
-    required String category,
+    String? description,
     required String unit,
     required double currentStock,
     required double minimumStock,
-    double? averageConsumption,
-    DateTime? expirationDate,
-    String? supplier,
+    int? shedId,
+    int alertThresholdDays = 5,
+    int criticalThresholdDays = 2,
   }) async {
     try {
       final item = await dataSource.createInventoryItem(
         farmId: farmId,
         name: name,
-        category: category,
+        description: description,
         unit: unit,
         currentStock: currentStock,
         minimumStock: minimumStock,
-        averageConsumption: averageConsumption,
-        expirationDate: expirationDate,
-        supplier: supplier,
+        shedId: shedId,
+        alertThresholdDays: alertThresholdDays,
+        criticalThresholdDays: criticalThresholdDays,
       );
       return Right(item);
     } catch (e) {
@@ -65,22 +65,22 @@ class InventoryRepository {
 
   Future<Either<Failure, InventoryItemModel>> updateInventoryItem({
     required int id,
-    required String name,
-    required String category,
-    required String unit,
-    required double minimumStock,
-    double? averageConsumption,
-    String? supplier,
+    String? name,
+    String? description,
+    String? unit,
+    double? minimumStock,
+    int? alertThresholdDays,
+    int? criticalThresholdDays,
   }) async {
     try {
       final item = await dataSource.updateInventoryItem(
         id: id,
         name: name,
-        category: category,
+        description: description,
         unit: unit,
         minimumStock: minimumStock,
-        averageConsumption: averageConsumption,
-        supplier: supplier,
+        alertThresholdDays: alertThresholdDays,
+        criticalThresholdDays: criticalThresholdDays,
       );
       return Right(item);
     } catch (e) {

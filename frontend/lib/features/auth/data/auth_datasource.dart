@@ -48,6 +48,26 @@ class AuthDataSource {
     }
   }
 
+  /// Cambiar contraseña del usuario autenticado
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirm,
+  }) async {
+    try {
+      await dio.post(
+        '${ApiConstants.users}auth/change-password/',
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'new_password_confirm': newPasswordConfirm,
+        },
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Exception _handleDioError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {

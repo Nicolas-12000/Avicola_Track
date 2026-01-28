@@ -4,11 +4,16 @@ import '../../../data/models/weight_record_model.dart';
 import '../../../data/models/mortality_record_model.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/services/offline_sync_service.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../../core/errors/offline_exceptions.dart';
 
 class FlockDataSource {
   final Dio dio;
+  final OfflineSyncService _offlineService;
+  final ConnectivityService _connectivityService;
 
-  FlockDataSource(this.dio);
+  FlockDataSource(this.dio, this._offlineService, this._connectivityService);
 
   Future<List<FlockModel>> getFlocks({
     int? farmId,
@@ -32,6 +37,12 @@ class FlockDataSource {
           ? responseData['results'] as List<dynamic>
           : responseData as List<dynamic>;
           
+      // Cache for offline
+      try {
+        final key = 'flocks_${farmId ?? 'all'}_${shedId ?? 'all'}_${status ?? 'all'}';
+        await _offlineService.cacheData(key, data);
+      } catch (_) {}
+
       return data
           .map((json) => FlockModel.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -41,6 +52,18 @@ class FlockDataSource {
         context: 'Failed to load flocks',
         stackTrace: stackTrace,
       );
+
+      // Fallback cache
+      try {
+        final key = 'flocks_${farmId ?? 'all'}_${shedId ?? 'all'}_${status ?? 'all'}';
+        final cached = _offlineService.getCachedData(key);
+        if (cached != null && cached is List) {
+          return cached
+              .map((json) => FlockModel.fromJson(Map<String, dynamic>.from(json)))
+              .toList();
+        }
+      } catch (_) {}
+
       rethrow;
     }
   }
@@ -93,6 +116,28 @@ class FlockDataSource {
         error: response.data,
       );
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        final data = {
+          'shed': shedId,
+          'breed': breed,
+          'initial_quantity': initialQuantity,
+          'current_quantity': initialQuantity,
+          'gender': gender,
+          'arrival_date': arrivalDate.toIso8601String().split('T')[0],
+          'initial_weight': initialWeight,
+          'supplier': supplier ?? '',
+          'status': 'ACTIVE',
+        };
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.flocks,
+          method: 'POST',
+          data: data,
+          entityType: 'flock',
+        );
+        throw OfflineQueuedException('Creación de lote encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to create flock',
@@ -121,6 +166,27 @@ class FlockDataSource {
       final response = await dio.patch(ApiConstants.flockDetail(id), data: data);
       return FlockModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        final Map<String, dynamic> data = {};
+        if (currentQuantity != null) data['current_quantity'] = currentQuantity;
+        if (currentWeight != null) data['current_weight'] = currentWeight;
+        if (status != null) data['status'] = status;
+        if (saleDate != null) {
+          data['sale_date'] = saleDate.toIso8601String().split('T')[0];
+        }
+
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.flockDetail(id),
+          method: 'PATCH',
+          data: data,
+          entityType: 'flock',
+          localId: id,
+        );
+
+        throw OfflineQueuedException('Actualización de lote encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to update flock',
@@ -134,6 +200,18 @@ class FlockDataSource {
     try {
       await dio.delete(ApiConstants.flockDetail(id));
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.flockDetail(id),
+          method: 'DELETE',
+          data: {'id': id},
+          entityType: 'flock',
+          localId: id,
+        );
+        throw OfflineQueuedException('Eliminación de lote encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to delete flock',
@@ -191,6 +269,25 @@ class FlockDataSource {
       );
       return WeightRecordModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        final data = {
+          'flock': flockId,
+          'average_weight': averageWeight,
+          'sample_size': sampleSize,
+          'record_date': recordDate.toIso8601String().split('T')[0],
+          'notes': notes,
+        };
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.dailyWeights,
+          method: 'POST',
+          data: data,
+          entityType: 'weight_record',
+          localId: flockId,
+        );
+        throw OfflineQueuedException('Peso encolado para sincronizar');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to create weight record',
@@ -253,6 +350,26 @@ class FlockDataSource {
         response.data as Map<String, dynamic>,
       );
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        final data = {
+          'flock': flockId,
+          'quantity': quantity,
+          'cause': cause,
+          'record_date': recordDate.toIso8601String().split('T')[0],
+          'temperature': temperature,
+          'notes': notes,
+        };
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.mortality,
+          method: 'POST',
+          data: data,
+          entityType: 'mortality_record',
+          localId: flockId,
+        );
+        throw OfflineQueuedException('Mortalidad encolada para sincronizar');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to create mortality record',

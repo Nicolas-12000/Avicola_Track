@@ -16,6 +16,8 @@ class OfflineSyncService {
   final Logger _logger = Logger();
   static const String _queueBoxName = 'sync_queue';
   static const String _cacheBoxName = 'offline_cache';
+  static const String _lastSyncKey = 'last_sync_timestamp';
+  static const int _cacheTtlDays = 1; // Tiempo de vida del caché en días
 
   Box<SyncQueueItem>? _queueBox;
   Box? _cacheBox;
@@ -165,6 +167,12 @@ class OfflineSyncService {
     );
 
     _logger.i('Sync completed: ${result.success}/${result.total} successful');
+
+    // Limpiar caché viejo después de sincronización exitosa
+    if (successCount > 0 && failedCount == 0) {
+      await _cleanupOldCache();
+    }
+
     return result;
   }
 
@@ -237,6 +245,38 @@ class OfflineSyncService {
   Future<void> clearCache() async {
     await _cacheBox?.clear();
     _logger.i('Cache cleared');
+  }
+
+  /// Limpiar caché viejo (más de _cacheTtlDays días desde última sincronización)
+  Future<void> _cleanupOldCache() async {
+    if (_cacheBox == null) return;
+
+    final now = DateTime.now();
+    final lastSyncTimestamp = _cacheBox!.get(_lastSyncKey);
+    
+    DateTime? lastSync;
+    if (lastSyncTimestamp is String) {
+      lastSync = DateTime.tryParse(lastSyncTimestamp);
+    } else if (lastSyncTimestamp is DateTime) {
+      lastSync = lastSyncTimestamp;
+    }
+
+    // Si ha pasado más de _cacheTtlDays días desde la última sincronización, limpiar caché
+    if (lastSync != null && now.difference(lastSync).inDays >= _cacheTtlDays) {
+      // Guardar el timestamp antes de limpiar
+      final keysToKeep = [_lastSyncKey];
+      final allKeys = _cacheBox!.keys.toList();
+      
+      for (final key in allKeys) {
+        if (!keysToKeep.contains(key)) {
+          await _cacheBox!.delete(key);
+        }
+      }
+      _logger.i('Old cache cleared (older than $_cacheTtlDays days)');
+    }
+
+    // Actualizar timestamp de última sincronización
+    await _cacheBox!.put(_lastSyncKey, now.toIso8601String());
   }
 
   /// Eliminar item de la cola

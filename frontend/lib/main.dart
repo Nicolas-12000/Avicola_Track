@@ -8,6 +8,7 @@ import 'core/services/offline_sync_service.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/utils/error_handler.dart';
 import 'core/widgets/connection_status_widget.dart';
+import 'core/widgets/sync_status_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,9 @@ void main() async {
   // Inicializar Hive para offline sync
   try {
     await OfflineSyncService().initialize();
-    ErrorHandler.logInfo('Offline sync service initialized');
+    // Iniciar sincronización automática cada 5 minutos
+    OfflineSyncService().startAutoSync();
+    ErrorHandler.logInfo('Offline sync service initialized with auto-sync');
   } catch (e, stackTrace) {
     ErrorHandler.logError(
       e,
@@ -52,9 +55,14 @@ class AvicolaTrackApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       routerConfig: router,
       builder: (context, child) {
-        // Envolver con widget de estado de conexión
+        // Envolver con widget de estado de conexión y banner de sincronización
         return ConnectionSnackBarWrapper(
-          child: child ?? const SizedBox.shrink(),
+          child: Column(
+            children: [
+              const SyncStatusBanner(),
+              Expanded(child: child ?? const SizedBox.shrink()),
+            ],
+          ),
         );
       },
     );

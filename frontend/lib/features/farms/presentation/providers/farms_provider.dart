@@ -3,11 +3,17 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../data/models/farm_model.dart';
 import '../../data/farm_datasource.dart';
 import '../../domain/farm_repository.dart';
+import '../../../../core/services/offline_sync_service.dart';
+import '../../../../core/services/connectivity_service.dart';
+import '../../../../core/errors/offline_exceptions.dart';
+import '../../../../core/providers/offline_provider.dart';
 
 // DataSource Provider
 final farmDataSourceProvider = Provider<FarmDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return FarmDataSource(dio);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return FarmDataSource(dio, offline, connectivity);
 });
 
 // Repository Provider
@@ -40,11 +46,31 @@ class FarmsState {
 // Farms Notifier
 class FarmsNotifier extends StateNotifier<FarmsState> {
   final FarmRepository _repository;
+  final OfflineSyncService _offlineService;
+  final ConnectivityService _connectivityService;
 
-  FarmsNotifier(this._repository) : super(FarmsState());
+  FarmsNotifier(this._repository, this._offlineService, this._connectivityService)
+      : super(FarmsState());
 
-  Future<void> loadFarms() async {
+  Future<void> loadFarms({bool force = false}) async {
     state = state.copyWith(isLoading: true, error: null);
+
+    final isConnected = _connectivityService.currentState.isConnected;
+    if (!isConnected && !force) {
+      try {
+        final cached = _offlineService.getCachedData('farms_all');
+        if (cached != null && cached is List) {
+          state = state.copyWith(
+            farms: cached
+                .map((json) => FarmModel.fromJson(Map<String, dynamic>.from(json)))
+                .toList(),
+            isLoading: false,
+            error: null,
+          );
+          return;
+        }
+      } catch (_) {}
+    }
 
     final result = await _repository.getFarms();
 
@@ -66,20 +92,27 @@ class FarmsNotifier extends StateNotifier<FarmsState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await _repository.createFarm(
-      name: name,
-      location: location,
-      farmManager: farmManager,
-    );
+    try {
+      final result = await _repository.createFarm(
+        name: name,
+        location: location,
+        farmManager: farmManager,
+      );
 
-    if (result.failure != null) {
-      state = state.copyWith(isLoading: false, error: result.failure!.message);
-      return null;
+      if (result.failure != null) {
+        state = state.copyWith(isLoading: false, error: result.failure!.message);
+        return null;
+      }
+
+      await loadFarms(force: true);
+      return result.farm;
+    } catch (e) {
+      if (e is OfflineQueuedException) {
+        await loadFarms();
+        return null;
+      }
+      rethrow;
     }
-
-    // Recargar lista y devolver la granja creada
-    await loadFarms();
-    return result.farm;
   }
 
   Future<bool> updateFarm({
@@ -90,41 +123,57 @@ class FarmsNotifier extends StateNotifier<FarmsState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await _repository.updateFarm(
-      id: id,
-      name: name,
-      location: location,
-      farmManager: farmManager,
-    );
+    try {
+      final result = await _repository.updateFarm(
+        id: id,
+        name: name,
+        location: location,
+        farmManager: farmManager,
+      );
 
-    if (result.failure != null) {
-      state = state.copyWith(isLoading: false, error: result.failure!.message);
-      return false;
+      if (result.failure != null) {
+        state = state.copyWith(isLoading: false, error: result.failure!.message);
+        return false;
+      }
+
+      await loadFarms(force: true);
+      return true;
+    } catch (e) {
+      if (e is OfflineQueuedException) {
+        await loadFarms();
+        return true;
+      }
+      rethrow;
     }
-
-    // Recargar lista
-    await loadFarms();
-    return true;
   }
 
   Future<bool> deleteFarm(int id) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final failure = await _repository.deleteFarm(id);
+    try {
+      final failure = await _repository.deleteFarm(id);
 
-    if (failure != null) {
-      state = state.copyWith(isLoading: false, error: failure.message);
-      return false;
+      if (failure != null) {
+        state = state.copyWith(isLoading: false, error: failure.message);
+        return false;
+      }
+
+      await loadFarms(force: true);
+      return true;
+    } catch (e) {
+      if (e is OfflineQueuedException) {
+        await loadFarms();
+        return true;
+      }
+      rethrow;
     }
-
-    // Recargar lista
-    await loadFarms();
-    return true;
   }
 }
 
 // Farms Provider
 final farmsProvider = StateNotifierProvider<FarmsNotifier, FarmsState>((ref) {
   final repository = ref.watch(farmRepositoryProvider);
-  return FarmsNotifier(repository);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return FarmsNotifier(repository, offline, connectivity);
 });

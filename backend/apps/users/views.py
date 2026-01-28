@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 
 from .serializers import UserRegistrationSerializer
 from .serializers import AdminUserSerializer
-from .serializers import PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from .serializers import PasswordResetRequestSerializer, PasswordResetConfirmSerializer, ChangePasswordSerializer
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -134,3 +134,19 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 		serializer.is_valid(raise_exception=True)
 		serializer.save()
 		return Response(status=status.HTTP_200_OK)
+
+
+class ChangePasswordView(generics.GenericAPIView):
+	"""
+	Endpoint para cambiar contraseña de usuario autenticado.
+	POST /users/auth/change-password/
+	Body: { current_password, new_password, new_password_confirm }
+	"""
+	serializer_class = ChangePasswordSerializer
+	permission_classes = [permissions.IsAuthenticated]
+
+	def post(self, request, *args, **kwargs):
+		serializer = self.get_serializer(data=request.data, context={'request': request})
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		return Response({'detail': 'Contraseña actualizada correctamente'}, status=status.HTTP_200_OK)

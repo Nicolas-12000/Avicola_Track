@@ -63,10 +63,36 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         title: const Text('Inventario'),
         backgroundColor: AppColors.primary,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterDialog(),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () => _showFilterDialog(),
+              ),
+              if (inventoryState.hasActiveFilters)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
           ),
+          if (inventoryState.hasActiveFilters)
+            IconButton(
+              icon: const Icon(Icons.filter_list_off),
+              onPressed: () {
+                ref.read(inventoryProvider.notifier).clearFilters();
+              },
+              tooltip: 'Limpiar filtros',
+            ),
         ],
       ),
       body: inventoryState.isLoading
@@ -106,10 +132,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   // Farm Filter (solo para admins)
                   _buildFarmFilter(),
                   const SizedBox(height: 16),
-
-                  // Expiring Items Warning
-                  if (inventoryState.expiringItems.isNotEmpty)
-                    _buildExpiringWarning(inventoryState.expiringItems),
 
                   // Critical Items
                   if (inventoryState.criticalItems.isNotEmpty) ...[
@@ -205,8 +227,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: _buildStatCard(
-            'Por Vencer',
-            state.expiringItems.length.toString(),
+            'Alerta',
+            state.alertItems.length.toString(),
             Icons.schedule,
             Colors.amber,
           ),
@@ -316,24 +338,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     );
   }
 
-  Widget _buildExpiringWarning(List<InventoryItemModel> items) {
-    return Card(
-      color: Colors.amber.shade50,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: ListTile(
-        leading: const Icon(Icons.schedule, color: Colors.amber),
-        title: const Text('Items próximos a vencer'),
-        subtitle: Text('${items.length} items requieren atención'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          // Show expiring items dialog
-        },
-      ),
-    );
-  }
-
   Widget _buildInventoryCard(InventoryItemModel item) {
-    final statusColor = _getStatusColor(item.stockStatus);
+    final statusColor = _getStatusColor(item.stockStatusLabel);
     final stockPercentage = (item.currentStock / item.minimumStock * 100).clamp(
       0,
       200,
@@ -365,7 +371,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          item.category,
+                          item.description ?? 'Sin descripción',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -384,7 +390,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      _getStatusText(item.stockStatus),
+                      _getStatusText(item.stockStatusLabel),
                       style: TextStyle(
                         color: statusColor,
                         fontWeight: FontWeight.bold,
@@ -439,18 +445,33 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     ),
                     const SizedBox(width: 16),
                   ],
-                  if (item.isExpiringSoon || item.isExpired) ...[
-                    Icon(
-                      item.isExpired ? Icons.error : Icons.warning,
+                  if (item.isCritical) ...[
+                    const Icon(
+                      Icons.error,
                       size: 16,
-                      color: item.isExpired ? Colors.red : Colors.amber,
+                      color: Colors.red,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      item.isExpired ? 'Vencido' : 'Por vencer',
+                    const Text(
+                      'Crítico',
                       style: TextStyle(
                         fontSize: 12,
-                        color: item.isExpired ? Colors.red : Colors.amber,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ] else if (item.isAlert) ...[
+                    const Icon(
+                      Icons.warning,
+                      size: 16,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Alerta',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.amber,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -523,7 +544,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     final isEdit = item != null;
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: item?.name);
-    final categoryController = TextEditingController(text: item?.category);
+    final descriptionController = TextEditingController(text: item?.description);
     final unitController = TextEditingController(text: item?.unit);
     final currentStockController = TextEditingController(
       text: item?.currentStock.toString(),
@@ -531,10 +552,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     final minimumStockController = TextEditingController(
       text: item?.minimumStock.toString(),
     );
-    final avgConsumptionController = TextEditingController(
-      text: item?.averageConsumption?.toString(),
-    );
-    final supplierController = TextEditingController(text: item?.supplier);
 
     int? selectedFarmId = item?.farmId ?? widget.farmId;
 
@@ -601,19 +618,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: categoryController,
+                    controller: descriptionController,
                     decoration: const InputDecoration(
-                      labelText: 'Categoría (alimento, medicina, etc.)',
+                      labelText: 'Descripción (opcional)',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) =>
-                        value?.isEmpty ?? true ? 'Requerido' : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: unitController,
                     decoration: const InputDecoration(
-                      labelText: 'Unidad (kg, litros, etc.)',
+                      labelText: 'Unidad (KG, TON, BAG, LB)',
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
@@ -660,23 +675,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: avgConsumptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Consumo Promedio Diario (opcional)',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: supplierController,
-                    decoration: const InputDecoration(
-                      labelText: 'Proveedor (opcional)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -695,20 +693,13 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                                   .updateInventoryItem(
                                     id: item.id,
                                     name: nameController.text,
-                                    category: categoryController.text,
+                                    description: descriptionController.text.isNotEmpty
+                                        ? descriptionController.text
+                                        : null,
                                     unit: unitController.text,
                                     minimumStock: double.parse(
                                       minimumStockController.text,
                                     ),
-                                    averageConsumption:
-                                        avgConsumptionController.text.isNotEmpty
-                                        ? double.tryParse(
-                                            avgConsumptionController.text,
-                                          )
-                                        : null,
-                                    supplier: supplierController.text.isNotEmpty
-                                        ? supplierController.text
-                                        : null,
                                   );
                             } else {
                               ref
@@ -716,7 +707,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                                   .createInventoryItem(
                                     farmId: selectedFarmId!,
                                     name: nameController.text,
-                                    category: categoryController.text,
+                                    description: descriptionController.text.isNotEmpty
+                                        ? descriptionController.text
+                                        : null,
                                     unit: unitController.text,
                                     currentStock: double.parse(
                                       currentStockController.text,
@@ -724,15 +717,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                                     minimumStock: double.parse(
                                       minimumStockController.text,
                                     ),
-                                    averageConsumption:
-                                        avgConsumptionController.text.isNotEmpty
-                                        ? double.tryParse(
-                                            avgConsumptionController.text,
-                                          )
-                                        : null,
-                                    supplier: supplierController.text.isNotEmpty
-                                        ? supplierController.text
-                                        : null,
                                   );
                             }
                             Navigator.pop(context);
@@ -847,6 +831,215 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   }
 
   void _showFilterDialog() {
-    // Implementar filtros por categoría, estado, etc.
+    final inventoryState = ref.read(inventoryProvider);
+    Set<String> selectedFilters = Set.from(inventoryState.activeStockFilters);
+    String searchQuery = inventoryState.searchQuery ?? '';
+    final searchController = TextEditingController(text: searchQuery);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 24,
+                right: 24,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Filtrar Inventario',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            selectedFilters.clear();
+                            searchController.clear();
+                            searchQuery = '';
+                          });
+                        },
+                        child: const Text('Limpiar'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Búsqueda por nombre
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      labelText: 'Buscar por nombre',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      suffixIcon: searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setSheetState(() {
+                                  searchController.clear();
+                                  searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (value) {
+                      setSheetState(() {
+                        searchQuery = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Filtros por estado de stock
+                  const Text(
+                    'Estado de Stock',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildFilterChip(
+                        label: 'Sin Stock',
+                        value: 'out_of_stock',
+                        color: Colors.red,
+                        isSelected: selectedFilters.contains('out_of_stock'),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              selectedFilters.add('out_of_stock');
+                            } else {
+                              selectedFilters.remove('out_of_stock');
+                            }
+                          });
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Stock Bajo',
+                        value: 'low_stock',
+                        color: Colors.orange,
+                        isSelected: selectedFilters.contains('low_stock'),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              selectedFilters.add('low_stock');
+                            } else {
+                              selectedFilters.remove('low_stock');
+                            }
+                          });
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Advertencia',
+                        value: 'warning',
+                        color: Colors.amber,
+                        isSelected: selectedFilters.contains('warning'),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              selectedFilters.add('warning');
+                            } else {
+                              selectedFilters.remove('warning');
+                            }
+                          });
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Normal',
+                        value: 'normal',
+                        color: Colors.green,
+                        isSelected: selectedFilters.contains('normal'),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              selectedFilters.add('normal');
+                            } else {
+                              selectedFilters.remove('normal');
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Botón aplicar
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref.read(inventoryProvider.notifier).setStockFilters(selectedFilters);
+                        ref.read(inventoryProvider.notifier).setSearchQuery(
+                          searchQuery.isEmpty ? null : searchQuery,
+                        );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Aplicar Filtros',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required String value,
+    required Color color,
+    required bool isSelected,
+    required Function(bool) onSelected,
+  }) {
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: onSelected,
+      selectedColor: color.withValues(alpha: 0.3),
+      checkmarkColor: color,
+      labelStyle: TextStyle(
+        color: isSelected ? color : Colors.grey[700],
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: isSelected ? color : Colors.grey[300]!,
+      ),
+    );
   }
 }

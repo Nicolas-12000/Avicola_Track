@@ -3,6 +3,8 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../data/models/shed_model.dart';
 import '../../data/shed_datasource.dart';
 import '../../domain/shed_repository.dart';
+import '../../../../core/providers/offline_provider.dart';
+import '../../../../core/services/connectivity_service.dart';
 
 // State
 class ShedsState {
@@ -144,7 +146,9 @@ class ShedsNotifier extends StateNotifier<ShedsState> {
 // Providers
 final shedDataSourceProvider = Provider<ShedDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return ShedDataSource(dio);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return ShedDataSource(dio, offline, connectivity);
 });
 
 final shedRepositoryProvider = Provider<ShedRepository>((ref) {

@@ -2,11 +2,16 @@ import 'package:dio/dio.dart';
 import '../../../data/models/inventory_item_model.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/services/offline_sync_service.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../../core/errors/offline_exceptions.dart';
 
 class InventoryDataSource {
   final Dio dio;
+  final OfflineSyncService _offlineService;
+  final ConnectivityService _connectivityService;
 
-  InventoryDataSource(this.dio);
+  InventoryDataSource(this.dio, this._offlineService, this._connectivityService);
 
   Future<List<InventoryItemModel>> getInventoryItems({int? farmId}) async {
     try {
@@ -20,6 +25,11 @@ class InventoryDataSource {
       final List<dynamic> data = responseData is Map && responseData.containsKey('results')
           ? responseData['results']
           : responseData;
+      try {
+        final key = 'inventory_${farmId ?? 'all'}';
+        await _offlineService.cacheData(key, data);
+      } catch (_) {}
+
       return data
           .map(
             (json) => InventoryItemModel.fromJson(json as Map<String, dynamic>),
@@ -31,6 +41,17 @@ class InventoryDataSource {
         context: 'Failed to load inventory',
         stackTrace: stackTrace,
       );
+
+      try {
+        final key = 'inventory_${farmId ?? 'all'}';
+        final cached = _offlineService.getCachedData(key);
+        if (cached != null && cached is List) {
+          return cached
+              .map((json) => InventoryItemModel.fromJson(Map<String, dynamic>.from(json)))
+              .toList();
+        }
+      } catch (_) {}
+
       rethrow;
     }
   }
@@ -52,13 +73,13 @@ class InventoryDataSource {
   Future<InventoryItemModel> createInventoryItem({
     required int farmId,
     required String name,
-    required String category,
+    String? description,
     required String unit,
     required double currentStock,
     required double minimumStock,
-    double? averageConsumption,
-    DateTime? expirationDate,
-    String? supplier,
+    int? shedId,
+    int alertThresholdDays = 5,
+    int criticalThresholdDays = 2,
   }) async {
     try {
       final response = await dio.post(
@@ -66,17 +87,39 @@ class InventoryDataSource {
         data: {
           'farm': farmId,
           'name': name,
-          'category': category,
+          'description': description ?? '',
           'unit': unit,
           'current_stock': currentStock,
           'minimum_stock': minimumStock,
-          'average_consumption': averageConsumption,
-          'expiration_date': expirationDate?.toIso8601String().split('T')[0],
-          'supplier': supplier,
+          'shed': shedId,
+          'alert_threshold_days': alertThresholdDays,
+          'critical_threshold_days': criticalThresholdDays,
         },
       );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        final data = {
+          'farm': farmId,
+          'name': name,
+          'description': description ?? '',
+          'unit': unit,
+          'current_stock': currentStock,
+          'minimum_stock': minimumStock,
+          'shed': shedId,
+          'alert_threshold_days': alertThresholdDays,
+          'critical_threshold_days': criticalThresholdDays,
+        };
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.inventory,
+          method: 'POST',
+          data: data,
+          entityType: 'inventory_item',
+        );
+        throw OfflineQueuedException('Inventario encolado para sincronizar');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to create inventory item',
@@ -89,37 +132,42 @@ class InventoryDataSource {
   Future<InventoryItemModel> updateInventoryItem({
     required int id,
     String? name,
-    String? category,
+    String? description,
     String? unit,
-    double? currentStock,
     double? minimumStock,
-    double? averageConsumption,
-    DateTime? expirationDate,
-    String? supplier,
+    int? alertThresholdDays,
+    int? criticalThresholdDays,
   }) async {
+    final Map<String, dynamic> data = {};
+    if (name != null) data['name'] = name;
+    if (description != null) data['description'] = description;
+    if (unit != null) data['unit'] = unit;
+    if (minimumStock != null) data['minimum_stock'] = minimumStock;
+    if (alertThresholdDays != null) {
+      data['alert_threshold_days'] = alertThresholdDays;
+    }
+    if (criticalThresholdDays != null) {
+      data['critical_threshold_days'] = criticalThresholdDays;
+    }
     try {
-      final Map<String, dynamic> data = {};
-      if (name != null) data['name'] = name;
-      if (category != null) data['category'] = category;
-      if (unit != null) data['unit'] = unit;
-      if (currentStock != null) data['current_stock'] = currentStock;
-      if (minimumStock != null) data['minimum_stock'] = minimumStock;
-      if (averageConsumption != null) {
-        data['average_consumption'] = averageConsumption;
-      }
-      if (expirationDate != null) {
-        data['expiration_date'] = expirationDate.toIso8601String().split(
-          'T',
-        )[0];
-      }
-      if (supplier != null) data['supplier'] = supplier;
-
       final response = await dio.patch(
         ApiConstants.inventoryDetail(id),
         data: data,
       );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.inventoryDetail(id),
+          method: 'PATCH',
+          data: data,
+          entityType: 'inventory_item',
+          localId: id,
+        );
+        throw OfflineQueuedException('Actualización en inventario encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to update inventory item',
@@ -133,6 +181,18 @@ class InventoryDataSource {
     try {
       await dio.delete(ApiConstants.inventoryDetail(id));
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.inventoryDetail(id),
+          method: 'DELETE',
+          data: {'id': id},
+          entityType: 'inventory_item',
+          localId: id,
+        );
+        throw OfflineQueuedException('Eliminación en inventario encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to delete inventory item',
@@ -154,6 +214,18 @@ class InventoryDataSource {
       );
       return InventoryItemModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: '${ApiConstants.inventoryDetail(id)}adjust-stock/',
+          method: 'POST',
+          data: {'quantity_change': quantityChange, 'reason': reason},
+          entityType: 'inventory_adjustment',
+          localId: id,
+        );
+        throw OfflineQueuedException('Ajuste de stock encolado');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to adjust stock',
@@ -199,6 +271,17 @@ class InventoryDataSource {
         data: {'updates': updates},
       );
     } catch (e, stackTrace) {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.inventoryBulkUpdateStock,
+          method: 'POST',
+          data: {'updates': updates},
+          entityType: 'inventory_bulk',
+        );
+        throw OfflineQueuedException('Actualización masiva encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to bulk update stock',

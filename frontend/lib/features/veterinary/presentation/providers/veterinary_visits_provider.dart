@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/providers/offline_provider.dart';
+import '../../../../core/services/connectivity_service.dart';
 import '../../../../data/datasources/veterinary_datasource.dart';
 import '../../../../data/repositories/veterinary_repository.dart';
 import '../../../../data/models/veterinary_visit_model.dart';
@@ -7,7 +9,13 @@ import '../../../../data/models/veterinary_visit_model.dart';
 // DataSource Provider
 final veterinaryDataSourceProvider = Provider<VeterinaryDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return VeterinaryDataSource(dio);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return VeterinaryDataSource(
+    dio: dio,
+    offlineService: offline,
+    connectivityService: connectivity,
+  );
 });
 
 // Repository Provider

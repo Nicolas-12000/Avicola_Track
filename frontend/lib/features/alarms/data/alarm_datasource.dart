@@ -2,11 +2,16 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/models/alarm_model.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/services/offline_sync_service.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../../core/errors/offline_exceptions.dart';
 
 class AlarmDataSource {
   final Dio dio;
+  final OfflineSyncService _offlineService;
+  final ConnectivityService _connectivityService;
 
-  AlarmDataSource(this.dio);
+  AlarmDataSource(this.dio, this._offlineService, this._connectivityService);
 
   Future<List<AlarmModel>> getAlarms({
     int? farmId,
@@ -31,6 +36,11 @@ class AlarmDataSource {
               ? responseData['results'] as List<dynamic>
               : responseData as List<dynamic>;
 
+      try {
+        final key = 'alarms_${farmId ?? 'all'}_${severity ?? 'all'}_${isResolved ?? 'all'}';
+        await _offlineService.cacheData(key, data);
+      } catch (_) {}
+
       return data
           .map((json) => AlarmModel.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -40,6 +50,17 @@ class AlarmDataSource {
         context: 'Failed to load alarms',
         stackTrace: stackTrace,
       );
+
+      try {
+        final key = 'alarms_${farmId ?? 'all'}_${severity ?? 'all'}_${isResolved ?? 'all'}';
+        final cached = _offlineService.getCachedData(key);
+        if (cached != null && cached is List) {
+          return cached
+              .map((json) => AlarmModel.fromJson(Map<String, dynamic>.from(json)))
+              .toList();
+        }
+      } catch (_) {}
+
       rethrow;
     }
   }
@@ -69,6 +90,17 @@ class AlarmDataSource {
       );
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      if (!_connectivityService.currentState.isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.alarmResolve(id),
+          method: 'POST',
+          data: {'notes': resolutionNotes},
+          entityType: 'alarm',
+          localId: id,
+        );
+        throw OfflineQueuedException('Resolución de alarma encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to resolve alarm',
@@ -83,6 +115,17 @@ class AlarmDataSource {
       final response = await dio.post(ApiConstants.alarmEscalate(id));
       return AlarmModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
+      if (!_connectivityService.currentState.isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.alarmEscalate(id),
+          method: 'POST',
+          data: {},
+          entityType: 'alarm',
+          localId: id,
+        );
+        throw OfflineQueuedException('Escalamiento de alarma encolado');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to escalate alarm',
@@ -96,6 +139,17 @@ class AlarmDataSource {
     try {
       await dio.delete(ApiConstants.alarmManageDetail(id));
     } catch (e, stackTrace) {
+      if (!_connectivityService.currentState.isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.alarmManageDetail(id),
+          method: 'DELETE',
+          data: {'id': id},
+          entityType: 'alarm',
+          localId: id,
+        );
+        throw OfflineQueuedException('Eliminación de alarma encolada');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to delete alarm',
@@ -157,6 +211,17 @@ class AlarmDataSource {
       );
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
+      if (!_connectivityService.currentState.isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.alarmAcknowledge(id),
+          method: 'POST',
+          data: {'notes': notes ?? ''},
+          entityType: 'alarm',
+          localId: id,
+        );
+        throw OfflineQueuedException('Acuse de alarma encolado');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to acknowledge alarm',
@@ -177,6 +242,16 @@ class AlarmDataSource {
       );
       return response.data as Map<String, dynamic>;
     } catch (e, stackTrace) {
+      if (!_connectivityService.currentState.isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.alarmsBulkAcknowledge,
+          method: 'POST',
+          data: {'alarm_ids': alarmIds, 'notes': notes ?? ''},
+          entityType: 'alarm_bulk',
+        );
+        throw OfflineQueuedException('Acuse masivo encolado');
+      }
+
       ErrorHandler.logError(
         e,
         context: 'Failed to bulk acknowledge alarms',

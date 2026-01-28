@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/providers/offline_provider.dart';
+import '../../../../core/services/connectivity_service.dart';
 import '../../../../data/models/flock_model.dart';
 import '../../../../data/models/weight_record_model.dart';
 import '../../../../data/models/mortality_record_model.dart';
@@ -208,7 +210,9 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
 // Providers
 final flockDataSourceProvider = Provider<FlockDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return FlockDataSource(dio);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return FlockDataSource(dio, offline, connectivity);
 });
 
 final flockRepositoryProvider = Provider<FlockRepository>((ref) {

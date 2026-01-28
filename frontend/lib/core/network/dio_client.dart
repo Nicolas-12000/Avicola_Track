@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 import '../storage/secure_storage.dart';
 import '../services/connectivity_service.dart';
@@ -40,7 +41,7 @@ final dioProvider = Provider<Dio>((ref) {
         error: true,
         requestHeader: true,
         responseHeader: false,
-        logPrint: (o) => print('🌐 DIO: $o'),
+        logPrint: (o) => debugPrint('🌐 DIO: $o'),
       ),
     );
   }

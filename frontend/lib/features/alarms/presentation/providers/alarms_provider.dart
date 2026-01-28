@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/providers/offline_provider.dart';
+import '../../../../core/services/connectivity_service.dart';
 import '../../../../data/models/alarm_model.dart';
 import '../../data/alarm_datasource.dart';
 import '../../domain/alarm_repository.dart';
@@ -142,7 +144,9 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
 // Providers
 final alarmDataSourceProvider = Provider<AlarmDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return AlarmDataSource(dio);
+  final offline = ref.watch(offlineSyncServiceProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return AlarmDataSource(dio, offline, connectivity);
 });
 
 final alarmRepositoryProvider = Provider<AlarmRepository>((ref) {

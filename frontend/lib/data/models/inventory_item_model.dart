@@ -2,31 +2,39 @@ class InventoryItemModel {
   final int id;
   final int farmId;
   final String? farmName;
+  final int? shedId;
+  final String? shedName;
   final String name;
-  final String category;
+  final String? description;
   final String unit;
   final double currentStock;
   final double minimumStock;
-  final double? averageConsumption;
-  final DateTime? expirationDate;
-  final String? supplier;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final double? dailyAvgConsumption;
+  final DateTime? lastRestockDate;
+  final DateTime? lastConsumptionDate;
+  final int alertThresholdDays;
+  final int criticalThresholdDays;
+  final DateTime? projectedStockoutDate;
+  final Map<String, dynamic>? stockStatus;
 
   InventoryItemModel({
     required this.id,
     required this.farmId,
     this.farmName,
+    this.shedId,
+    this.shedName,
     required this.name,
-    required this.category,
+    this.description,
     required this.unit,
     required this.currentStock,
     required this.minimumStock,
-    this.averageConsumption,
-    this.expirationDate,
-    this.supplier,
-    required this.createdAt,
-    required this.updatedAt,
+    this.dailyAvgConsumption,
+    this.lastRestockDate,
+    this.lastConsumptionDate,
+    this.alertThresholdDays = 5,
+    this.criticalThresholdDays = 2,
+    this.projectedStockoutDate,
+    this.stockStatus,
   });
 
   factory InventoryItemModel.fromJson(Map<String, dynamic> json) {
@@ -34,18 +42,26 @@ class InventoryItemModel {
       id: json['id'] as int,
       farmId: json['farm'] as int,
       farmName: json['farm_name'] as String?,
+      shedId: json['shed'] as int?,
+      shedName: json['shed_name'] as String?,
       name: json['name'] as String,
-      category: json['category'] as String,
+      description: json['description'] as String?,
       unit: json['unit'] as String,
       currentStock: (json['current_stock'] as num).toDouble(),
       minimumStock: (json['minimum_stock'] as num).toDouble(),
-      averageConsumption: (json['average_consumption'] as num?)?.toDouble(),
-      expirationDate: json['expiration_date'] != null
-          ? DateTime.parse(json['expiration_date'] as String)
+      dailyAvgConsumption: (json['daily_avg_consumption'] as num?)?.toDouble(),
+      lastRestockDate: json['last_restock_date'] != null
+          ? DateTime.parse(json['last_restock_date'] as String)
           : null,
-      supplier: json['supplier'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      lastConsumptionDate: json['last_consumption_date'] != null
+          ? DateTime.parse(json['last_consumption_date'] as String)
+          : null,
+      alertThresholdDays: json['alert_threshold_days'] as int? ?? 5,
+      criticalThresholdDays: json['critical_threshold_days'] as int? ?? 2,
+      projectedStockoutDate: json['projected_stockout_date'] != null
+          ? DateTime.parse(json['projected_stockout_date'] as String)
+          : null,
+      stockStatus: json['stock_status'] as Map<String, dynamic>?,
     );
   }
 
@@ -53,73 +69,69 @@ class InventoryItemModel {
     return {
       'id': id,
       'farm': farmId,
+      'shed': shedId,
       'name': name,
-      'category': category,
+      'description': description,
       'unit': unit,
       'current_stock': currentStock,
       'minimum_stock': minimumStock,
-      'average_consumption': averageConsumption,
-      'expiration_date': expirationDate?.toIso8601String().split('T')[0],
-      'supplier': supplier,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'alert_threshold_days': alertThresholdDays,
+      'critical_threshold_days': criticalThresholdDays,
     };
   }
 
-  String get stockStatus {
-    if (currentStock <= 0) return 'out_of_stock';
-    if (currentStock <= minimumStock) return 'low_stock';
-    if (currentStock <= minimumStock * 1.5) return 'warning';
-    return 'normal';
+  String get stockStatusLabel {
+    if (stockStatus == null) return 'unknown';
+    return (stockStatus!['status'] as String?)?.toLowerCase() ?? 'unknown';
   }
 
   int? get daysUntilEmpty {
-    if (averageConsumption == null || averageConsumption! <= 0) return null;
-    return (currentStock / averageConsumption!).ceil();
+    if (dailyAvgConsumption == null || dailyAvgConsumption! <= 0) return null;
+    return (currentStock / dailyAvgConsumption!).ceil();
   }
 
-  bool get isExpiringSoon {
-    if (expirationDate == null) return false;
-    final daysUntilExpiration = expirationDate!
-        .difference(DateTime.now())
-        .inDays;
-    return daysUntilExpiration <= 7 && daysUntilExpiration >= 0;
-  }
-
-  bool get isExpired {
-    if (expirationDate == null) return false;
-    return expirationDate!.isBefore(DateTime.now());
-  }
+  bool get isLowStock => currentStock <= minimumStock;
+  bool get isOutOfStock => currentStock <= 0;
+  bool get isCritical => daysUntilEmpty != null && daysUntilEmpty! <= criticalThresholdDays;
+  bool get isAlert => daysUntilEmpty != null && daysUntilEmpty! <= alertThresholdDays;
 
   InventoryItemModel copyWith({
     int? id,
     int? farmId,
     String? farmName,
+    int? shedId,
+    String? shedName,
     String? name,
-    String? category,
+    String? description,
     String? unit,
     double? currentStock,
     double? minimumStock,
-    double? averageConsumption,
-    DateTime? expirationDate,
-    String? supplier,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    double? dailyAvgConsumption,
+    DateTime? lastRestockDate,
+    DateTime? lastConsumptionDate,
+    int? alertThresholdDays,
+    int? criticalThresholdDays,
+    DateTime? projectedStockoutDate,
+    Map<String, dynamic>? stockStatus,
   }) {
     return InventoryItemModel(
       id: id ?? this.id,
       farmId: farmId ?? this.farmId,
       farmName: farmName ?? this.farmName,
+      shedId: shedId ?? this.shedId,
+      shedName: shedName ?? this.shedName,
       name: name ?? this.name,
-      category: category ?? this.category,
+      description: description ?? this.description,
       unit: unit ?? this.unit,
       currentStock: currentStock ?? this.currentStock,
       minimumStock: minimumStock ?? this.minimumStock,
-      averageConsumption: averageConsumption ?? this.averageConsumption,
-      expirationDate: expirationDate ?? this.expirationDate,
-      supplier: supplier ?? this.supplier,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      dailyAvgConsumption: dailyAvgConsumption ?? this.dailyAvgConsumption,
+      lastRestockDate: lastRestockDate ?? this.lastRestockDate,
+      lastConsumptionDate: lastConsumptionDate ?? this.lastConsumptionDate,
+      alertThresholdDays: alertThresholdDays ?? this.alertThresholdDays,
+      criticalThresholdDays: criticalThresholdDays ?? this.criticalThresholdDays,
+      projectedStockoutDate: projectedStockoutDate ?? this.projectedStockoutDate,
+      stockStatus: stockStatus ?? this.stockStatus,
     );
   }
 }

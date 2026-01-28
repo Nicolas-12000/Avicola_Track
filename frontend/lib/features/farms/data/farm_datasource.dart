@@ -1,11 +1,16 @@
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/models/farm_model.dart';
+import '../../../core/services/offline_sync_service.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../../core/errors/offline_exceptions.dart';
 
 class FarmDataSource {
   final Dio _dio;
+  final OfflineSyncService _offlineService;
+  final ConnectivityService _connectivityService;
 
-  FarmDataSource(this._dio);
+  FarmDataSource(this._dio, this._offlineService, this._connectivityService);
 
   /// Obtener todas las granjas
   Future<List<FarmModel>> getFarms() async {
@@ -17,6 +22,11 @@ class FarmDataSource {
         final List<dynamic> data = responseData is Map && responseData.containsKey('results')
             ? responseData['results']
             : responseData;
+        // cache
+        try {
+          await _offlineService.cacheData('farms_all', data);
+        } catch (_) {}
+
         return data.map((json) => FarmModel.fromJson(json)).toList();
       }
 
@@ -26,6 +36,14 @@ class FarmDataSource {
         error: 'Failed to load farms',
       );
     } on DioException {
+      // Try cached fallback
+      try {
+        final cached = _offlineService.getCachedData('farms_all');
+        if (cached != null && cached is List) {
+          return cached.map((json) => FarmModel.fromJson(Map<String, dynamic>.from(json))).toList();
+        }
+      } catch (_) {}
+
       rethrow;
     }
   }
@@ -75,6 +93,22 @@ class FarmDataSource {
         error: 'Failed to create farm',
       );
     } on DioException {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        final id = await _offlineService.addToQueue(
+          endpoint: ApiConstants.farms,
+          method: 'POST',
+          data: {
+            'name': name,
+            'location': location,
+            if (farmManager != null) 'farm_manager': farmManager,
+          },
+          entityType: 'farm',
+        );
+
+        throw OfflineQueuedException('Creación de granja encolada: $id');
+      }
+
       rethrow;
     }
   }
@@ -86,8 +120,8 @@ class FarmDataSource {
     String? location,
     int? farmManager,
   }) async {
+    final data = <String, dynamic>{};
     try {
-      final data = <String, dynamic>{};
       if (name != null) data['name'] = name;
       if (location != null) data['location'] = location;
       if (farmManager != null) data['farm_manager'] = farmManager;
@@ -107,6 +141,19 @@ class FarmDataSource {
         error: 'Failed to update farm',
       );
     } on DioException {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.farmDetail(id),
+          method: 'PATCH',
+          data: data,
+          entityType: 'farm',
+          localId: id,
+        );
+
+        throw OfflineQueuedException('Actualización de granja encolada');
+      }
+
       rethrow;
     }
   }
@@ -124,6 +171,19 @@ class FarmDataSource {
         );
       }
     } on DioException {
+      final isConnected = _connectivityService.currentState.isConnected;
+      if (!isConnected) {
+        await _offlineService.addToQueue(
+          endpoint: ApiConstants.farmDetail(id),
+          method: 'DELETE',
+          data: {'id': id},
+          entityType: 'farm',
+          localId: id,
+        );
+
+        throw OfflineQueuedException('Eliminación de granja encolada');
+      }
+
       rethrow;
     }
   }
