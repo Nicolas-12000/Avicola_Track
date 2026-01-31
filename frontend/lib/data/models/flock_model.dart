@@ -64,7 +64,23 @@ class FlockModel {
           ? DateTime.parse(json['sale_date'] as String)
           : null,
       supplier: json['supplier'] as String?,
-      status: json['status'] as String? ?? 'Active',
+      // Normalize status values coming from the backend (e.g. 'ACTIVE')
+      // into the app's expected casing ('Active', 'Sold', 'Terminated').
+      status: (() {
+        final raw = (json['status'] as String? ?? 'ACTIVE').toString().toUpperCase();
+        switch (raw) {
+          case 'ACTIVE':
+            return 'Active';
+          case 'SOLD':
+            return 'Sold';
+          case 'TERMINATED':
+            return 'Terminated';
+          default:
+            // Fallback: return capitalized form of the raw value
+            final lower = raw.toLowerCase();
+            return lower.isEmpty ? lower : '${lower[0].toUpperCase()}${lower.substring(1)}';
+        }
+      })(),
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
 
@@ -30,12 +32,29 @@ class Report {
   });
 
   factory Report.fromJson(Map<String, dynamic> json) {
+    // Defensive parsing: backend may return nulls or JSON-encoded strings
+    final rawData = json['data'];
+    Map<String, dynamic> parsedData = {};
+    try {
+      if (rawData == null) {
+        parsedData = {};
+      } else if (rawData is Map) {
+        parsedData = Map<String, dynamic>.from(rawData);
+      } else if (rawData is String && rawData.isNotEmpty) {
+        parsedData = Map<String, dynamic>.from(jsonDecode(rawData) as Map<String, dynamic>);
+      }
+    } catch (_) {
+      parsedData = {};
+    }
+
     return Report(
       id: json['id'] as int?,
-      title: json['title'] as String,
-      type: json['type'] as String,
-      generatedAt: DateTime.parse(json['generated_at'] as String),
-      farmId: json['farm_id'] as int,
+      title: (json['title'] as String?) ?? '',
+      type: (json['type'] as String?) ?? '',
+      generatedAt: json['generated_at'] != null
+          ? DateTime.parse(json['generated_at'] as String)
+          : DateTime.now(),
+      farmId: (json['farm_id'] as int?) ?? 0,
       farmName: json['farm_name'] as String?,
       startDate: json['start_date'] != null
           ? DateTime.parse(json['start_date'] as String)
@@ -43,7 +62,7 @@ class Report {
       endDate: json['end_date'] != null
           ? DateTime.parse(json['end_date'] as String)
           : null,
-      data: json['data'] as Map<String, dynamic>,
+      data: parsedData,
       pdfPath: json['pdf_path'] as String?,
       excelPath: json['excel_path'] as String?,
     );

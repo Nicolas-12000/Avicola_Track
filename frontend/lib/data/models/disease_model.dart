@@ -65,13 +65,9 @@ class DiseaseModel {
           .map((e) => e as String)
           .toList(),
       vaccineAvailable: json['vaccine_available'] as String?,
-      incubationPeriodDays: json['incubation_period_days'] as int?,
-      mortalityRate: json['mortality_rate'] != null
-          ? (json['mortality_rate'] as num).toDouble()
-          : null,
-      morbidityRate: json['morbidity_rate'] != null
-          ? (json['morbidity_rate'] as num).toDouble()
-          : null,
+        incubationPeriodDays: _toInt(json['incubation_period_days']),
+        mortalityRate: _toDouble(json['mortality_rate']),
+        morbidityRate: _toDouble(json['morbidity_rate']),
       imageUrl: json['image_url'] as String?,
       description: json['description'] as String?,
       isNotifiable: json['is_notifiable'] as bool? ?? false,
@@ -168,5 +164,20 @@ class DiseaseModel {
       default:
         return '⚕️';
     }
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

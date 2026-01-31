@@ -47,21 +47,21 @@ class InventoryItemModel {
       name: json['name'] as String,
       description: json['description'] as String?,
       unit: json['unit'] as String,
-      currentStock: (json['current_stock'] as num).toDouble(),
-      minimumStock: (json['minimum_stock'] as num).toDouble(),
-      dailyAvgConsumption: (json['daily_avg_consumption'] as num?)?.toDouble(),
+      currentStock: _parseDouble(json['current_stock']),
+      minimumStock: _parseDouble(json['minimum_stock']),
+      dailyAvgConsumption: _parseNullableDouble(json['daily_avg_consumption']),
       lastRestockDate: json['last_restock_date'] != null
           ? DateTime.parse(json['last_restock_date'] as String)
           : null,
       lastConsumptionDate: json['last_consumption_date'] != null
           ? DateTime.parse(json['last_consumption_date'] as String)
           : null,
-      alertThresholdDays: json['alert_threshold_days'] as int? ?? 5,
-      criticalThresholdDays: json['critical_threshold_days'] as int? ?? 2,
+      alertThresholdDays: _parseInt(json['alert_threshold_days'], defaultValue: 5),
+      criticalThresholdDays: _parseInt(json['critical_threshold_days'], defaultValue: 2),
       projectedStockoutDate: json['projected_stockout_date'] != null
           ? DateTime.parse(json['projected_stockout_date'] as String)
           : null,
-      stockStatus: json['stock_status'] as Map<String, dynamic>?,
+      stockStatus: _parseStockStatus(json['stock_status']),
     );
   }
 
@@ -133,5 +133,41 @@ class InventoryItemModel {
       projectedStockoutDate: projectedStockoutDate ?? this.projectedStockoutDate,
       stockStatus: stockStatus ?? this.stockStatus,
     );
+  }
+
+  static double _parseDouble(dynamic value, {double defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return defaultValue;
+  }
+
+  static double? _parseNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
+  }
+
+  static int _parseInt(dynamic value, {required int defaultValue}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return defaultValue;
+  }
+
+  static Map<String, dynamic>? _parseStockStatus(dynamic value) {
+    if (value == null) return null;
+    if (value is Map<String, dynamic>) return value;
+    return null;
   }
 }

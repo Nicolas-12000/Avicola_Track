@@ -468,10 +468,12 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
     String selectedGender = flock?.gender ?? 'X';
     DateTime selectedDate = flock?.arrivalDate ?? DateTime.now();
 
+    final parentContext = context;
+
     showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+      context: parentContext,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
           title: Text(flock == null ? 'Nuevo Lote' : 'Editar Lote'),
           content: Form(
             key: formKey,
@@ -578,7 +580,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancelar'),
             ),
-            ElevatedButton(
+              ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -606,8 +608,9 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                   if (!mounted) return;
 
                   final error = ref.read(flocksProvider).error;
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  // Use the parent screen context (captured above) after async
+                  Navigator.pop(parentContext);
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
                     SnackBar(
                       content: Text(
                         error == null

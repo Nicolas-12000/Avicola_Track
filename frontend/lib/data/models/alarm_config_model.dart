@@ -30,8 +30,8 @@ class AlarmConfigModel {
       id: json['id'] as int?,
       alarmType: json['alarm_type'] as String? ?? '',
       farmId: json['farm'] as int? ?? 0,
-      thresholdValue: (json['threshold_value'] as num?)?.toDouble() ?? 0.0,
-      criticalThreshold: (json['critical_threshold'] as num?)?.toDouble(),
+      thresholdValue: _toDouble(json['threshold_value']),
+      criticalThreshold: _toNullableDouble(json['critical_threshold']),
       evaluationPeriodHours: json['evaluation_period_hours'] as int? ?? 24,
       consecutiveOccurrences: json['consecutive_occurrences'] as int? ?? 1,
       notifyFarmManager: json['notify_farm_manager'] as bool? ?? true,
@@ -55,5 +55,19 @@ class AlarmConfigModel {
       'notify_galponeros': notifyGalponeros,
       'is_active': isActive,
     };
+  }
+
+  static double _toDouble(dynamic value, {double fallback = 0}) {
+    if (value == null) return fallback;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  static double? _toNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

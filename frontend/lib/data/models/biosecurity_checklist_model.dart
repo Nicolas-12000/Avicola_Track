@@ -44,7 +44,7 @@ class BiosecurityChecklistModel {
       items: (json['items'] as List<dynamic>)
           .map((e) => BiosecurityCheckItem.fromJson(e as Map<String, dynamic>))
           .toList(),
-      complianceScore: (json['compliance_score'] as num).toDouble(),
+        complianceScore: _toDouble(json['compliance_score']),
       notes: json['notes'] as String?,
       photoUrls: (json['photo_urls'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -127,6 +127,15 @@ class BiosecurityChecklistModel {
       items.where((item) => !item.isCompliant && !item.isNotApplicable).length;
   bool get hasGoodCompliance => complianceScore >= 80;
   bool get hasPoorCompliance => complianceScore < 60;
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return 0;
+  }
 }
 
 class BiosecurityCheckItem {

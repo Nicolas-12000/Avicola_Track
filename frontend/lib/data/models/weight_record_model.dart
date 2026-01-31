@@ -21,8 +21,8 @@ class WeightRecordModel {
     return WeightRecordModel(
       id: json['id'] as int,
       flockId: json['flock'] as int,
-      averageWeight: (json['average_weight'] as num).toDouble(),
-      sampleSize: json['sample_size'] as int,
+      averageWeight: _toDouble(json['average_weight']),
+      sampleSize: _toInt(json['sample_size']),
       recordDate: DateTime.parse(json['record_date'] as String),
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -39,5 +39,24 @@ class WeightRecordModel {
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
     };
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return 0;
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return 0;
   }
 }

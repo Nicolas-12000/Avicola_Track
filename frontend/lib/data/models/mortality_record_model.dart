@@ -23,10 +23,10 @@ class MortalityRecordModel {
     return MortalityRecordModel(
       id: json['id'] as int,
       flockId: json['flock'] as int,
-      quantity: json['quantity'] as int,
+      quantity: _toInt(json['quantity']),
       cause: json['cause'] as String,
       recordDate: DateTime.parse(json['record_date'] as String),
-      temperature: (json['temperature'] as num?)?.toDouble(),
+      temperature: _toDouble(json['temperature']),
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -43,5 +43,22 @@ class MortalityRecordModel {
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
     };
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return 0;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

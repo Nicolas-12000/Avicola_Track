@@ -11,6 +11,8 @@ import '../../features/farms/presentation/screens/farm_detail_screen.dart';
 import '../../features/users/presentation/screens/users_list_screen.dart';
 import '../../features/sheds/presentation/screens/sheds_list_screen.dart';
 import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
+import '../../features/flocks/presentation/screens/weight_records_screen.dart';
+import '../../features/flocks/presentation/screens/mortality_records_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_list_screen.dart';
 import '../../features/alarms/presentation/screens/alarms_list_screen.dart';
 import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart';
@@ -224,6 +226,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/flocks',
         name: 'flocks',
         builder: (context, state) => const FlocksListScreen(),
+        routes: [
+          GoRoute(
+            path: ':id/weight',
+            name: 'flock-weight',
+            builder: (context, state) {
+              final idParam = state.pathParameters['id'];
+              final id = int.tryParse(idParam ?? '');
+              if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
+              return WeightRecordsScreen(flockId: id);
+            },
+          ),
+          GoRoute(
+            path: ':id/mortality',
+            name: 'flock-mortality',
+            builder: (context, state) {
+              final idParam = state.pathParameters['id'];
+              final id = int.tryParse(idParam ?? '');
+              if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
+              return MortalityRecordsScreen(flockId: id);
+            },
+          ),
+        ],
       ),
 
       // Inventory Routes

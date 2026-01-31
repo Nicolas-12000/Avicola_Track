@@ -57,7 +57,7 @@ class MedicationModel {
           ? DateTime.parse(json['end_date'] as String)
           : null,
       durationDays: json['duration_days'] as int,
-      dosage: (json['dosage'] as num).toDouble(),
+        dosage: _toDouble(json['dosage']),
       dosageUnit: json['dosage_unit'] as String,
       administrationRoute: json['administration_route'] as String,
       frequency: json['frequency'] as String,
@@ -177,5 +177,14 @@ class MedicationModel {
   int get daysRemaining {
     if (endDate == null) return 0;
     return endDate!.difference(DateTime.now()).inDays.clamp(0, 999);
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return 0;
   }
 }
