@@ -20,20 +20,54 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 class UsersState {
   final List<UserModel> users;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final bool hasMoreData;
+  final String? searchQuery;
 
-  UsersState({this.users = const [], this.isLoading = false, this.error});
+  static const int pageSize = 20;
+
+  UsersState({
+    this.users = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.error,
+    this.currentPage = 1,
+    this.hasMoreData = true,
+    this.searchQuery,
+  });
 
   UsersState copyWith({
     List<UserModel>? users,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    bool? hasMoreData,
+    String? searchQuery,
+    bool clearError = false,
   }) {
     return UsersState(
       users: users ?? this.users,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      error: clearError ? null : (error ?? this.error),
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
+      searchQuery: searchQuery ?? this.searchQuery,
     );
+  }
+
+  /// Usuarios filtrados por búsqueda
+  List<UserModel> get filteredUsers {
+    if (searchQuery == null || searchQuery!.isEmpty) return users;
+    final q = searchQuery!.toLowerCase();
+    return users.where((u) =>
+      u.displayName.toLowerCase().contains(q) ||
+      (u.email?.toLowerCase().contains(q) ?? false) ||
+      (u.username?.toLowerCase().contains(q) ?? false)
+    ).toList();
   }
 }
 
@@ -43,20 +77,57 @@ class UsersNotifier extends StateNotifier<UsersState> {
 
   UsersNotifier(this._repository) : super(UsersState());
 
-  Future<void> loadUsers() async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> loadUsers({bool refresh = true}) async {
+    if (refresh) {
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        currentPage: 1,
+        hasMoreData: true,
+        clearError: true,
+      );
+    }
 
     final result = await _repository.getUsers();
 
     if (result.failure != null) {
       state = state.copyWith(isLoading: false, error: result.failure!.message);
     } else {
+      final users = result.users ?? [];
       state = state.copyWith(
-        users: result.users ?? [],
+        users: users,
         isLoading: false,
         error: null,
+        hasMoreData: users.length >= UsersState.pageSize,
+        clearError: true,
       );
     }
+  }
+
+  Future<void> loadMoreUsers() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+
+    final result = await _repository.getUsers();
+
+    if (result.failure != null) {
+      state = state.copyWith(isLoadingMore: false, error: result.failure!.message);
+    } else {
+      final newUsers = result.users ?? [];
+      final allUsers = [...state.users, ...newUsers];
+      state = state.copyWith(
+        users: allUsers,
+        isLoadingMore: false,
+        currentPage: state.currentPage + 1,
+        hasMoreData: newUsers.length >= UsersState.pageSize,
+        clearError: true,
+      );
+    }
+  }
+
+  void setSearchQuery(String? query) {
+    state = state.copyWith(searchQuery: query);
   }
 
   Future<bool> createUser({
@@ -67,7 +138,7 @@ class UsersNotifier extends StateNotifier<UsersState> {
     required String lastName,
     required String identification,
     required String phone,
-    required String role,
+    required int roleId,
     int? assignedFarm,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -80,7 +151,7 @@ class UsersNotifier extends StateNotifier<UsersState> {
       lastName: lastName,
       identification: identification,
       phone: phone,
-      role: role,
+      roleId: roleId,
       assignedFarm: assignedFarm,
     );
 
@@ -102,7 +173,7 @@ class UsersNotifier extends StateNotifier<UsersState> {
     String? lastName,
     String? identification,
     String? phone,
-    String? role,
+    int? roleId,
     int? assignedFarm,
     bool? isActive,
   }) async {
@@ -116,7 +187,7 @@ class UsersNotifier extends StateNotifier<UsersState> {
       lastName: lastName,
       identification: identification,
       phone: phone,
-      role: role,
+      roleId: roleId,
       assignedFarm: assignedFarm,
       isActive: isActive,
     );

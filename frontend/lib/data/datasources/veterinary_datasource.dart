@@ -42,10 +42,12 @@ class VeterinaryDataSource {
   // ==================== VETERINARY VISITS ====================
 
   Future<List<VeterinaryVisitModel>> getVisits({
+    int? farmId,
     int? flockId,
     String? status,
   }) async {
     final queryParams = <String, dynamic>{};
+    if (farmId != null) queryParams['farm_id'] = farmId;
     if (flockId != null) queryParams['flock_id'] = flockId;
     if (status != null) queryParams['status'] = status;
 

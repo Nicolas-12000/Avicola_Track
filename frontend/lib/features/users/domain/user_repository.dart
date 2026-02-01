@@ -60,7 +60,7 @@ class UserRepository {
     required String lastName,
     required String identification,
     required String phone,
-    required String role,
+    required int roleId,
     int? assignedFarm,
   }) async {
     try {
@@ -72,7 +72,7 @@ class UserRepository {
         lastName: lastName,
         identification: identification,
         phone: phone,
-        role: role,
+        roleId: roleId,
         assignedFarm: assignedFarm,
       );
       return (user: user, failure: null);
@@ -102,7 +102,7 @@ class UserRepository {
     String? lastName,
     String? identification,
     String? phone,
-    String? role,
+    int? roleId,
     int? assignedFarm,
     bool? isActive,
   }) async {
@@ -115,7 +115,7 @@ class UserRepository {
         lastName: lastName,
         identification: identification,
         phone: phone,
-        role: role,
+        roleId: roleId,
         assignedFarm: assignedFarm,
         isActive: isActive,
       );

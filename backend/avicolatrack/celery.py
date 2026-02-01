@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery.schedules import crontab
 
 # Establecer el módulo de configuración por defecto de Django para el programa 'celery'.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'avicolatrack.settings')
@@ -40,6 +41,19 @@ app.conf.beat_schedule = {
     'cleanup-reports-weekly': {
         'task': 'apps.reports.tasks.cleanup_old_reports',
         'schedule': 604800.0,  # Cada semana
+    },
+    # Tareas de veterinaria
+    'send-visit-reminders-hourly': {
+        'task': 'apps.veterinary.tasks.send_visit_reminders',
+        'schedule': 3600.0,  # Cada hora
+    },
+    'check-overdue-visits-daily': {
+        'task': 'apps.veterinary.tasks.check_overdue_visits',
+        'schedule': 86400.0,  # Cada día
+    },
+    'send-daily-schedule-summary': {
+        'task': 'apps.veterinary.tasks.send_daily_schedule_summary',
+        'schedule': crontab(hour=7, minute=0),  # Todos los días a las 7:00 AM
     },
 }
 

@@ -11,26 +11,40 @@ class AlarmsState {
   final List<AlarmModel> alarms;
   final Map<String, dynamic>? stats;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final bool hasMoreData;
+
+  static const int pageSize = 20;
 
   AlarmsState({
     this.alarms = const [],
     this.stats,
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.error,
+    this.currentPage = 1,
+    this.hasMoreData = true,
   });
 
   AlarmsState copyWith({
     List<AlarmModel>? alarms,
     Map<String, dynamic>? stats,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    bool? hasMoreData,
   }) {
     return AlarmsState(
       alarms: alarms ?? this.alarms,
       stats: stats ?? this.stats,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
     );
   }
 
@@ -61,14 +75,30 @@ class AlarmsState {
 class AlarmsNotifier extends StateNotifier<AlarmsState> {
   final AlarmRepository repository;
 
+  int? _lastFarmId;
+  String? _lastSeverity;
+  bool? _lastIsResolved;
+
   AlarmsNotifier(this.repository) : super(AlarmsState());
 
   Future<void> loadAlarms({
     int? farmId,
     String? severity,
     bool? isResolved,
+    bool refresh = true,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    _lastFarmId = farmId;
+    _lastSeverity = severity;
+    _lastIsResolved = isResolved;
+
+    if (refresh) {
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        currentPage: 1,
+        hasMoreData: true,
+      );
+    }
 
     final result = await repository.getAlarms(
       farmId: farmId,
@@ -79,8 +109,39 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
     result.fold(
       (failure) =>
           state = state.copyWith(isLoading: false, error: failure.message),
-      (alarms) =>
-          state = state.copyWith(alarms: alarms, isLoading: false, error: null),
+      (alarms) => state = state.copyWith(
+        alarms: alarms,
+        isLoading: false,
+        error: null,
+        hasMoreData: alarms.length >= AlarmsState.pageSize,
+      ),
+    );
+  }
+
+  Future<void> loadMoreAlarms() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+
+    final result = await repository.getAlarms(
+      farmId: _lastFarmId,
+      severity: _lastSeverity,
+      isResolved: _lastIsResolved,
+    );
+
+    result.fold(
+      (failure) =>
+          state = state.copyWith(isLoadingMore: false, error: failure.message),
+      (newAlarms) {
+        final allAlarms = [...state.alarms, ...newAlarms];
+        state = state.copyWith(
+          alarms: allAlarms,
+          isLoadingMore: false,
+          currentPage: state.currentPage + 1,
+          hasMoreData: newAlarms.length >= AlarmsState.pageSize,
+          error: null,
+        );
+      },
     );
   }
 

@@ -1,9 +1,12 @@
 class VeterinaryVisitModel {
   final int id;
-  final int flockId;
+  final int? farmId; // Ahora la visita es a una granja
+  final List<int> flockIds; // Múltiples lotes pueden ser revisados
   final int veterinarianId;
   final DateTime visitDate;
+  final int expectedDurationDays; // Duración estimada en días
   final String visitType; // routine, emergency, vaccination, treatment
+  final String? reason; // Motivo de la visita
   final String? diagnosis;
   final String? treatment;
   final String? prescribedMedications;
@@ -15,10 +18,13 @@ class VeterinaryVisitModel {
 
   const VeterinaryVisitModel({
     required this.id,
-    required this.flockId,
+    this.farmId,
+    this.flockIds = const [],
     required this.veterinarianId,
     required this.visitDate,
+    this.expectedDurationDays = 1,
     required this.visitType,
+    this.reason,
     this.diagnosis,
     this.treatment,
     this.prescribedMedications,
@@ -32,10 +38,15 @@ class VeterinaryVisitModel {
   factory VeterinaryVisitModel.fromJson(Map<String, dynamic> json) {
     return VeterinaryVisitModel(
       id: json['id'] as int,
-      flockId: json['flock_id'] as int,
+      farmId: json['farm_id'] as int?,
+      flockIds: (json['flock_ids'] as List<dynamic>?)
+          ?.map((e) => e as int)
+          .toList() ?? [],
       veterinarianId: json['veterinarian_id'] as int,
       visitDate: DateTime.parse(json['visit_date'] as String),
+      expectedDurationDays: json['expected_duration_days'] as int? ?? 1,
       visitType: json['visit_type'] as String,
+      reason: json['reason'] as String?,
       diagnosis: json['diagnosis'] as String?,
       treatment: json['treatment'] as String?,
       prescribedMedications: json['prescribed_medications'] as String?,
@@ -54,10 +65,13 @@ class VeterinaryVisitModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'flock_id': flockId,
+      'farm_id': farmId,
+      'flock_ids': flockIds,
       'veterinarian_id': veterinarianId,
       'visit_date': visitDate.toIso8601String(),
+      'expected_duration_days': expectedDurationDays,
       'visit_type': visitType,
+      'reason': reason,
       'diagnosis': diagnosis,
       'treatment': treatment,
       'prescribed_medications': prescribedMedications,
@@ -71,10 +85,13 @@ class VeterinaryVisitModel {
 
   VeterinaryVisitModel copyWith({
     int? id,
-    int? flockId,
+    int? farmId,
+    List<int>? flockIds,
     int? veterinarianId,
     DateTime? visitDate,
+    int? expectedDurationDays,
     String? visitType,
+    String? reason,
     String? diagnosis,
     String? treatment,
     String? prescribedMedications,
@@ -86,10 +103,13 @@ class VeterinaryVisitModel {
   }) {
     return VeterinaryVisitModel(
       id: id ?? this.id,
-      flockId: flockId ?? this.flockId,
+      farmId: farmId ?? this.farmId,
+      flockIds: flockIds ?? this.flockIds,
       veterinarianId: veterinarianId ?? this.veterinarianId,
       visitDate: visitDate ?? this.visitDate,
+      expectedDurationDays: expectedDurationDays ?? this.expectedDurationDays,
       visitType: visitType ?? this.visitType,
+      reason: reason ?? this.reason,
       diagnosis: diagnosis ?? this.diagnosis,
       treatment: treatment ?? this.treatment,
       prescribedMedications:

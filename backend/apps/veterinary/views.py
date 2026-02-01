@@ -26,12 +26,15 @@ class VeterinaryVisitViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset = VeterinaryVisit.objects.all()
+        queryset = VeterinaryVisit.objects.all().prefetch_related('flocks')
+        farm_id = self.request.query_params.get('farm_id')
         flock_id = self.request.query_params.get('flock_id')
         status_param = self.request.query_params.get('status')
         
+        if farm_id:
+            queryset = queryset.filter(farm_id=farm_id)
         if flock_id:
-            queryset = queryset.filter(flock_id=flock_id)
+            queryset = queryset.filter(flocks__id=flock_id)
         if status_param:
             queryset = queryset.filter(status=status_param)
             
@@ -49,6 +52,20 @@ class VeterinaryVisitViewSet(viewsets.ModelViewSet):
         visit.save()
         
         serializer = self.get_serializer(visit)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='today_upcoming')
+    def today_upcoming(self, request):
+        """Obtener visitas de hoy y próximas 7 días"""
+        today = timezone.now().date()
+        upcoming_end = today + timedelta(days=7)
+        
+        queryset = VeterinaryVisit.objects.filter(
+            visit_date__date__gte=today,
+            visit_date__date__lte=upcoming_end
+        ).order_by('visit_date').prefetch_related('flocks')
+        
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 

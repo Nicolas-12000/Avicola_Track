@@ -56,7 +56,7 @@ class AuthDataSource {
   }) async {
     try {
       await dio.post(
-        '${ApiConstants.users}auth/change-password/',
+        ApiConstants.changePassword,
         data: {
           'current_password': currentPassword,
           'new_password': newPassword,

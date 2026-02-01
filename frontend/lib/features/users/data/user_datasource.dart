@@ -58,7 +58,7 @@ class UserDataSource {
     required String lastName,
     required String identification,
     required String phone,
-    required String role,
+    required int roleId,
     int? assignedFarm,
   }) async {
     try {
@@ -72,7 +72,7 @@ class UserDataSource {
           'last_name': lastName,
           'identification': identification,
           'phone': phone,
-          'role': role,
+          'role': roleId,
           if (assignedFarm != null) 'assigned_farm': assignedFarm,
         },
       );
@@ -100,7 +100,7 @@ class UserDataSource {
     String? lastName,
     String? identification,
     String? phone,
-    String? role,
+    int? roleId,
     int? assignedFarm,
     bool? isActive,
   }) async {
@@ -112,7 +112,7 @@ class UserDataSource {
       if (lastName != null) data['last_name'] = lastName;
       if (identification != null) data['identification'] = identification;
       if (phone != null) data['phone'] = phone;
-      if (role != null) data['role'] = role;
+      if (roleId != null) data['role'] = roleId;
       if (assignedFarm != null) data['assigned_farm'] = assignedFarm;
       if (isActive != null) data['is_active'] = isActive;
 

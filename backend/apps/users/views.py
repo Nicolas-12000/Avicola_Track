@@ -1,6 +1,7 @@
 import logging
 from django.contrib.auth import get_user_model
 from rest_framework import generics, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django_ratelimit.decorators import ratelimit
@@ -94,6 +95,12 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 		
 		# Otros solo pueden ver su propio perfil
 		return UserModel.objects.filter(id=user.id)
+
+	@action(detail=False, methods=['get'])
+	def me(self, request):
+		"""Obtener perfil del usuario autenticado"""
+		serializer = self.get_serializer(request.user)
+		return Response(serializer.data)
 
 
 

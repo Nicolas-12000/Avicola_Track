@@ -19,6 +19,8 @@ import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart
 import '../../features/dashboard/presentation/screens/shed_keeper_dashboard_screen.dart';
 import '../../features/reports/presentation/screens/reports_list_screen.dart';
 import '../../features/veterinary/presentation/screens/veterinary_dashboard_screen.dart';
+import '../../features/veterinary/presentation/screens/veterinary_agenda_screen.dart';
+import '../../features/farms/presentation/screens/schedule_veterinary_visit_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 
 /// Helper para obtener la ruta inicial según el rol del usuario
@@ -102,7 +104,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           
           // Veterinario solo puede acceder a veterinary
           if (userRole.isVeterinarian) {
-            final allowedPaths = ['/veterinary', '/alarms'];
+            final allowedPaths = ['/veterinary', '/alarms', '/farms'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
             if (!isAllowed && location != '/') {
               print('🚦 Router: Veterinario sin acceso a $location -> /veterinary');
@@ -173,6 +175,22 @@ final routerProvider = Provider<GoRouter>((ref) {
               }
               return FarmDetailScreen(farmId: id);
             },
+            routes: [
+              GoRoute(
+                path: 'schedule-visit',
+                name: 'schedule-visit',
+                builder: (context, state) {
+                  final idParam = state.pathParameters['id'];
+                  final id = int.tryParse(idParam ?? '');
+                  if (id == null) {
+                    return const Scaffold(
+                      body: Center(child: Text('ID de granja inválido')),
+                    );
+                  }
+                  return ScheduleVeterinaryVisitScreen(farmId: id);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: 'dashboard',
@@ -276,6 +294,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/veterinary',
         name: 'veterinary-dashboard',
         builder: (context, state) => const VeterinaryDashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'agenda',
+            name: 'veterinary-agenda',
+            builder: (context, state) => const VeterinaryAgendaScreen(),
+          ),
+        ],
       ),
 
       // Profile/Settings Routes

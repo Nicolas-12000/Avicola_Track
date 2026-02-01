@@ -12,7 +12,7 @@ from .serializers import (
     InventoryItemSerializer, BulkStockUpdateSerializer, FoodBatchSerializer,
     FoodConsumptionRecordSerializer, FoodConsumptionRequestSerializer,
     BulkFoodConsumptionSerializer, FIFOConsumptionResultSerializer,
-    AddStockSerializer
+    AddStockSerializer, AdjustStockSerializer
 )
 from .permissions import CanManageInventory
 from apps.flocks.models import Flock
@@ -130,6 +130,36 @@ class InventoryViewSet(viewsets.ModelViewSet):
         batch.save()
         
         return Response(FoodBatchSerializer(batch).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        request=AdjustStockSerializer,
+        responses=OpenApiResponse(response=InventoryItemSerializer)
+    )
+    @action(detail=True, methods=['post'], url_path='adjust-stock')
+    def adjust_stock(self, request, pk=None):
+        """Ajustar stock (aumentar o disminuir) con razón"""
+        item = self.get_object()
+        serializer = AdjustStockSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        quantity_change = serializer.validated_data['quantity_change']
+        reason = serializer.validated_data.get('reason', '')
+        
+        # Aplicar cambio de stock
+        new_stock = item.current_stock + Decimal(str(quantity_change))
+        if new_stock < 0:
+            return Response(
+                {'error': 'El stock no puede ser negativo'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        item.current_stock = new_stock
+        item.save()
+        
+        # Actualizar métricas de consumo
+        item.update_consumption_metrics()
+        
+        return Response(InventoryItemSerializer(item).data)
 
     @extend_schema(
         request=FoodConsumptionRequestSerializer,

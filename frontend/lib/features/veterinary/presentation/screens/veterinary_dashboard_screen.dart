@@ -41,6 +41,11 @@ class _VeterinaryDashboardScreenState
         title: const Text('Dashboard Veterinario'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calendar_today),
+            onPressed: () => context.push('/veterinary/agenda'),
+            tooltip: 'Ver Agenda',
+          ),
+          IconButton(
             icon: Badge(
               isLabelVisible: visitsState.totalOverdue > 0,
               label: Text('${visitsState.totalOverdue}'),

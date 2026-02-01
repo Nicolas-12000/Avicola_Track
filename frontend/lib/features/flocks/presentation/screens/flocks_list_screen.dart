@@ -215,13 +215,33 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
             .read(flocksProvider.notifier)
             .loadFlocks(farmId: widget.farmId, shedId: widget.shedId);
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: flocks.length,
-        itemBuilder: (context, index) {
-          final flock = flocks[index];
-          return _buildFlockCard(flock, sheds);
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          final flocksState = ref.read(flocksProvider);
+          if (notification is ScrollEndNotification &&
+              notification.metrics.extentAfter < 200 &&
+              !flocksState.isLoadingMore &&
+              flocksState.hasMoreData) {
+            ref.read(flocksProvider.notifier).loadMoreFlocks();
+          }
+          return false;
         },
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: flocks.length + (ref.watch(flocksProvider).isLoadingMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == flocks.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            final flock = flocks[index];
+            return _buildFlockCard(flock, sheds);
+          },
+        ),
       ),
     );
   }

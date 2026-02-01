@@ -26,6 +26,13 @@ class UserModel {
   });
 
   String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
+  String get displayName {
+    final name = fullName.trim();
+    if (name.isNotEmpty) return name;
+    if (username != null && username!.isNotEmpty) return username!;
+    if (email != null && email!.isNotEmpty) return email!;
+    return 'Sin nombre';
+  }
   
   /// Obtiene el rol tipado del usuario
   UserRole? get userRole => role.asUserRole;
@@ -49,11 +56,7 @@ class UserModel {
         : int.tryParse(idValue?.toString() ?? '') ?? 0;
 
     final roleValue = json['role'];
-    final role = roleValue is Map<String, dynamic>
-        ? roleValue['name'] as String?
-        : roleValue is String
-            ? roleValue
-            : null;
+    final role = _mapRole(roleValue);
 
     return UserModel(
       id: id,
@@ -108,5 +111,44 @@ class UserModel {
       assignedFarm: assignedFarm ?? this.assignedFarm,
       isActive: isActive ?? this.isActive,
     );
+  }
+
+  static String? _mapRole(dynamic roleValue) {
+    // Backend may send: null, int ids, plain strings, or nested objects {name: '...'}
+    if (roleValue == null) return null;
+
+    if (roleValue is Map<String, dynamic>) {
+      return roleValue['name'] as String?;
+    }
+
+    if (roleValue is int) {
+      const roleById = {
+        1: 'Administrador Sistema',
+        2: 'Administrador de Granja',
+        3: 'Veterinario',
+        4: 'Galponero',
+      };
+      return roleById[roleValue];
+    }
+
+    if (roleValue is String) {
+      switch (roleValue) {
+        case 'Admin':
+        case 'Administrador':
+          return 'Administrador Sistema';
+        case 'Farm Manager':
+        case 'Gerente de Granja':
+          return 'Administrador de Granja';
+        case 'Worker':
+        case 'Trabajador':
+          return 'Galponero';
+        case 'Veterinarian':
+          return 'Veterinario';
+        default:
+          return roleValue;
+      }
+    }
+
+    return null;
   }
 }

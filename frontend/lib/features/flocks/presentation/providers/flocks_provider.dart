@@ -14,14 +14,22 @@ class FlocksState {
   final List<WeightRecordModel> weightRecords;
   final List<MortalityRecordModel> mortalityRecords;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final bool hasMoreData;
+
+  static const int pageSize = 20;
 
   FlocksState({
     this.flocks = const [],
     this.weightRecords = const [],
     this.mortalityRecords = const [],
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.error,
+    this.currentPage = 1,
+    this.hasMoreData = true,
   });
 
   FlocksState copyWith({
@@ -29,14 +37,20 @@ class FlocksState {
     List<WeightRecordModel>? weightRecords,
     List<MortalityRecordModel>? mortalityRecords,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    bool? hasMoreData,
   }) {
     return FlocksState(
       flocks: flocks ?? this.flocks,
       weightRecords: weightRecords ?? this.weightRecords,
       mortalityRecords: mortalityRecords ?? this.mortalityRecords,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
     );
   }
 
@@ -52,10 +66,25 @@ class FlocksState {
 class FlocksNotifier extends StateNotifier<FlocksState> {
   final FlockRepository repository;
 
+  int? _lastFarmId;
+  int? _lastShedId;
+  String? _lastStatus;
+
   FlocksNotifier(this.repository) : super(FlocksState());
 
-  Future<void> loadFlocks({int? farmId, int? shedId, String? status}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> loadFlocks({int? farmId, int? shedId, String? status, bool refresh = true}) async {
+    _lastFarmId = farmId;
+    _lastShedId = shedId;
+    _lastStatus = status;
+
+    if (refresh) {
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        currentPage: 1,
+        hasMoreData: true,
+      );
+    }
 
     final result = await repository.getFlocks(
       farmId: farmId,
@@ -66,8 +95,39 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
     result.fold(
       (failure) =>
           state = state.copyWith(isLoading: false, error: failure.message),
-      (flocks) =>
-          state = state.copyWith(flocks: flocks, isLoading: false, error: null),
+      (flocks) => state = state.copyWith(
+        flocks: flocks,
+        isLoading: false,
+        error: null,
+        hasMoreData: flocks.length >= FlocksState.pageSize,
+      ),
+    );
+  }
+
+  Future<void> loadMoreFlocks() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+
+    final result = await repository.getFlocks(
+      farmId: _lastFarmId,
+      shedId: _lastShedId,
+      status: _lastStatus,
+    );
+
+    result.fold(
+      (failure) =>
+          state = state.copyWith(isLoadingMore: false, error: failure.message),
+      (newFlocks) {
+        final allFlocks = [...state.flocks, ...newFlocks];
+        state = state.copyWith(
+          flocks: allFlocks,
+          isLoadingMore: false,
+          currentPage: state.currentPage + 1,
+          hasMoreData: newFlocks.length >= FlocksState.pageSize,
+          error: null,
+        );
+      },
     );
   }
 

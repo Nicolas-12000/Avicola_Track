@@ -111,3 +111,9 @@ class AddStockSerializer(serializers.Serializer):
 	lot_number = serializers.CharField(required=False, allow_blank=True)
 	expiry_date = serializers.DateField(required=False, allow_null=True)
 
+
+class AdjustStockSerializer(serializers.Serializer):
+	"""Serializer para ajustar stock (aumentar o disminuir)"""
+	quantity_change = serializers.DecimalField(max_digits=12, decimal_places=2)
+	reason = serializers.CharField(required=False, allow_blank=True)
+

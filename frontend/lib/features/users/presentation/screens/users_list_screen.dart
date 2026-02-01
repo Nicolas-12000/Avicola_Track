@@ -74,14 +74,35 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
       return _buildEmptyState();
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: state.users.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final user = state.users[index];
-        return _buildUserCard(user);
+    final users = state.filteredUsers;
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollEndNotification &&
+            notification.metrics.extentAfter < 200 &&
+            !state.isLoadingMore &&
+            state.hasMoreData) {
+          ref.read(usersProvider.notifier).loadMoreUsers();
+        }
+        return false;
       },
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: users.length + (state.isLoadingMore ? 1 : 0),
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          if (index == users.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          final user = users[index];
+          return _buildUserCard(user);
+        },
+      ),
     );
   }
 
@@ -166,7 +187,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            '${user.firstName} ${user.lastName}',
+                            user.displayName,
                             style: AppTextStyles.textTheme.titleMedium,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -193,9 +214,9 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _getRoleText(user.role ?? 'Worker'),
+                      _getRoleText(user.role ?? ''),
                       style: AppTextStyles.textTheme.bodyMedium?.copyWith(
-                        color: _getRoleColor(user.role ?? 'Worker'),
+                        color: _getRoleColor(user.role ?? ''),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -290,7 +311,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
     );
     final phoneController = TextEditingController(text: user?.phone ?? '');
 
-    String selectedRole = user?.role ?? 'Worker';
+    int selectedRoleId = _roleIdFromName(user?.role);
     int? selectedFarmId = user?.assignedFarm;
     bool isActive = user?.isActive ?? true;
 
@@ -413,32 +434,32 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedRole,
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedRoleId,
                     decoration: const InputDecoration(
                       labelText: 'Rol',
                       prefixIcon: Icon(Icons.work),
                     ),
                     items: const [
                       DropdownMenuItem(
-                        value: 'Admin',
-                        child: Text('Administrador'),
+                        value: 1,
+                        child: Text('Administrador Sistema'),
                       ),
                       DropdownMenuItem(
-                        value: 'Farm Manager',
-                        child: Text('Gerente de Granja'),
+                        value: 2,
+                        child: Text('Administrador de Granja'),
                       ),
                       DropdownMenuItem(
-                        value: 'Worker',
-                        child: Text('Trabajador'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Veterinarian',
+                        value: 3,
                         child: Text('Veterinario'),
+                      ),
+                      DropdownMenuItem(
+                        value: 4,
+                        child: Text('Galponero'),
                       ),
                     ],
                     onChanged: (value) {
-                      setState(() => selectedRole = value!);
+                      setState(() => selectedRoleId = value ?? 4);
                     },
                   ),
                   const SizedBox(height: 16),
@@ -491,7 +512,6 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                     'email': emailController.text,
                     'first_name': firstNameController.text,
                     'last_name': lastNameController.text,
-                    'role': selectedRole,
                     'is_active': isActive,
                     if (passwordController.text.isNotEmpty)
                       'password': passwordController.text,
@@ -514,7 +534,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                           identification:
                               data['identification'] as String? ?? '',
                           phone: data['phone'] as String? ?? '',
-                          role: data['role'] as String,
+                          roleId: selectedRoleId,
                           assignedFarm: data['assigned_farm'] as int?,
                         );
                     if (mounted) {
@@ -536,7 +556,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                           lastName: data['last_name'] as String?,
                           identification: data['identification'] as String?,
                           phone: data['phone'] as String?,
-                          role: data['role'] as String?,
+                          roleId: selectedRoleId,
                           assignedFarm: data['assigned_farm'] as int?,
                           isActive: data['is_active'] as bool?,
                         );
@@ -602,28 +622,31 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
 
   String _getRoleText(String role) {
     switch (role) {
-      case 'Admin':
-        return 'Administrador';
-      case 'Farm Manager':
-        return 'Gerente de Granja';
-      case 'Worker':
-        return 'Trabajador';
-      case 'Veterinarian':
+      case 'Administrador Sistema':
+        return 'Administrador Sistema';
+      case 'Administrador de Granja':
+        return 'Administrador de Granja';
+      case 'Galponero':
+        return 'Galponero';
+      case 'Veterinario':
         return 'Veterinario';
+      case 'Trabajador':
+        return 'Trabajador';
       default:
-        return role;
+        return role.isNotEmpty ? role : 'Sin rol';
     }
   }
 
   IconData _getRoleIcon(String role) {
     switch (role) {
-      case 'Admin':
+      case 'Administrador Sistema':
         return Icons.admin_panel_settings;
-      case 'Farm Manager':
+      case 'Administrador de Granja':
         return Icons.business;
-      case 'Worker':
+      case 'Galponero':
+      case 'Trabajador':
         return Icons.construction;
-      case 'Veterinarian':
+      case 'Veterinario':
         return Icons.medical_services;
       default:
         return Icons.person;
@@ -632,16 +655,33 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
 
   Color _getRoleColor(String role) {
     switch (role) {
-      case 'Admin':
+      case 'Administrador Sistema':
         return Colors.purple;
-      case 'Farm Manager':
+      case 'Administrador de Granja':
         return Colors.blue;
-      case 'Worker':
+      case 'Galponero':
+      case 'Trabajador':
         return Colors.orange;
-      case 'Veterinarian':
+      case 'Veterinario':
         return Colors.green;
       default:
         return Colors.grey;
+    }
+  }
+
+  int _roleIdFromName(String? roleName) {
+    switch (roleName) {
+      case 'Administrador Sistema':
+        return 1;
+      case 'Administrador de Granja':
+        return 2;
+      case 'Veterinario':
+        return 3;
+      case 'Galponero':
+      case 'Trabajador':
+        return 4;
+      default:
+        return 4;
     }
   }
 }

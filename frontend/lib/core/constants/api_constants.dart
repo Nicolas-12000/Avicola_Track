@@ -38,6 +38,7 @@ class ApiConstants {
   static const String passwordReset = '$apiPrefix/auth/password-reset/';
   static const String passwordResetConfirm =
       '$apiPrefix/auth/password-reset-confirm/';
+  static const String changePassword = '$apiPrefix/auth/change-password/';
 
   // Users
   static const String users = '$apiPrefix/admin-users/';
@@ -80,41 +81,41 @@ class ApiConstants {
   static String reportDetail(int id) => '$reports$id/';
   static String reportGenerate(int id) => '$reports$id/generate/';
   static String reportDownload(int id) => '$reports$id/download/';
-  static const String reportTypes = '$reports/types/';
-  static const String quickProductivity = '$reports/quick_productivity/';
+  static const String reportTypes = '${reports}types/';
+  static const String quickProductivity = '${reports}quick_productivity/';
   static const String reportTemplates = '$apiPrefix/templates/';
 
   // Veterinary
   static const String veterinary = '$apiPrefix/veterinary/';
-  static const String veterinaryVisits = '$veterinary/visits/';
+  static const String veterinaryVisits = '${veterinary}visits/';
   static String veterinaryVisitDetail(int id) => '$veterinaryVisits$id/';
   static String veterinaryVisitComplete(int id) =>
       '$veterinaryVisits$id/complete/';
   static const String veterinaryVisitsTodayUpcoming =
-      '$veterinaryVisits/today_upcoming/';
-  static const String vaccinations = '$veterinary/vaccinations/';
+      '${veterinaryVisits}today_upcoming/';
+  static const String vaccinations = '${veterinary}vaccinations/';
   static String vaccinationDetail(int id) => '$vaccinations$id/';
   static String vaccinationApply(int id) => '$vaccinations$id/apply/';
-  static const String vaccinationsUpcoming = '$vaccinations/upcoming/';
-  static const String medications = '$veterinary/medications/';
+  static const String vaccinationsUpcoming = '${vaccinations}upcoming/';
+  static const String medications = '${veterinary}medications/';
   static String medicationDetail(int id) => '$medications$id/';
   static String medicationRecordApplication(int id) =>
       '$medications$id/record_application/';
-  static const String medicationsActive = '$medications/active/';
-  static const String medicationsWithdrawal = '$medications/withdrawal/';
-  static const String diseases = '$veterinary/diseases/';
+  static const String medicationsActive = '${medications}active/';
+  static const String medicationsWithdrawal = '${medications}withdrawal/';
+  static const String diseases = '${veterinary}diseases/';
   static String diseaseDetail(int id) => '$diseases$id/';
   static const String biosecurityChecklists =
-      '$veterinary/biosecurity-checklists/';
+      '${veterinary}biosecurity-checklists/';
   static String biosecurityChecklistDetail(int id) =>
       '$biosecurityChecklists$id/';
   static const String biosecurityComplianceStats =
-      '$biosecurityChecklists/compliance_stats/';
+      '${biosecurityChecklists}compliance_stats/';
 
   // Alarms - endpoints adicionales
-  static const String alarmsDashboard = '$alarmsManage/dashboard/';
+  static const String alarmsDashboard = '${alarmsManage}dashboard/';
   static String alarmAcknowledge(int id) => '$alarmsManage$id/acknowledge/';
-  static const String alarmsBulkAcknowledge = '$alarmsManage/bulk-acknowledge/';
+  static const String alarmsBulkAcknowledge = '${alarmsManage}bulk-acknowledge/';
   static const String notificationsUnread = '$apiPrefix/notifications/unread/';
   static const String notificationsRecent = '$apiPrefix/notifications/recent/';
 

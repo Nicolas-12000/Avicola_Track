@@ -10,10 +10,11 @@ from .models import (
 
 @admin.register(VeterinaryVisit)
 class VeterinaryVisitAdmin(admin.ModelAdmin):
-    list_display = ('id', 'flock', 'veterinarian', 'visit_date', 'visit_type', 'status')
-    list_filter = ('visit_type', 'status', 'visit_date')
-    search_fields = ('flock__breed', 'veterinarian__username', 'diagnosis')
+    list_display = ('id', 'farm', 'veterinarian', 'visit_date', 'visit_type', 'status', 'expected_duration_days')
+    list_filter = ('visit_type', 'status', 'visit_date', 'farm')
+    search_fields = ('farm__name', 'veterinarian__username', 'diagnosis', 'reason')
     date_hierarchy = 'visit_date'
+    filter_horizontal = ('flocks',)
 
 
 @admin.register(VaccinationRecord)

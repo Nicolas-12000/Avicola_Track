@@ -21,10 +21,15 @@ class VeterinaryVisit(models.Model):
         ('cancelled', 'Cancelada'),
     ]
     
-    flock = models.ForeignKey(Flock, on_delete=models.CASCADE, related_name='veterinary_visits')
+    # La visita es a una GRANJA, no a un lote específico
+    farm = models.ForeignKey(Farm, on_delete=models.CASCADE, related_name='veterinary_visits', null=True)
+    # Los lotes específicos que se revisarán durante la visita (puede ser varios)
+    flocks = models.ManyToManyField(Flock, related_name='veterinary_visits', blank=True)
     veterinarian = models.ForeignKey(User, on_delete=models.CASCADE, related_name='veterinary_visits')
-    visit_date = models.DateTimeField()
+    visit_date = models.DateTimeField(help_text='Fecha y hora de inicio de la visita')
+    expected_duration_days = models.PositiveIntegerField(default=1, help_text='Duración estimada en días')
     visit_type = models.CharField(max_length=20, choices=VISIT_TYPES)
+    reason = models.TextField(help_text='Motivo de la visita', blank=True)
     diagnosis = models.TextField(null=True, blank=True)
     treatment = models.TextField(null=True, blank=True)
     prescribed_medications = models.TextField(null=True, blank=True)
@@ -39,7 +44,7 @@ class VeterinaryVisit(models.Model):
         ordering = ['-visit_date']
         
     def __str__(self):
-        return f"Visita {self.visit_type} - Lote {self.flock_id} - {self.visit_date.date()}"
+        return f"Visita {self.visit_type} - {self.farm.name} - {self.visit_date.date()}"
 
 
 class VaccinationRecord(models.Model):

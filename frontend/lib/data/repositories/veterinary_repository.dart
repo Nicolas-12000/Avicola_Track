@@ -16,11 +16,13 @@ class VeterinaryRepository {
   // ==================== VETERINARY VISITS ====================
 
   Future<Either<Failure, List<VeterinaryVisitModel>>> getVisits({
+    int? farmId,
     int? flockId,
     String? status,
   }) async {
     try {
       final visits = await _dataSource.getVisits(
+        farmId: farmId,
         flockId: flockId,
         status: status,
       );

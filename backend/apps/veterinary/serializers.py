@@ -10,21 +10,28 @@ from .models import (
 
 class VeterinaryVisitSerializer(serializers.ModelSerializer):
     # Expose FK fields with _id suffix for frontend compatibility
-    flock_id = serializers.PrimaryKeyRelatedField(source='flock', read_only=True)
+    farm_id = serializers.PrimaryKeyRelatedField(source='farm', read_only=True)
     veterinarian_id = serializers.PrimaryKeyRelatedField(source='veterinarian', read_only=True)
+    flock_ids = serializers.PrimaryKeyRelatedField(
+        source='flocks',
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = VeterinaryVisit
         fields = [
-            'id', 'flock_id', 'veterinarian_id', 'flock', 'veterinarian',
-            'visit_date', 'visit_type', 'diagnosis', 'treatment',
+            'id', 'farm_id', 'farm', 'veterinarian_id', 'veterinarian',
+            'flock_ids', 'flocks', 'visit_date', 'expected_duration_days',
+            'visit_type', 'reason', 'diagnosis', 'treatment',
             'prescribed_medications', 'notes', 'photo_urls', 'status',
             'completed_at', 'created_at', 'updated_at'
         ]
-        read_only_fields = ('created_at', 'updated_at', 'flock_id', 'veterinarian_id')
+        read_only_fields = ('created_at', 'updated_at', 'farm_id', 'veterinarian_id', 'flock_ids')
         extra_kwargs = {
-            'flock': {'write_only': True},
+            'farm': {'write_only': True},
             'veterinarian': {'write_only': True},
+            'flocks': {'write_only': True},
         }
 
 

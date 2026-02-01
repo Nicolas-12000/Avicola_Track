@@ -315,10 +315,32 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
 
     return RefreshIndicator(
       onRefresh: () async => _loadAlarms(isResolved: isResolved),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: alarms.length,
-        itemBuilder: (context, index) => _buildAlarmCard(alarms[index]),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          final alarmsState = ref.read(alarmsProvider);
+          if (notification is ScrollEndNotification &&
+              notification.metrics.extentAfter < 200 &&
+              !alarmsState.isLoadingMore &&
+              alarmsState.hasMoreData) {
+            ref.read(alarmsProvider.notifier).loadMoreAlarms();
+          }
+          return false;
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: alarms.length + (ref.watch(alarmsProvider).isLoadingMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == alarms.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            return _buildAlarmCard(alarms[index]);
+          },
+        ),
       ),
     );
   }

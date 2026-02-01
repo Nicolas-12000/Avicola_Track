@@ -87,10 +87,11 @@ class VeterinaryVisitsNotifier extends StateNotifier<VeterinaryVisitsState> {
 
   VeterinaryVisitsNotifier(this._repository) : super(VeterinaryVisitsState());
 
-  Future<void> loadVisits({int? flockId, String? status}) async {
+  Future<void> loadVisits({int? farmId, int? flockId, String? status}) async {
     state = state.copyWith(isLoading: true, error: null);
 
     final result = await _repository.getVisits(
+      farmId: farmId,
       flockId: flockId,
       status: status,
     );

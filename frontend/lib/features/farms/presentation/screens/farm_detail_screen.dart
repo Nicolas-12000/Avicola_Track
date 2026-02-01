@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/loading_widget.dart';
@@ -117,6 +118,15 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
         title: const Text('Detalle de granja'),
         backgroundColor: AppColors.primary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.medical_services),
+            tooltip: 'Programar visita veterinaria',
+            onPressed: () {
+              if (_farm != null) {
+                context.push('/farms/${_farm!.id}/schedule-visit');
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadFarm,
