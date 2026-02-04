@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/charts.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../../../sheds/presentation/providers/sheds_provider.dart';
 import '../../../flocks/presentation/providers/flocks_provider.dart';
@@ -20,14 +21,35 @@ class FarmDashboardScreen extends ConsumerStatefulWidget {
 
 class _FarmDashboardScreenState extends ConsumerState<FarmDashboardScreen> {
   int? selectedFarmId;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
     selectedFarmId = widget.farmId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadDashboardData();
+      _initializeFarm();
     });
+  }
+
+  Future<void> _initializeFarm() async {
+    // Cargar granjas si no están cargadas
+    final farmsState = ref.read(farmsProvider);
+    if (farmsState.farms.isEmpty && !farmsState.isLoading) {
+      await ref.read(farmsProvider.notifier).loadFarms();
+    }
+    
+    // Auto-seleccionar la primera granja si no hay farmId
+    if (selectedFarmId == null) {
+      final farms = ref.read(farmsProvider).farms;
+      if (farms.isNotEmpty) {
+        setState(() {
+          selectedFarmId = farms.first.id;
+        });
+      }
+    }
+    
+    _loadDashboardData();
   }
 
   void _loadDashboardData() {
@@ -43,6 +65,17 @@ class _FarmDashboardScreenState extends ConsumerState<FarmDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final farmsState = ref.watch(farmsProvider);
+    
+    // Auto-seleccionar granja cuando se cargan (solo una vez)
+    if (!_initialized && farmsState.farms.isNotEmpty && selectedFarmId == null) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          selectedFarmId = farmsState.farms.first.id;
+        });
+        _loadDashboardData();
+      });
+    }
     final shedsState = ref.watch(shedsProvider);
     final flocksState = ref.watch(flocksProvider);
     final inventoryState = ref.watch(inventoryProvider);
@@ -51,6 +84,12 @@ class _FarmDashboardScreenState extends ConsumerState<FarmDashboardScreen> {
       appBar: AppBar(
         title: const Text('Dashboard de Granja'),
         backgroundColor: AppColors.primary,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -58,6 +97,7 @@ class _FarmDashboardScreenState extends ConsumerState<FarmDashboardScreen> {
           ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: farmsState.farms.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

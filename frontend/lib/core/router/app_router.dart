@@ -163,6 +163,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const Scaffold(body: Center(child: Text('Create Farm - TODO'))),
           ),
           GoRoute(
+            path: 'dashboard',
+            name: 'farm-dashboard',
+            builder: (context, state) => const FarmDashboardScreen(),
+          ),
+          GoRoute(
             path: ':id',
             name: 'farm-detail',
             builder: (context, state) {
@@ -191,11 +196,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
-          ),
-          GoRoute(
-            path: 'dashboard',
-            name: 'farm-dashboard',
-            builder: (context, state) => const FarmDashboardScreen(),
           ),
         ],
       ),

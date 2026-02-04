@@ -148,8 +148,8 @@ class AppDrawer extends ConsumerWidget {
                   },
                 ),
                 
-                // Granjas - Solo admin sistema y admin granja
-                if (canViewAllFarms || isFarmAdmin) ...[
+                // Granjas - Solo admin sistema (admin granja no ve esta opción)
+                if (canViewAllFarms) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(

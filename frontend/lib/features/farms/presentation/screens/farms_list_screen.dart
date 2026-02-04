@@ -204,6 +204,9 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
+            final authState = ref.read(authProvider);
+            final isAdminSistema = authState.user?.userRole?.name == 'Administrador Sistema';
+            
             showModalBottomSheet(
               context: context,
               builder: (context) => SafeArea(
@@ -218,25 +221,28 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
                         context.push('/farms/${farm.id}');
                       },
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.edit),
-                      title: const Text('Editar'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showFarmDialog(context, farm);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.delete, color: Colors.red),
-                      title: const Text(
-                        'Eliminar',
-                        style: TextStyle(color: Colors.red),
+                    // Solo admin sistema puede editar/eliminar granjas
+                    if (isAdminSistema) ...[
+                      ListTile(
+                        leading: const Icon(Icons.edit),
+                        title: const Text('Editar'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showFarmDialog(context, farm);
+                        },
                       ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showDeleteConfirmation(farm);
-                      },
-                    ),
+                      ListTile(
+                        leading: const Icon(Icons.delete, color: Colors.red),
+                        title: const Text(
+                          'Eliminar',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showDeleteConfirmation(farm);
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
