@@ -82,7 +82,23 @@ class InventoryItemModel {
 
   String get stockStatusLabel {
     if (stockStatus == null) return 'unknown';
-    return (stockStatus!['status'] as String?)?.toLowerCase() ?? 'unknown';
+    final status = (stockStatus!['status'] as String?)?.toUpperCase() ?? 'UNKNOWN';
+    
+    // Mapear los estados del backend a los valores esperados en el frontend
+    switch (status) {
+      case 'OUT_OF_STOCK':
+        return 'out_of_stock';
+      case 'CRITICAL':
+        return 'critical'; // Stock crítico (< 30% del mínimo)
+      case 'LOW':
+        return 'low_stock'; // Stock bajo (30-100% del mínimo)
+      case 'WARNING':
+        return 'warning'; // Alerta por días restantes
+      case 'NORMAL':
+        return 'normal';
+      default:
+        return 'unknown';
+    }
   }
 
   int? get daysUntilEmpty {

@@ -82,7 +82,7 @@ class InventoryState {
 
   // Getters por estado de stock (ahora usando filteredItems)
   List<InventoryItemModel> get criticalItems =>
-      filteredItems.where((i) => i.stockStatusLabel == 'out_of_stock').toList();
+      filteredItems.where((i) => i.stockStatusLabel == 'out_of_stock' || i.stockStatusLabel == 'critical').toList();
 
   List<InventoryItemModel> get lowStockItems =>
       filteredItems.where((i) => i.stockStatusLabel == 'low_stock').toList();

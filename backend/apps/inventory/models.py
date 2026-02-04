@@ -64,19 +64,19 @@ class InventoryItem(models.Model):
 		if current < minimum:
 			# Calcular qué tan crítico es (% del mínimo)
 			percentage = (current / minimum * 100) if minimum > 0 else 0
-			if percentage <= 50:  # Menos del 50% del mínimo = crítico
+			if percentage < 30:  # Menos del 30% del mínimo = crítico
 				return {'status': 'CRITICAL', 'color': 'red', 'message': f'{current:.1f} {self.unit} (mín: {minimum:.1f})'}
-			else:  # Entre 50% y 100% del mínimo = bajo
+			else:  # Entre 30% y 100% del mínimo = bajo stock
 				return {'status': 'LOW', 'color': 'orange', 'message': f'{current:.1f} {self.unit} (mín: {minimum:.1f})'}
 		
-		# Si hay consumo promedio, usar cálculo basado en días
-		if float(self.daily_avg_consumption) > 0:
+		# Si hay consumo promedio, usar cálculo basado en días (solo si estamos sobre el mínimo)
+		if float(self.daily_avg_consumption) > 0 and current >= minimum:
 			days_remaining = current / float(self.daily_avg_consumption)
 			
 			if days_remaining <= self.critical_threshold_days:
-				return {'status': 'CRITICAL', 'color': 'red', 'message': f'{days_remaining:.1f} días'}
+				return {'status': 'WARNING', 'color': 'amber', 'message': f'{days_remaining:.1f} días restantes'}
 			elif days_remaining <= self.alert_threshold_days:
-				return {'status': 'LOW', 'color': 'orange', 'message': f'{days_remaining:.1f} días'}
+				return {'status': 'WARNING', 'color': 'amber', 'message': f'{days_remaining:.1f} días restantes'}
 			else:
 				return {'status': 'NORMAL', 'color': 'green', 'message': f'{days_remaining:.1f} días'}
 		

@@ -36,6 +36,39 @@ class AlarmModel {
   });
 
   factory AlarmModel.fromJson(Map<String, dynamic> json) {
+    // Mapear priority del backend a severity del frontend
+    String mapPriorityToSeverity(String? priority) {
+      switch (priority?.toUpperCase()) {
+        case 'URGENT':
+          return 'critical';
+        case 'HIGH':
+          return 'high';
+        case 'MEDIUM':
+          return 'medium';
+        case 'LOW':
+          return 'low';
+        default:
+          return 'medium';
+      }
+    }
+    
+    // Mapear status del backend a isResolved del frontend
+    bool mapStatusToResolved(String? status) {
+      return status?.toUpperCase() == 'RESOLVED';
+    }
+    
+    // Determinar severity: usar priority del backend (preferido) o severity si existe
+    final String severity = json['severity'] as String? ?? 
+        mapPriorityToSeverity(json['priority'] as String?);
+    
+    // Determinar isResolved: usar is_resolved del backend o derivar de status
+    final bool isResolved = json['is_resolved'] as bool? ?? 
+        mapStatusToResolved(json['status'] as String?);
+    
+    // Título: usar title del backend o generar uno basado en alarm_type
+    final String title = json['title'] as String? ?? 
+        _generateTitle(json['alarm_type'] as String?);
+    
     return AlarmModel(
       id: json['id'] as int,
       farmId: json['farm'] as int? ?? 0,
@@ -43,10 +76,10 @@ class AlarmModel {
       flockId: json['flock'] as int?,
       flockInfo: json['flock_info'] as String?,
       alarmType: json['alarm_type'] as String? ?? 'general',
-      severity: json['severity'] as String? ?? 'low',
-      title: json['title'] as String? ?? 'Alarma',
+      severity: severity,
+      title: title,
       description: json['description'] as String? ?? '',
-      isResolved: json['is_resolved'] as bool? ?? false,
+      isResolved: isResolved,
       resolvedBy: json['resolved_by'] as String?,
       resolvedAt: json['resolved_at'] != null
           ? DateTime.parse(json['resolved_at'] as String)
@@ -124,5 +157,25 @@ class AlarmModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  /// Genera un título basado en el tipo de alarma
+  static String _generateTitle(String? alarmType) {
+    switch (alarmType?.toUpperCase()) {
+      case 'STOCK':
+        return 'Alerta de Inventario';
+      case 'MORTALITY':
+        return 'Alerta de Mortalidad';
+      case 'WEIGHT':
+        return 'Alerta de Peso';
+      case 'PRODUCTION':
+        return 'Alerta de Producción';
+      case 'HEALTH':
+        return 'Alerta de Salud';
+      case 'TEMPERATURE':
+        return 'Alerta de Temperatura';
+      default:
+        return 'Alarma';
+    }
   }
 }

@@ -201,7 +201,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: canGenerate ? Colors.transparent : Colors.orange.withOpacity(0.3),
+          color: canGenerate ? Colors.transparent : Colors.orange.withValues(alpha: 0.3),
         ),
       ),
       child: InkWell(
@@ -217,8 +217,8 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: canGenerate 
-                      ? AppColors.primary.withOpacity(0.1)
-                      : Colors.grey.withOpacity(0.1),
+                      ? AppColors.primary.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -265,7 +265,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.15),
+                    color: Colors.orange.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -532,7 +532,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

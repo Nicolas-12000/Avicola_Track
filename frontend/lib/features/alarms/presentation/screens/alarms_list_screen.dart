@@ -59,6 +59,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
       appBar: AppBar(
         title: const Text('Alarmas'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           onTap: (index) {
@@ -158,7 +159,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<int?>(
-                initialValue: _selectedFarmId,
+                value: _selectedFarmId,
                 decoration: const InputDecoration(
                   labelText: 'Filtrar por Granja',
                   border: InputBorder.none,

@@ -9,6 +9,8 @@ import 'core/services/connectivity_service.dart';
 import 'core/utils/error_handler.dart';
 import 'core/widgets/connection_status_widget.dart';
 import 'core/widgets/sync_status_banner.dart';
+import 'core/providers/notifications_provider.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +50,29 @@ class AvicolaTrackApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final authState = ref.watch(authProvider);
+    
+    // Iniciar/detener polling de notificaciones según estado de autenticación
+    ref.listen<AuthState>(authProvider, (previous, current) {
+      if (current.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
+        // Usuario acaba de autenticarse
+        ErrorHandler.logInfo('🔔 Starting notifications polling');
+        ref.read(notificationsProvider.notifier).startPolling();
+      } else if (!current.isAuthenticated && (previous?.isAuthenticated ?? false)) {
+        // Usuario acaba de cerrar sesión
+        ErrorHandler.logInfo('🔔 Stopping notifications polling');
+        ref.read(notificationsProvider.notifier).stopPolling();
+        ref.read(notificationsProvider.notifier).clearNotifications();
+      }
+    });
+    
+    // Si ya está autenticado al cargar la app, iniciar polling
+    if (authState.isAuthenticated) {
+      // Usar addPostFrameCallback para evitar modificar estado durante build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(notificationsProvider.notifier).startPolling();
+      });
+    }
 
     return MaterialApp.router(
       title: 'Avicola San Lorenzo',

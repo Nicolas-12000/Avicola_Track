@@ -94,7 +94,6 @@ class InventoryViewSet(viewsets.ModelViewSet):
 
                     item.current_stock = bs.validated_data['new_stock']
                     item.save()
-                    item.update_consumption_metrics()
 
                     results.append({'client_id': bs.validated_data.get('client_id'), 'status': 'success', 'new_stock': float(item.current_stock)})
 
@@ -156,22 +155,27 @@ class InventoryViewSet(viewsets.ModelViewSet):
         item.current_stock = new_stock
         item.save()
         
-        # Actualizar métricas de consumo
-        item.update_consumption_metrics()
-        
         # Evaluar alarmas de stock después del ajuste
         from apps.alarms.services import AlarmEvaluationEngine
         from apps.alarms.models import AlarmConfiguration
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             stock_configs = AlarmConfiguration.objects.filter(
                 farm=item.farm,
                 alarm_type='STOCK',
                 is_active=True
             )
+            logger.info(f"[ALARM CHECK] Configuraciones STOCK encontradas: {stock_configs.count()}")
+            
             for config in stock_configs:
-                AlarmEvaluationEngine._evaluate_stock_alarms(item.farm, config)
-        except Exception:
-            pass  # No fallar si la evaluación de alarmas falla
+                logger.info(f"[ALARM CHECK] Evaluando alarmas para farm: {item.farm.name}, item: {item.name}")
+                logger.info(f"[ALARM CHECK] Stock status: {item.stock_status}")
+                created = AlarmEvaluationEngine._evaluate_stock_alarms(item.farm, config)
+                logger.info(f"[ALARM CHECK] Alarmas creadas: {created}")
+        except Exception as e:
+            logger.exception(f"[ALARM CHECK] Error al evaluar alarmas: {e}")
         
         return Response(InventoryItemSerializer(item).data)
 

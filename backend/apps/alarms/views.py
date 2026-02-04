@@ -34,34 +34,67 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Filtrado inteligente de alarmas por rol"""
+        """Filtrado inteligente de alarmas por rol y parámetros de query"""
         user = self.request.user
 
         role_name = getattr(user.role, 'name', None)
 
         if role_name == 'Administrador Sistema':
-            return Alarm.objects.all()
+            queryset = Alarm.objects.all()
         elif role_name == 'Administrador de Granja':
-            return Alarm.objects.filter(
+            queryset = Alarm.objects.filter(
                 dj_models.Q(flock__shed__farm__farm_manager=user) |
                 dj_models.Q(inventory_item__farm__farm_manager=user) |
-                dj_models.Q(shed__farm__farm_manager=user)
+                dj_models.Q(shed__farm__farm_manager=user) |
+                dj_models.Q(farm__farm_manager=user)
             )
         elif role_name == 'Galponero':
-            return Alarm.objects.filter(
+            queryset = Alarm.objects.filter(
                 dj_models.Q(flock__shed__assigned_worker=user) |
                 dj_models.Q(shed__assigned_worker=user)
             )
         elif role_name == 'Veterinario':
             assigned_farms = getattr(user, 'assigned_farms', None)
             if assigned_farms is not None:
-                return Alarm.objects.filter(
+                queryset = Alarm.objects.filter(
                     dj_models.Q(flock__shed__farm__in=assigned_farms.all()) |
                     dj_models.Q(inventory_item__farm__in=assigned_farms.all()) |
-                    dj_models.Q(shed__farm__in=assigned_farms.all())
+                    dj_models.Q(shed__farm__in=assigned_farms.all()) |
+                    dj_models.Q(farm__in=assigned_farms.all())
                 )
+            else:
+                queryset = Alarm.objects.none()
+        else:
+            queryset = Alarm.objects.none()
 
-        return Alarm.objects.none()
+        # Aplicar filtro de farm si se proporciona
+        farm_id = self.request.query_params.get('farm')
+        if farm_id:
+            queryset = queryset.filter(farm_id=farm_id)
+        
+        # Aplicar filtro de is_resolved si se proporciona
+        is_resolved = self.request.query_params.get('is_resolved')
+        if is_resolved is not None:
+            if is_resolved.lower() == 'true':
+                queryset = queryset.filter(status='RESOLVED')
+            elif is_resolved.lower() == 'false':
+                queryset = queryset.exclude(status='RESOLVED')
+        
+        # Aplicar filtro de severity/priority si se proporciona
+        severity = self.request.query_params.get('severity')
+        if severity:
+            # Mapear severity del frontend a priority del backend
+            severity_to_priority = {
+                'critical': 'URGENT',
+                'high': 'HIGH',
+                'medium': 'MEDIUM',
+                'low': 'LOW',
+            }
+            priority = severity_to_priority.get(severity.lower())
+            if priority:
+                queryset = queryset.filter(priority=priority)
+        
+        return queryset.order_by('-created_at')
 
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
@@ -76,6 +109,7 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         )
 
         priority_stats = user_alarms.filter(status='PENDING').aggregate(
+            critical=Count('id', filter=dj_models.Q(priority='URGENT')),
             high=Count('id', filter=dj_models.Q(priority='HIGH')),
             medium=Count('id', filter=dj_models.Q(priority='MEDIUM')),
             low=Count('id', filter=dj_models.Q(priority='LOW')),
@@ -83,8 +117,9 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
 
         type_stats = list(user_alarms.filter(status='PENDING').values('alarm_type').annotate(count=Count('id')).order_by('-count'))
 
-        urgent_alarms = self.get_queryset().filter(status='PENDING').order_by(
+        urgent_alarms = user_alarms.filter(status='PENDING').order_by(
             dj_models.Case(
+                dj_models.When(priority='URGENT', then=0),
                 dj_models.When(priority='HIGH', then=1),
                 dj_models.When(priority='MEDIUM', then=2),
                 dj_models.When(priority='LOW', then=3),
@@ -145,7 +180,9 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
 
         logger.info(f"Alarm {alarm.id} resolved by {request.user.username}")
 
-        return Response({'message': 'Alarma resuelta'})
+        # Devolver la alarma actualizada para que el frontend pueda actualizarla
+        serializer = self.get_serializer(alarm)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def escalate(self, request, pk=None):
@@ -166,7 +203,9 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
 
         logger.info(f"Alarm {alarm.id} escalated by {request.user.username}")
 
-        return Response({'message': 'Alarma escalada'})
+        # Devolver la alarma actualizada
+        serializer = self.get_serializer(alarm)
+        return Response(serializer.data)
 
 
 class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):

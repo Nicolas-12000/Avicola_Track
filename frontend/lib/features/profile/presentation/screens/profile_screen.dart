@@ -15,7 +15,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _notificationsEnabled = true;
-  bool _darkMode = false;
+  final bool _darkMode = false;
   bool _soundEnabled = true;
 
   @override
@@ -56,7 +56,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -87,7 +87,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     user?.email ?? 'Sin correo',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 16,
                     ),
                   ),
@@ -100,7 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -167,9 +167,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onPressed: () async {
                         final confirm = await _showLogoutConfirmation();
                         if (confirm && mounted) {
+                          // Guardar referencia antes del await
+                          final router = GoRouter.of(context);
                           await ref.read(authProvider.notifier).logout();
                           if (mounted) {
-                            context.go('/login');
+                            router.go('/login');
                           }
                         }
                       },
@@ -249,7 +251,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: AppColors.primary, size: 20),
@@ -296,7 +298,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.notifications_outlined, color: Colors.orange),
@@ -305,7 +307,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onChanged: (value) {
               setState(() => _notificationsEnabled = value);
             },
-            activeColor: AppColors.primary,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+            activeThumbColor: AppColors.primary,
           ),
           const Divider(height: 1),
           SwitchListTile(
@@ -314,7 +317,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.volume_up_outlined, color: Colors.blue),
@@ -323,7 +326,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onChanged: (value) {
               setState(() => _soundEnabled = value);
             },
-            activeColor: AppColors.primary,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+            activeThumbColor: AppColors.primary,
           ),
           const Divider(height: 1),
           SwitchListTile(
@@ -332,14 +336,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.1),
+                color: Colors.purple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.dark_mode_outlined, color: Colors.purple),
             ),
             value: _darkMode,
             onChanged: null, // Deshabilitado por ahora
-            activeColor: AppColors.primary,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
@@ -359,7 +364,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.lock_outline, color: Colors.green),
@@ -375,7 +380,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.teal.withOpacity(0.1),
+                color: Colors.teal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.fingerprint, color: Colors.teal),
@@ -531,6 +536,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         isLoading = true;
                         errorMessage = null;
                       });
+                      
+                      // Guardar referencias antes del await
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
 
                       try {
                         final authDataSource = ref.read(authDataSourceProvider);
@@ -541,8 +550,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         );
 
                         if (mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          navigator.pop();
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Contraseña actualizada correctamente'),
                               backgroundColor: Colors.green,

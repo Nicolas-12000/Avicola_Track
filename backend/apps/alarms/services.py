@@ -134,7 +134,7 @@ class AlarmEvaluationEngine:
         Behavior:
         - Check all inventory items for the farm
         - Create alarms for items with CRITICAL or LOW stock status
-        - Avoid duplicate unresolved alarms for the same item
+        - Update existing unresolved alarms if status changed
         - Set priority based on stock status (CRITICAL = HIGH, LOW = MEDIUM)
         
         Returns number of alarms created.
@@ -149,23 +149,45 @@ class AlarmEvaluationEngine:
                 status_info = item.stock_status
                 status = status_info['status']
                 
-                # Solo crear alarmas para estados críticos o bajos
-                if status not in ['CRITICAL', 'LOW', 'OUT_OF_STOCK']:
-                    continue
-                
-                # Evitar alarmas duplicadas no resueltas para el mismo item
-                exists = Alarm.objects.filter(
+                # Verificar si hay alarma existente no resuelta
+                existing_alarm = Alarm.objects.filter(
                     alarm_type='STOCK',
                     inventory_item=item,
                     status__in=['PENDING', 'ESCALATED']
-                ).exists()
+                ).first()
                 
-                if exists:
+                # Si el estado es normal y hay alarma existente, resolverla
+                if status not in ['CRITICAL', 'LOW', 'OUT_OF_STOCK']:
+                    if existing_alarm:
+                        existing_alarm.status = 'RESOLVED'
+                        existing_alarm.save(update_fields=['status'])
+                        logger.info(f"Auto-resolved STOCK alarm for {item.name} - status is now {status}")
                     continue
                 
-                # Determinar prioridad
+                # Si ya existe una alarma pendiente, actualizarla
+                if existing_alarm:
+                    # Actualizar descripción y prioridad si cambiaron
+                    if status == 'OUT_OF_STOCK':
+                        new_priority = 'URGENT'
+                        new_description = f'Stock agotado: {item.name} en {item.location_display}'
+                    elif status == 'CRITICAL':
+                        new_priority = 'HIGH'
+                        new_description = f'Stock crítico: {item.name} en {item.location_display} - {status_info["message"]}'
+                    else:  # LOW
+                        new_priority = 'MEDIUM'
+                        new_description = f'Stock bajo: {item.name} en {item.location_display} - {status_info["message"]}'
+                    
+                    if existing_alarm.description != new_description or existing_alarm.priority != new_priority:
+                        existing_alarm.description = new_description
+                        existing_alarm.priority = new_priority
+                        existing_alarm.source_date = timezone.now().date()
+                        existing_alarm.save(update_fields=['description', 'priority', 'source_date'])
+                        logger.info(f"Updated existing STOCK alarm for {item.name}")
+                    continue
+                
+                # Crear nueva alarma
                 if status == 'OUT_OF_STOCK':
-                    priority = 'HIGH'
+                    priority = 'URGENT'
                     description = f'Stock agotado: {item.name} en {item.location_display}'
                 elif status == 'CRITICAL':
                     priority = 'HIGH'
@@ -187,6 +209,7 @@ class AlarmEvaluationEngine:
                 )
                 
                 created += 1
+                logger.info(f"Created new STOCK alarm for {item.name}")
                 
                 try:
                     AlarmNotificationService.send_alarm_notifications(alarm, config)

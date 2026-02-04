@@ -516,6 +516,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     switch (status) {
       case 'out_of_stock':
         return Colors.red;
+      case 'critical':
+        return Colors.red;
       case 'low_stock':
         return Colors.orange;
       case 'warning':
@@ -530,6 +532,8 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     switch (status) {
       case 'out_of_stock':
         return 'Sin Stock';
+      case 'critical':
+        return 'Crítico';
       case 'low_stock':
         return 'Bajo';
       case 'warning':
@@ -933,6 +937,21 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                               selectedFilters.add('out_of_stock');
                             } else {
                               selectedFilters.remove('out_of_stock');
+                            }
+                          });
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Crítico',
+                        value: 'critical',
+                        color: Colors.red,
+                        isSelected: selectedFilters.contains('critical'),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              selectedFilters.add('critical');
+                            } else {
+                              selectedFilters.remove('critical');
                             }
                           });
                         },
