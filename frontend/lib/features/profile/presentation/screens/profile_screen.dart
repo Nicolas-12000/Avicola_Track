@@ -375,21 +375,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _showChangePasswordDialog();
             },
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.teal.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.fingerprint, color: Colors.teal),
-            ),
-            title: const Text('Autenticación Biométrica'),
-            subtitle: const Text('Próximamente'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: null,
-          ),
         ],
       ),
     );
