@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // Core
 import 'core/theme/app_theme.dart';
@@ -14,6 +15,9 @@ import 'features/auth/presentation/providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar locale para formato de fechas en español
+  await initializeDateFormatting('es', null);
 
   // Inicializar servicio de conectividad
   try {

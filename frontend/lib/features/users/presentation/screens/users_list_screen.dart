@@ -149,20 +149,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Ver detalle de ${user.firstName} ${user.lastName}',
-              ),
-              duration: const Duration(seconds: 2),
-              action: SnackBarAction(
-                label: 'Editar',
-                onPressed: () => _showUserDialog(context, user),
-              ),
-            ),
-          );
-        },
+        onTap: () => _showUserDialog(context, user),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

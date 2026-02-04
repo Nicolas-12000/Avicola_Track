@@ -17,7 +17,7 @@ class Farm(BaseModel):
 		settings.AUTH_USER_MODEL,
 		on_delete=models.CASCADE,
 		related_name='managed_farms',
-		limit_choices_to={'role__name': 'Administrador de Granja'},
+		limit_choices_to={'role__name__in': ['Administrador de Granja', 'Administrador Sistema']},
 		null=True,
 		blank=True
 	)

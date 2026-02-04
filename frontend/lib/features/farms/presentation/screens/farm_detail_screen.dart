@@ -282,7 +282,7 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int?>(
-            initialValue: _selectedManagerId,
+            value: managers.any((m) => m.id == _selectedManagerId) ? _selectedManagerId : null,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Administrador de granja (opcional)',
@@ -312,7 +312,7 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
   List<UserModel> _getManagers() {
     final usersState = ref.watch(usersProvider);
     return usersState.users
-        .where((u) => u.role == 'Administrador de Granja')
+        .where((u) => u.role == 'Administrador de Granja' || u.role == 'Administrador Sistema')
         .toList();
   }
 }
