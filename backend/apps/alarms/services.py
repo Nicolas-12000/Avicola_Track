@@ -37,6 +37,8 @@ class AlarmEvaluationEngine:
                     created = AlarmEvaluationEngine._evaluate_mortality_alarms(farm, config)
                 elif config.alarm_type == 'NO_RECORDS':
                     created = AlarmEvaluationEngine._evaluate_missing_records_alarms(farm, config)
+                elif config.alarm_type == 'STOCK':
+                    created = AlarmEvaluationEngine._evaluate_stock_alarms(farm, config)
                 else:
                     created = 0
 
@@ -124,6 +126,77 @@ class AlarmEvaluationEngine:
     def _evaluate_missing_records_alarms(farm: Farm, config: AlarmConfiguration):
         # Placeholder implementation
         return 0
+
+    @staticmethod
+    def _evaluate_stock_alarms(farm: Farm, config: AlarmConfiguration):
+        """Evaluate inventory items for low/critical stock and create alarms.
+        
+        Behavior:
+        - Check all inventory items for the farm
+        - Create alarms for items with CRITICAL or LOW stock status
+        - Avoid duplicate unresolved alarms for the same item
+        - Set priority based on stock status (CRITICAL = HIGH, LOW = MEDIUM)
+        
+        Returns number of alarms created.
+        """
+        from apps.inventory.models import InventoryItem
+        created = 0
+        
+        inventory_items = InventoryItem.objects.filter(farm=farm)
+        
+        for item in inventory_items:
+            try:
+                status_info = item.stock_status
+                status = status_info['status']
+                
+                # Solo crear alarmas para estados críticos o bajos
+                if status not in ['CRITICAL', 'LOW', 'OUT_OF_STOCK']:
+                    continue
+                
+                # Evitar alarmas duplicadas no resueltas para el mismo item
+                exists = Alarm.objects.filter(
+                    alarm_type='STOCK',
+                    inventory_item=item,
+                    status__in=['PENDING', 'ESCALATED']
+                ).exists()
+                
+                if exists:
+                    continue
+                
+                # Determinar prioridad
+                if status == 'OUT_OF_STOCK':
+                    priority = 'HIGH'
+                    description = f'Stock agotado: {item.name} en {item.location_display}'
+                elif status == 'CRITICAL':
+                    priority = 'HIGH'
+                    description = f'Stock crítico: {item.name} en {item.location_display} - {status_info["message"]}'
+                else:  # LOW
+                    priority = 'MEDIUM'
+                    description = f'Stock bajo: {item.name} en {item.location_display} - {status_info["message"]}'
+                
+                alarm = Alarm.objects.create(
+                    alarm_type='STOCK',
+                    description=description,
+                    priority=priority,
+                    farm=farm,
+                    inventory_item=item,
+                    configuration=config,
+                    source_type='inventory',
+                    source_date=timezone.now().date(),
+                    source_id=item.id,
+                )
+                
+                created += 1
+                
+                try:
+                    AlarmNotificationService.send_alarm_notifications(alarm, config)
+                except Exception:
+                    logger.exception('Failed sending notifications for alarm %s', alarm.id)
+                    
+            except Exception:
+                logger.exception('Error evaluating inventory item %s', item.id)
+        
+        return created
 
 
 class AlarmNotificationService:

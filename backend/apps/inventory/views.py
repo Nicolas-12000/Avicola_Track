@@ -159,6 +159,20 @@ class InventoryViewSet(viewsets.ModelViewSet):
         # Actualizar métricas de consumo
         item.update_consumption_metrics()
         
+        # Evaluar alarmas de stock después del ajuste
+        from apps.alarms.services import AlarmEvaluationEngine
+        from apps.alarms.models import AlarmConfiguration
+        try:
+            stock_configs = AlarmConfiguration.objects.filter(
+                farm=item.farm,
+                alarm_type='STOCK',
+                is_active=True
+            )
+            for config in stock_configs:
+                AlarmEvaluationEngine._evaluate_stock_alarms(item.farm, config)
+        except Exception:
+            pass  # No fallar si la evaluación de alarmas falla
+        
         return Response(InventoryItemSerializer(item).data)
 
     @extend_schema(

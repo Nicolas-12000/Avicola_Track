@@ -56,22 +56,32 @@ class InventoryItem(models.Model):
 		if float(self.current_stock) <= 0:
 			return {'status': 'OUT_OF_STOCK', 'color': 'red', 'message': 'Sin stock'}
 
-		if float(self.daily_avg_consumption) <= 0:
-			return {'status': 'UNKNOWN', 'color': 'gray', 'message': 'Sin histórico'}
-
-		days_remaining = float(self.current_stock) / float(self.daily_avg_consumption)
-
-		if days_remaining <= self.critical_threshold_days:
-			return {'status': 'CRITICAL', 'color': 'red', 'message': f'{days_remaining:.1f} días'}
-		elif days_remaining <= self.alert_threshold_days:
-			return {'status': 'LOW', 'color': 'orange', 'message': f'{days_remaining:.1f} días'}
-		else:
-			return {'status': 'NORMAL', 'color': 'green', 'message': f'{days_remaining:.1f} días'}
-
-	def update_consumption_metrics(self):
-		end_date = timezone.now().date()
-		start_date = end_date - timedelta(days=30)
-
+		# Verificar primero contra el stock mínimo definido
+		current = float(self.current_stock)
+		minimum = float(self.minimum_stock)
+		
+		# Si el stock actual está por debajo del mínimo
+		if current < minimum:
+			# Calcular qué tan crítico es (% del mínimo)
+			percentage = (current / minimum * 100) if minimum > 0 else 0
+			if percentage <= 50:  # Menos del 50% del mínimo = crítico
+				return {'status': 'CRITICAL', 'color': 'red', 'message': f'{current:.1f} {self.unit} (mín: {minimum:.1f})'}
+			else:  # Entre 50% y 100% del mínimo = bajo
+				return {'status': 'LOW', 'color': 'orange', 'message': f'{current:.1f} {self.unit} (mín: {minimum:.1f})'}
+		
+		# Si hay consumo promedio, usar cálculo basado en días
+		if float(self.daily_avg_consumption) > 0:
+			days_remaining = current / float(self.daily_avg_consumption)
+			
+			if days_remaining <= self.critical_threshold_days:
+				return {'status': 'CRITICAL', 'color': 'red', 'message': f'{days_remaining:.1f} días'}
+			elif days_remaining <= self.alert_threshold_days:
+				return {'status': 'LOW', 'color': 'orange', 'message': f'{days_remaining:.1f} días'}
+			else:
+				return {'status': 'NORMAL', 'color': 'green', 'message': f'{days_remaining:.1f} días'}
+		
+		# Stock normal sin histórico de consumo
+		return {'status': 'NORMAL', 'color': 'green', 'message': f'{current:.1f} {self.unit}'}
 		total = self.consumption_records.filter(date__range=[start_date, end_date]).aggregate(
 			total=models.Sum('quantity_consumed')
 		)['total'] or 0
