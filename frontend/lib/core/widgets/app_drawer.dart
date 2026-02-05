@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/farms/presentation/providers/farms_provider.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -169,9 +170,23 @@ class AppDrawer extends ConsumerWidget {
                     title: 'Granjas',
                     onTap: () {
                       Navigator.pop(context);
-                      // If user is farm admin, redirect to their assigned farm detail
-                      if (isFarmAdmin && (authState.user?.assignedFarm != null)) {
-                        context.push('/farms/${authState.user!.assignedFarm}');
+                      if (isFarmAdmin) {
+                        // Trigger farms load in background if empty, but don't await
+                        final farmsState = ref.read(farmsProvider);
+                        if (farmsState.farms.isEmpty) {
+                          ref.read(farmsProvider.notifier).loadFarms();
+                        }
+                        final currentUserId = authState.user?.id;
+                        final managed = ref
+                            .read(farmsProvider)
+                            .farms
+                            .where((f) => f.farmManagerId == currentUserId)
+                            .toList();
+                        if (managed.length == 1) {
+                          context.push('/farms/${managed.first.id}');
+                        } else {
+                          context.push('/farms');
+                        }
                       } else {
                         context.push('/farms');
                       }

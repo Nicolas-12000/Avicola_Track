@@ -29,10 +29,10 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
     final farmsState = ref.watch(farmsProvider);
     final authState = ref.watch(authProvider);
     final isFarmAdmin = authState.user?.isFarmAdmin ?? false;
-    final assignedFarmId = authState.user?.assignedFarm;
-    final visibleFarms = isFarmAdmin && assignedFarmId != null
-        ? farmsState.farms.where((f) => f.id == assignedFarmId).toList()
-        : farmsState.farms;
+    final currentUserId = authState.user?.id;
+    final visibleFarms = isFarmAdmin && currentUserId != null
+      ? farmsState.farms.where((f) => f.farmManagerId == currentUserId).toList()
+      : farmsState.farms;
 
     return Scaffold(
       backgroundColor: AppColors.background,
