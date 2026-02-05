@@ -211,7 +211,7 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
           borderRadius: BorderRadius.circular(16),
           onTap: () {
             final authState = ref.read(authProvider);
-            final isAdminSistema = authState.user?.userRole?.name == 'Administrador Sistema';
+            final isAdminSistema = authState.user?.isSystemAdmin ?? false;
             
             showModalBottomSheet(
               context: context,
