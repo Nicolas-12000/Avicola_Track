@@ -142,6 +142,13 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
     return userRole == 'Administrador Sistema';
   }
 
+  /// Verifica si el usuario puede editar lotes (admin sistema o admin granja)
+  bool _canEditFlock() {
+    final authState = ref.watch(authProvider);
+    final userRole = authState.user?.userRole;
+    return userRole?.canViewAllFarms == true || userRole?.isFarmAdmin == true;
+  }
+
   Widget _buildFarmFilter(FarmsState farmsState) {
     if (farmsState.farms.isEmpty) return const SizedBox.shrink();
 
@@ -418,11 +425,12 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                       color: Colors.grey[600],
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: () => _showFlockDialog(context, flock, sheds),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Editar'),
-                  ),
+                  if (_canEditFlock())
+                    TextButton.icon(
+                      onPressed: () => _showFlockDialog(context, flock, sheds),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Editar'),
+                    ),
                 ],
               ),
             ],

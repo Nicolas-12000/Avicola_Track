@@ -30,6 +30,29 @@ class UserRepository {
     }
   }
 
+  /// Obtener todos los galponeros
+  Future<({List<UserModel>? users, Failure? failure})> getGalponeros() async {
+    try {
+      final users = await _dataSource.getGalponeros();
+      return (users: users, failure: null);
+    } on DioException catch (e) {
+      if (e.response == null) {
+        return (
+          users: null,
+          failure: const NetworkFailure(message: 'No internet connection'),
+        );
+      }
+      return (
+        users: null,
+        failure: ServerFailure(
+          message: e.response?.data['detail'] ?? 'Failed to load galponeros',
+        ),
+      );
+    } catch (e) {
+      return (users: null, failure: ServerFailure(message: e.toString()));
+    }
+  }
+
   Future<({UserModel? user, Failure? failure})> getUser(int id) async {
     try {
       final user = await _dataSource.getUser(id);

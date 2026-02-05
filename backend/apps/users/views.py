@@ -1,4 +1,5 @@
 import logging
+from django.db import models
 from django.contrib.auth import get_user_model
 from rest_framework import generics, status
 from rest_framework.decorators import action
@@ -93,8 +94,29 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 		if role_name == 'Administrador Sistema' or user.is_staff:
 			return UserModel.objects.all()
 		
+		# Admin de granja puede ver usuarios de su granja
+		if role_name == 'Administrador de Granja':
+			from apps.farms.models import Shed
+			# Obtener galponeros asignados a galpones de sus granjas
+			farm_ids = user.managed_farms.values_list('id', flat=True)
+			galponero_ids = Shed.objects.filter(farm_id__in=farm_ids).values_list('assigned_worker_id', flat=True)
+			# Allow farm admins to see galponeros and veterinarians (so they can assign and schedule)
+			return UserModel.objects.filter(
+				models.Q(id=user.id) | 
+				models.Q(id__in=galponero_ids) |
+				models.Q(role__name='Galponero') |
+				models.Q(role__name='Veterinario')
+			).distinct()
+		
 		# Otros solo pueden ver su propio perfil
 		return UserModel.objects.filter(id=user.id)
+
+	@action(detail=False, methods=['get'])
+	def galponeros(self, request):
+		"""Obtener lista de todos los galponeros disponibles"""
+		galponeros = UserModel.objects.filter(role__name='Galponero', is_active=True)
+		serializer = self.get_serializer(galponeros, many=True)
+		return Response(serializer.data)
 
 	@action(detail=False, methods=['get'])
 	def me(self, request):

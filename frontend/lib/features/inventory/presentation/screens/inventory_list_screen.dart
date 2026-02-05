@@ -53,6 +53,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     }
   }
 
+  /// Verifica si el usuario puede gestionar inventario (agregar/editar/eliminar)
+  /// Solo admin sistema y admin de granja pueden gestionar
+  bool _canManageInventory() {
+    final authState = ref.read(authProvider);
+    final userRole = authState.user?.userRole;
+    return userRole?.canViewAllFarms == true || userRole?.isFarmAdmin == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final inventoryState = ref.watch(inventoryProvider);
@@ -187,11 +195,13 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showInventoryDialog(),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _canManageInventory()
+          ? FloatingActionButton(
+              onPressed: () => _showInventoryDialog(),
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
@@ -348,7 +358,9 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => _showInventoryDialog(item: item),
+        onTap: () => _canManageInventory()
+            ? _showInventoryDialog(item: item)
+            : _showAdjustStockDialog(item, isAdd: false),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -490,19 +502,22 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     label: const Text('Consumir'),
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
                   ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _showAdjustStockDialog(item, isAdd: true),
-                    icon: const Icon(Icons.add_circle_outline, size: 18),
-                    label: const Text('Agregar'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.green),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    color: Colors.red,
-                    onPressed: () => _confirmDelete(item),
-                  ),
+                  // Solo admins pueden agregar stock y eliminar
+                  if (_canManageInventory()) ...[
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: () => _showAdjustStockDialog(item, isAdd: true),
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Agregar'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.green),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      color: Colors.red,
+                      onPressed: () => _confirmDelete(item),
+                    ),
+                  ],
                 ],
               ),
             ],

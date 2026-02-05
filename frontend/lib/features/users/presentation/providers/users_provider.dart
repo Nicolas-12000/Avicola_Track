@@ -216,10 +216,29 @@ class UsersNotifier extends StateNotifier<UsersState> {
     await loadUsers();
     return true;
   }
+
+  /// Obtener lista de galponeros
+  Future<List<UserModel>> getGalponeros() async {
+    final result = await _repository.getGalponeros();
+    if (result.failure != null) {
+      return [];
+    }
+    return result.users ?? [];
+  }
 }
 
 // Users Provider
 final usersProvider = StateNotifierProvider<UsersNotifier, UsersState>((ref) {
   final repository = ref.watch(userRepositoryProvider);
   return UsersNotifier(repository);
+});
+
+/// Provider para obtener galponeros
+final galponerosProvider = FutureProvider<List<UserModel>>((ref) async {
+  final repository = ref.watch(userRepositoryProvider);
+  final result = await repository.getGalponeros();
+  if (result.failure != null) {
+    throw Exception(result.failure!.message);
+  }
+  return result.users ?? [];
 });

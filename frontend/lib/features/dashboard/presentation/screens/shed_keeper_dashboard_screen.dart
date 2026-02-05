@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../sheds/presentation/providers/sheds_provider.dart';
 import '../../../flocks/presentation/providers/flocks_provider.dart';
 import '../../../alarms/presentation/providers/alarms_provider.dart';
@@ -42,6 +43,12 @@ class _ShedKeeperDashboardScreenState
       appBar: AppBar(
         title: const Text('Mi Dashboard'),
         backgroundColor: AppColors.primary,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -82,6 +89,7 @@ class _ShedKeeperDashboardScreenState
           ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: RefreshIndicator(
         onRefresh: () async => _loadDashboardData(),
         child: SingleChildScrollView(
@@ -217,7 +225,7 @@ class _ShedKeeperDashboardScreenState
         const SizedBox(width: 12),
         Expanded(
           child: _buildQuickActionButton(
-            'Inventario',
+            'Consumir',
             Icons.inventory,
             Colors.green,
             () => context.push('/inventory'),

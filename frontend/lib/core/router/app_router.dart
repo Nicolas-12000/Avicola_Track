@@ -89,10 +89,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (isAuthenticated && userRole != null) {
           final location = state.matchedLocation;
           
-          // Galponero solo puede acceder a su dashboard y registro de datos
+          // Galponero solo puede acceder a su dashboard, lotes, inventario y alarmas
           if (userRole.isShedKeeper) {
-            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alarms'];
+            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alarms', '/inventory', '/profile'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
+            print('🚦 Router: Galponero verificando $location, permitido=$isAllowed');
             if (!isAllowed && location != '/') {
               print('🚦 Router: Galponero sin acceso a $location -> /shed-keeper-dashboard');
               return '/shed-keeper-dashboard';

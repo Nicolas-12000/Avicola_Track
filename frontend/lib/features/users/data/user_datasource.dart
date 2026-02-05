@@ -30,6 +30,31 @@ class UserDataSource {
     }
   }
 
+  /// Obtener todos los galponeros
+  Future<List<UserModel>> getGalponeros() async {
+    try {
+      final response = await _dio.get(ApiConstants.galponeros);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final List<dynamic> data = responseData is List
+            ? responseData
+            : (responseData is Map && responseData.containsKey('results')
+                ? responseData['results']
+                : []);
+        return data.map((json) => UserModel.fromJson(json)).toList();
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Failed to load galponeros',
+      );
+    } on DioException {
+      rethrow;
+    }
+  }
+
   /// Obtener un usuario por ID
   Future<UserModel> getUser(int id) async {
     try {

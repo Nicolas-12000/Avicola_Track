@@ -51,7 +51,8 @@ from django.shortcuts import render
 class ShedViewSet(viewsets.ModelViewSet):
     queryset = Shed.objects.all()
     serializer_class = ShedSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSystemAdminOrReadOnly]
+    # Allow farm admins to update sheds within their farms and assigned shed workers
+    permission_classes = [permissions.IsAuthenticated, IsAssignedShedWorkerOrFarmAdmin]
 
     @extend_schema(parameters=[OpenApiParameter(name='pk', required=True, type=OpenApiTypes.INT)])
     def retrieve(self, request, *args, **kwargs):

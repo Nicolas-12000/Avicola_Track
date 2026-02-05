@@ -43,6 +43,7 @@ class ApiConstants {
   // Users
   static const String users = '$apiPrefix/admin-users/';
   static String userDetail(int id) => '$users$id/';
+  static const String galponeros = '${users}galponeros/';
 
   // Farms
   static const String farms = '$apiPrefix/farms/';

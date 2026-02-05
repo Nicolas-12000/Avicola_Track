@@ -148,8 +148,8 @@ class AppDrawer extends ConsumerWidget {
                   },
                 ),
                 
-                // Granjas - Solo admin sistema (admin granja no ve esta opción)
-                if (canViewAllFarms) ...[
+                // Granjas - Admin sistema y Admin de Granja pueden ver
+                if (canViewAllFarms || isFarmAdmin) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
@@ -169,7 +169,12 @@ class AppDrawer extends ConsumerWidget {
                     title: 'Granjas',
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/farms');
+                      // If user is farm admin, redirect to their assigned farm detail
+                      if (isFarmAdmin && (authState.user?.assignedFarm != null)) {
+                        context.push('/farms/${authState.user!.assignedFarm}');
+                      } else {
+                        context.push('/farms');
+                      }
                     },
                   ),
                   _buildMenuItem(
@@ -197,8 +202,8 @@ class AppDrawer extends ConsumerWidget {
                     },
                   ),
                 
-                // Inventario - Solo admin sistema y admin granja
-                if (canViewAllFarms || isFarmAdmin)
+                // Inventario - Admin sistema, admin granja y galponero
+                if (canViewAllFarms || isFarmAdmin || isShedKeeper)
                   _buildMenuItem(
                     context: context,
                     icon: Icons.inventory_2_outlined,
@@ -210,8 +215,8 @@ class AppDrawer extends ConsumerWidget {
                     },
                   ),
                 
-                // Veterinaria - Solo veterinarios y admins
-                if (isVeterinarian || canViewAllFarms || isFarmAdmin)
+                // Veterinaria - Solo veterinarios y administradores del sistema (no galponeros ni admin de granja)
+                if ((isVeterinarian || canViewAllFarms) && !isShedKeeper)
                   _buildMenuItem(
                     context: context,
                     icon: Icons.medical_services_outlined,

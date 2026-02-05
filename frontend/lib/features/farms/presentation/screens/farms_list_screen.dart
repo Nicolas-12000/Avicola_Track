@@ -27,6 +27,12 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
   @override
   Widget build(BuildContext context) {
     final farmsState = ref.watch(farmsProvider);
+    final authState = ref.watch(authProvider);
+    final isFarmAdmin = authState.user?.isFarmAdmin ?? false;
+    final assignedFarmId = authState.user?.assignedFarm;
+    final visibleFarms = isFarmAdmin && assignedFarmId != null
+        ? farmsState.farms.where((f) => f.id == assignedFarmId).toList()
+        : farmsState.farms;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -123,15 +129,15 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
               onRefresh: () async {
                 await ref.read(farmsProvider.notifier).loadFarms();
               },
-              child: farmsState.farms.isEmpty
+              child: visibleFarms.isEmpty
                   ? _buildEmptyState()
                   : ListView.separated(
                       padding: const EdgeInsets.all(20),
-                      itemCount: farmsState.farms.length,
+                      itemCount: visibleFarms.length,
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final farm = farmsState.farms[index];
+                        final farm = visibleFarms[index];
                         return _buildFarmCard(farm);
                       },
                     ),
