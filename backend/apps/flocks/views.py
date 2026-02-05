@@ -13,12 +13,37 @@ class FlockViewSet(viewsets.ModelViewSet):
         user = self.request.user
         role_name = getattr(getattr(user, 'role', None), 'name', None)
 
+        # Start from all flocks and allow filtering by query params
+        qs = Flock.objects.all()
+
+        farm_param = self.request.query_params.get('farm')
+        shed_param = self.request.query_params.get('shed')
+        status_param = self.request.query_params.get('status')
+
+        if farm_param:
+            try:
+                farm_id = int(farm_param)
+                qs = qs.filter(shed__farm_id=farm_id)
+            except (TypeError, ValueError):
+                return Flock.objects.none()
+
+        if shed_param:
+            try:
+                shed_id = int(shed_param)
+                qs = qs.filter(shed_id=shed_id)
+            except (TypeError, ValueError):
+                return Flock.objects.none()
+
+        if status_param:
+            qs = qs.filter(status__iexact=status_param)
+
+        # Apply role-based restrictions
         if user.is_staff or role_name == 'Administrador Sistema':
-            return Flock.objects.all()
+            return qs
         if role_name == 'Administrador de Granja':
-            return Flock.objects.filter(shed__farm__farm_manager=user)
+            return qs.filter(shed__farm__farm_manager=user)
         if role_name == 'Galponero':
-            return Flock.objects.filter(shed__assigned_worker=user)
+            return qs.filter(shed__assigned_worker=user)
 
         return Flock.objects.none()
 from django.shortcuts import render

@@ -61,13 +61,25 @@ class ShedViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         role_name = getattr(getattr(user, 'role', None), 'name', None)
+        # Start from all sheds and optionally filter by query param
+        qs = Shed.objects.all()
 
+        # Allow filtering by farm via query param `farm=<id>`
+        farm_param = self.request.query_params.get('farm')
+        if farm_param:
+            try:
+                farm_id = int(farm_param)
+                qs = qs.filter(farm_id=farm_id)
+            except (TypeError, ValueError):
+                return Shed.objects.none()
+
+        # Apply role-based restrictions on top of the (possibly filtered) queryset
         if role_name == 'Administrador Sistema':
-            return Shed.objects.all()
+            return qs
         if role_name == 'Administrador de Granja':
-            return Shed.objects.filter(farm__farm_manager=user)
+            return qs.filter(farm__farm_manager=user)
         if role_name == 'Galponero':
-            return Shed.objects.filter(assigned_worker=user)
+            return qs.filter(assigned_worker=user)
 
         return Shed.objects.none()
 

@@ -25,16 +25,27 @@ class InventoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Simple permission scoping: admins see all; farm admins see their farm; workers see assigned sheds
+        # Start from all items and optionally apply query param filters
+        qs = InventoryItem.objects.all()
+
+        # Support filtering by farm via query parameter `farm=<id>`
+        farm_param = self.request.query_params.get('farm')
+        if farm_param:
+            try:
+                farm_id = int(farm_param)
+                qs = qs.filter(farm_id=farm_id)
+            except (TypeError, ValueError):
+                return InventoryItem.objects.none()
+
+        # Role-based scoping on top of the (possibly filtered) queryset
         if hasattr(user, 'role') and user.role and user.role.name == 'Administrador Sistema':
-            return InventoryItem.objects.all()
+            return qs
 
         if hasattr(user, 'role') and user.role and user.role.name == 'Administrador de Granja':
-            # assume user has farm relationship
-            return InventoryItem.objects.filter(farm__farm_manager=user)
+            return qs.filter(farm__farm_manager=user)
 
-        # Default: restrict to user's assigned sheds/farms
-        return InventoryItem.objects.filter(farm__in=user.farms.all())
+        # Default: restrict to user's farms
+        return qs.filter(farm__in=user.farms.all())
 
     @action(detail=False, methods=['get'], url_path='stock-alerts')
     def stock_alerts(self, request):
