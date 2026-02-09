@@ -4,7 +4,6 @@ import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../../../core/errors/offline_exceptions.dart';
 
 class ShedDataSource {
   final Dio dio;
@@ -88,11 +87,8 @@ class ShedDataSource {
       );
       return ShedModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e, stackTrace) {
-      // If no connectivity, enqueue operation for later sync
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final endpoint = ApiConstants.sheds;
-        final method = 'POST';
         final data = {
           'name': name,
           'farm': farmId,
@@ -101,13 +97,41 @@ class ShedDataSource {
         };
 
         await _offlineService.addToQueue(
-          endpoint: endpoint,
-          method: method,
+          endpoint: ApiConstants.sheds,
+          method: 'POST',
           data: data,
           entityType: 'shed',
         );
 
-        throw OfflineQueuedException('Operación encolada: se sincronizará cuando haya conexión');
+        final tempId = -DateTime.now().millisecondsSinceEpoch;
+        final placeholder = ShedModel(
+          id: tempId,
+          name: name,
+          farm: farmId,
+          farmName: null,
+          capacity: capacity,
+          assignedWorker: assignedWorkerId,
+          assignedWorkerName: null,
+          currentFlock: null,
+          currentOccupancy: 0,
+          isOccupied: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        try {
+          final key = 'sheds_$farmId';
+          final cached = _offlineService.getCachedData(key);
+          if (cached != null && cached is List) {
+            final List updated = List.from(cached);
+            updated.add(placeholder.toJson());
+            await _offlineService.cacheData(key, updated);
+          } else {
+            await _offlineService.cacheData(key, [placeholder.toJson()]);
+          }
+        } catch (_) {}
+
+        return placeholder;
       }
 
       ErrorHandler.logError(
@@ -140,8 +164,6 @@ class ShedDataSource {
     } catch (e, stackTrace) {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final endpoint = ApiConstants.shedDetail(id);
-        final method = 'PUT';
         final data = {
           'name': name,
           'farm': farmId,
@@ -150,14 +172,49 @@ class ShedDataSource {
         };
 
         await _offlineService.addToQueue(
-          endpoint: endpoint,
-          method: method,
+          endpoint: ApiConstants.shedDetail(id),
+          method: 'PUT',
           data: data,
           entityType: 'shed',
           localId: id,
         );
 
-        throw OfflineQueuedException('Actualización encolada: se sincronizará cuando haya conexión');
+        try {
+          final key = 'sheds_$farmId';
+          final cached = _offlineService.getCachedData(key);
+          if (cached != null && cached is List) {
+            final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+            var changed = false;
+            for (var i = 0; i < updated.length; i++) {
+              final map = updated[i];
+              if (map['id'] == id) {
+                map['name'] = name;
+                map['capacity'] = capacity;
+                if (assignedWorkerId != null) map['assigned_worker'] = assignedWorkerId;
+                map['updated_at'] = DateTime.now().toIso8601String();
+                updated[i] = map;
+                changed = true;
+                break;
+              }
+            }
+            if (changed) await _offlineService.cacheData(key, updated);
+          }
+        } catch (_) {}
+
+        return ShedModel(
+          id: id,
+          name: name,
+          farm: farmId,
+          farmName: null,
+          capacity: capacity,
+          assignedWorker: assignedWorkerId,
+          assignedWorkerName: null,
+          currentFlock: null,
+          currentOccupancy: 0,
+          isOccupied: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
       }
 
       ErrorHandler.logError(
@@ -187,7 +244,24 @@ class ShedDataSource {
           localId: id,
         );
 
-        throw OfflineQueuedException('Eliminación encolada: se sincronizará cuando haya conexión');
+        // Remove from cached lists so UI reflects deletion immediately
+        try {
+            final key = 'sheds_all';
+          final cached = _offlineService.getCachedData(key);
+          if (cached != null && cached is List) {
+            final updated = cached.where((e) {
+              try {
+                final map = Map<String, dynamic>.from(e);
+                return map['id'] != id;
+              } catch (_) {
+                return true;
+              }
+            }).toList();
+            await _offlineService.cacheData(key, updated);
+          }
+        } catch (_) {}
+
+        return;
       }
 
       ErrorHandler.logError(

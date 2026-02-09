@@ -111,13 +111,45 @@ class InventoryDataSource {
           'alert_threshold_days': alertThresholdDays,
           'critical_threshold_days': criticalThresholdDays,
         };
+        // Agregar a la cola offline
         await _offlineService.addToQueue(
           endpoint: ApiConstants.inventory,
           method: 'POST',
           data: data,
           entityType: 'inventory_item',
         );
-        throw OfflineQueuedException('Inventario encolado para sincronizar');
+
+        // Crear un placeholder local para mostrar inmediatamente en la UI
+        final tempId = -DateTime.now().millisecondsSinceEpoch;
+        final placeholder = InventoryItemModel(
+          id: tempId,
+          farmId: farmId,
+          name: name,
+          description: description ?? '',
+          unit: unit,
+          currentStock: currentStock,
+          minimumStock: minimumStock,
+          alertThresholdDays: alertThresholdDays,
+          criticalThresholdDays: criticalThresholdDays,
+          stockStatus: {
+            'status': 'PENDING',
+            'message': '${currentStock.toString()} $unit',
+          },
+        );
+
+        // Intentar añadir al cache local para que loadInventoryItems pueda devolverlo
+        try {
+          final key = 'inventory_$farmId';
+          final cached = _offlineService.getCachedData(key);
+          if (cached != null && cached is List) {
+            final newCached = [...cached, placeholder.toJson()];
+            await _offlineService.cacheData(key, newCached);
+          } else {
+            await _offlineService.cacheData(key, [placeholder.toJson()]);
+          }
+        } catch (_) {}
+
+        return placeholder;
       }
 
       ErrorHandler.logError(
@@ -165,7 +197,49 @@ class InventoryDataSource {
           entityType: 'inventory_item',
           localId: id,
         );
-        throw OfflineQueuedException('Actualización en inventario encolada');
+
+        // Update local cache so UI reflects changes immediately
+        try {
+          // Try to find and update in any cached lists (most likely 'inventory_all')
+          for (final candidateKey in ['inventory_all']) {
+            try {
+              final cached = _offlineService.getCachedData(candidateKey);
+              if (cached != null && cached is List) {
+                final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+                var changed = false;
+                for (var i = 0; i < updated.length; i++) {
+                  final map = updated[i];
+                  if (map['id'] == id) {
+                    // merge fields
+                    data.forEach((k, v) => map[k] = v);
+                    map['stock_status'] = {'status': 'PENDING', 'message': 'Actualizando…'};
+                    updated[i] = map;
+                    changed = true;
+                    break;
+                  }
+                }
+                if (changed) {
+                  await _offlineService.cacheData(candidateKey, updated);
+                }
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        // Return a provisional InventoryItemModel with applied changes
+        final provisional = InventoryItemModel(
+          id: id,
+          farmId: 0,
+          name: name ?? '',
+          description: description ?? '',
+          unit: unit ?? '',
+          currentStock: 0,
+          minimumStock: minimumStock ?? 0,
+          alertThresholdDays: alertThresholdDays ?? 0,
+          criticalThresholdDays: criticalThresholdDays ?? 0,
+          stockStatus: {'status': 'PENDING', 'message': 'Actualizando'},
+        );
+        return provisional;
       }
 
       ErrorHandler.logError(
@@ -190,7 +264,31 @@ class InventoryDataSource {
           entityType: 'inventory_item',
           localId: id,
         );
-        throw OfflineQueuedException('Eliminación en inventario encolada');
+
+        // Remove from cached lists so UI no longer shows the item
+        try {
+          final keysToTry = [
+            'inventory_${'all'}',
+          ];
+          for (final k in keysToTry) {
+            try {
+              final cached = _offlineService.getCachedData(k);
+              if (cached != null && cached is List) {
+                final updated = cached.where((e) {
+                  try {
+                    final map = Map<String, dynamic>.from(e);
+                    return map['id'] != id;
+                  } catch (_) {
+                    return true;
+                  }
+                }).toList();
+                await _offlineService.cacheData(k, updated);
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        return;
       }
 
       ErrorHandler.logError(

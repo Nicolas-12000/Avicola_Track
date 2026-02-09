@@ -119,23 +119,59 @@ class FlockDataSource {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
         final data = {
-          'shed': shedId,
-          'breed': breed,
-          'initial_quantity': initialQuantity,
-          'current_quantity': initialQuantity,
-          'gender': gender,
-          'arrival_date': arrivalDate.toIso8601String().split('T')[0],
-          'initial_weight': initialWeight,
-          'supplier': supplier ?? '',
-          'status': 'ACTIVE',
-        };
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.flocks,
-          method: 'POST',
-          data: data,
-          entityType: 'flock',
-        );
-        throw OfflineQueuedException('Creación de lote encolada');
+            'shed': shedId,
+            'breed': breed,
+            'initial_quantity': initialQuantity,
+            'current_quantity': initialQuantity,
+            'gender': gender,
+            'arrival_date': arrivalDate.toIso8601String().split('T')[0],
+            'initial_weight': initialWeight,
+            'supplier': supplier ?? '',
+            'status': 'ACTIVE',
+          };
+          await _offlineService.addToQueue(
+            endpoint: ApiConstants.flocks,
+            method: 'POST',
+            data: data,
+            entityType: 'flock',
+          );
+
+          // Create a local placeholder flock so UI can show it immediately
+          final tempId = -DateTime.now().millisecondsSinceEpoch;
+          final placeholder = FlockModel(
+            id: tempId,
+            shedId: shedId,
+            shedName: null,
+            farmId: 0,
+            farmName: null,
+            breed: breed,
+            initialQuantity: initialQuantity,
+            currentQuantity: initialQuantity,
+            initialWeight: initialWeight,
+            currentWeight: null,
+            gender: gender,
+            arrivalDate: arrivalDate,
+            saleDate: null,
+            supplier: supplier ?? '',
+            status: 'Pending',
+            createdAt: DateTime.now(),
+            updatedAt: null,
+          );
+
+          // Try to append placeholder to cached list for this shed
+          try {
+            final key = 'flocks_all_${shedId}_all';
+            final cached = _offlineService.getCachedData(key);
+            if (cached != null && cached is List) {
+              final List updated = List.from(cached);
+              updated.add(placeholder.toJson());
+              await _offlineService.cacheData(key, updated);
+            } else {
+              await _offlineService.cacheData(key, [placeholder.toJson()]);
+            }
+          } catch (_) {}
+
+          return placeholder;
       }
 
       ErrorHandler.logError(
@@ -184,7 +220,55 @@ class FlockDataSource {
           localId: id,
         );
 
-        throw OfflineQueuedException('Actualización de lote encolada');
+        // Update cached flocks so UI reflects changes immediately
+        try {
+          final candidates = <String>[
+            'flocks_all_all_all',
+          ];
+          for (final key in candidates) {
+            try {
+              final cached = _offlineService.getCachedData(key);
+              if (cached != null && cached is List) {
+                final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+                var changed = false;
+                for (var i = 0; i < updated.length; i++) {
+                  final map = updated[i];
+                  if (map['id'] == id) {
+                    data.forEach((k, v) => map[k] = v);
+                    map['status'] = 'Pending';
+                    updated[i] = map;
+                    changed = true;
+                    break;
+                  }
+                }
+                if (changed) await _offlineService.cacheData(key, updated);
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        // Return provisional flock model
+        final provisional = FlockModel(
+          id: id,
+          shedId: data['shed'] ?? 0,
+          shedName: null,
+          farmId: data['farm'] ?? 0,
+          farmName: null,
+          breed: data['breed'] ?? '',
+          initialQuantity: data['initial_quantity'] ?? 0,
+          currentQuantity: data['current_quantity'] ?? data['initial_quantity'] ?? 0,
+          initialWeight: (data['initial_weight'] is num) ? (data['initial_weight'] as num).toDouble() : null,
+          currentWeight: null,
+          gender: data['gender'] ?? 'Mixed',
+          arrivalDate: DateTime.now(),
+          saleDate: null,
+          supplier: data['supplier'] ?? '',
+          status: 'Pending',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        return provisional;
       }
 
       ErrorHandler.logError(
@@ -209,7 +293,29 @@ class FlockDataSource {
           entityType: 'flock',
           localId: id,
         );
-        throw OfflineQueuedException('Eliminación de lote encolada');
+
+        // Remove from cached lists so UI reflects deletion immediately
+        try {
+          const candidates = <String>['flocks_all_all_all'];
+          for (final key in candidates) {
+            try {
+              final cached = _offlineService.getCachedData(key);
+              if (cached != null && cached is List) {
+                final updated = cached.where((entry) {
+                  try {
+                    final map = Map<String, dynamic>.from(entry);
+                    return map['id'] != id;
+                  } catch (_) {
+                    return true;
+                  }
+                }).toList();
+                await _offlineService.cacheData(key, updated);
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        return;
       }
 
       ErrorHandler.logError(

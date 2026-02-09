@@ -6,6 +6,7 @@ import '../../../../data/models/inventory_item_model.dart';
 import '../providers/inventory_provider.dart';
 import '../../../farms/presentation/providers/farms_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/providers/offline_provider.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
   final int? farmId;
@@ -27,16 +28,32 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = ref.read(authProvider);
       final userFarmId = authState.user?.assignedFarm;
-      final isAdmin =
-          authState.user?.role == 'admin' ||
-          authState.user?.role == 'superadmin';
 
-      // Si es administrador de granja, solo mostrar su granja
-      final farmIdToLoad = isAdmin ? widget.farmId : userFarmId;
+      // Ensure farms are loaded for the filter dropdown
+      try {
+        ref.read(farmsProvider.notifier).loadFarms();
+      } catch (_) {}
 
-      ref
-          .read(inventoryProvider.notifier)
-          .loadInventoryItems(farmId: farmIdToLoad);
+      final user = authState.user;
+      final isSystemAdmin = user?.isSystemAdmin ?? false;
+      final isFarmAdmin = user?.isFarmAdmin ?? false;
+
+      // Check cached selection first
+      final cachedSelection = ref.read(offlineSyncServiceProvider).getCachedData('inventory_selected_farm');
+
+      int? farmIdToLoad;
+      if (cachedSelection != null && cachedSelection is int) {
+        farmIdToLoad = cachedSelection;
+      } else if (isSystemAdmin) {
+        farmIdToLoad = widget.farmId;
+      } else if (isFarmAdmin) {
+        final farms = ref.read(farmsProvider).farms;
+        farmIdToLoad = widget.farmId ?? userFarmId ?? (farms.isNotEmpty ? farms.first.id : null);
+      } else {
+        farmIdToLoad = userFarmId;
+      }
+
+      ref.read(inventoryProvider.notifier).loadInventoryItems(farmId: farmIdToLoad);
     });
   }
 
@@ -281,13 +298,17 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
   Widget _buildFarmFilter() {
     final authState = ref.watch(authProvider);
-    final isAdmin =
-        authState.user?.role == 'admin' || authState.user?.role == 'superadmin';
-
-    // Si no es admin, no mostrar el filtro
-    if (!isAdmin) return const SizedBox.shrink();
-
+    final user = authState.user;
     final farmsState = ref.watch(farmsProvider);
+
+    final isSystemAdmin = user?.isSystemAdmin ?? false;
+    final isFarmAdmin = user?.isFarmAdmin ?? false;
+
+    // Mostrar filtro a system admins o a farm admins que tengan acceso a >1 granja
+    if (!(isSystemAdmin || (isFarmAdmin && farmsState.farms.length > 1))) {
+      return const SizedBox.shrink();
+    }
+
     final inventoryState = ref.watch(inventoryProvider);
 
     return Card(
@@ -317,8 +338,11 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     );
                   }),
                 ],
-                onChanged: (farmId) {
+                onChanged: (farmId) async {
                   ref.read(inventoryProvider.notifier).filterByFarm(farmId);
+                  try {
+                    await ref.read(offlineSyncServiceProvider).cacheData('inventory_selected_farm', farmId);
+                  } catch (_) {}
                 },
               ),
             ),
@@ -392,24 +416,48 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _getStatusText(item.stockStatusLabel),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+                  // Status + pending indicator
+                  Builder(builder: (_) {
+                    final isPending = (item.id < 0) ||
+                        ((item.stockStatus != null) && (item.stockStatus!['status'] == 'PENDING'));
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _getStatusText(item.stockStatusLabel),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        if (isPending) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Pendiente',
+                              style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ]
+                      ],
+                    );
+                  }),
                 ],
               ),
               const SizedBox(height: 16),
