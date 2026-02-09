@@ -222,3 +222,6 @@ final veterinaryVisitsProvider =
       final repository = ref.watch(veterinaryRepositoryProvider);
       return VeterinaryVisitsNotifier(repository);
     });
+ 
+  // Provider to optionally pass a farm id to the agenda screen
+  final veterinaryAgendaFarmProvider = StateProvider<int?>((ref) => null);

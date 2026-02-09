@@ -20,6 +20,7 @@ import '../../features/dashboard/presentation/screens/shed_keeper_dashboard_scre
 import '../../features/reports/presentation/screens/reports_list_screen.dart';
 import '../../features/veterinary/presentation/screens/veterinary_dashboard_screen.dart';
 import '../../features/veterinary/presentation/screens/veterinary_agenda_screen.dart';
+import '../../features/veterinary/presentation/screens/veterinary_visit_detail_screen.dart';
 import '../../features/farms/presentation/screens/schedule_veterinary_visit_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 
@@ -300,6 +301,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'agenda',
             name: 'veterinary-agenda',
             builder: (context, state) => const VeterinaryAgendaScreen(),
+          ),
+          GoRoute(
+            path: 'visits/:id',
+            name: 'veterinary-visit-detail',
+            builder: (context, state) {
+              final idParam = state.pathParameters['id'];
+              final id = int.tryParse(idParam ?? '');
+              if (id == null) {
+                return const Scaffold(body: Center(child: Text('ID de visita inválido')));
+              }
+              return VeterinaryVisitDetailScreen(visitId: id);
+            },
           ),
         ],
       ),

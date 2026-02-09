@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../services/offline_sync_service.dart';
+import '../services/connectivity_service.dart';
 import '../network/dio_client.dart';
+import '../utils/error_handler.dart';
 import '../../data/models/sync_queue_item.dart';
 
 /// Estado del sistema offline
@@ -54,15 +57,18 @@ final offlineProvider = StateNotifierProvider<OfflineNotifier, OfflineState>((
 ) {
   final service = ref.watch(offlineSyncServiceProvider);
   final dio = ref.watch(dioProvider);
-  return OfflineNotifier(service, dio);
+  final connectivity = ref.watch(connectivityServiceProvider);
+  return OfflineNotifier(service, dio, connectivity);
 });
 
 /// Notifier para gestionar el estado offline
 class OfflineNotifier extends StateNotifier<OfflineState> {
   final OfflineSyncService _service;
   final Dio _dio;
+  final ConnectivityService _connectivity;
 
-  OfflineNotifier(this._service, this._dio) : super(OfflineState()) {
+  OfflineNotifier(this._service, this._dio, this._connectivity)
+      : super(OfflineState()) {
     _initialize();
   }
 
@@ -70,6 +76,14 @@ class OfflineNotifier extends StateNotifier<OfflineState> {
     try {
       await _service.initialize();
       _service.setDioClient(_dio);
+
+      // Intentar sincronizar apenas se detecte conexión
+      _connectivity.onStateChange.listen((stateChange) {
+        final isOnline = stateChange.isConnected;
+        if (isOnline && _service.pendingCount > 0 && !state.isSyncing) {
+          syncNow();
+        }
+      });
 
       state = state.copyWith(
         isInitialized: true,
@@ -87,6 +101,12 @@ class OfflineNotifier extends StateNotifier<OfflineState> {
 
       // Iniciar auto-sync
       _service.startAutoSync();
+
+      // Si hay items pendientes y hay conexión, sincronizar inmediatamente
+      if (_service.pendingCount > 0 && _connectivity.currentState.isConnected) {
+        ErrorHandler.logInfo('🔄 Pending items detected at startup, triggering sync...');
+        unawaited(syncNow());
+      }
     } catch (e) {
       state = state.copyWith(error: e.toString());
     }
@@ -109,17 +129,27 @@ class OfflineNotifier extends StateNotifier<OfflineState> {
     );
 
     state = state.copyWith(pendingCount: _service.pendingCount);
+
+    // Si ya hay conexión, dispara sync inmediata para no esperar al cron
+    if (_connectivity.currentState.isConnected && !state.isSyncing) {
+      unawaited(syncNow());
+    }
     return id;
   }
 
   /// Sincronizar manualmente
   Future<void> syncNow() async {
-    if (state.isSyncing) return;
+    if (state.isSyncing) {
+      ErrorHandler.logInfo('🔄 syncNow called but already syncing, skipping');
+      return;
+    }
 
+    ErrorHandler.logInfo('🚀 syncNow triggered - starting sync process');
     state = state.copyWith(isSyncing: true);
 
     try {
       final result = await _service.syncAll();
+      ErrorHandler.logInfo('✅ Sync completed: ${result.success} success, ${result.failed} failed');
       state = state.copyWith(
         isSyncing: false,
         lastSyncResult: result,
@@ -127,6 +157,7 @@ class OfflineNotifier extends StateNotifier<OfflineState> {
         pendingCount: _service.pendingCount,
       );
     } catch (e) {
+      ErrorHandler.logError('Sync failed: $e');
       state = state.copyWith(isSyncing: false, error: e.toString());
     }
   }

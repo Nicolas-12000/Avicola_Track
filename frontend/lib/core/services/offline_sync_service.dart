@@ -56,6 +56,7 @@ class OfflineSyncService {
   /// Configurar cliente Dio
   void setDioClient(Dio dio) {
     _dio = dio;
+    _logger.i('✅ Dio client SET - sync service is now ready to sync');
   }
 
   /// Agregar operación a la cola de sincronización
@@ -105,17 +106,17 @@ class OfflineSyncService {
   /// Sincronizar todos los items pendientes
   Future<SyncResult> syncAll() async {
     if (_isSyncing) {
-      _logger.w('Sync already in progress');
+      _logger.w('🔄 Sync already in progress, skipping');
       return SyncResult(success: 0, failed: 0, total: 0);
     }
 
     if (_dio == null) {
-      _logger.w('Dio client not set');
+      _logger.e('❌ Dio client not set - cannot sync! Make sure setDioClient() was called.');
       return SyncResult(success: 0, failed: 0, total: 0);
     }
 
     if (_queueBox == null || _queueBox!.isEmpty) {
-      _logger.i('No items to sync');
+      _logger.i('✅ No items to sync - queue is empty');
       return SyncResult(success: 0, failed: 0, total: 0);
     }
 
@@ -126,7 +127,7 @@ class OfflineSyncService {
     int successCount = 0;
     int failedCount = 0;
 
-    _logger.i('Starting sync of ${items.length} items');
+    _logger.i('🚀 Starting sync of ${items.length} pending items...');
 
     for (final item in items) {
       try {
@@ -216,9 +217,16 @@ class OfflineSyncService {
   void startAutoSync({Duration interval = const Duration(minutes: 5)}) {
     stopAutoSync();
 
-    _logger.i('Starting auto-sync every ${interval.inMinutes} minutes');
+    if (_dio == null) {
+      _logger.w('⚠️ startAutoSync called but Dio is NOT set - will retry sync when Dio becomes available');
+    } else {
+      _logger.i('✅ startAutoSync called with Dio available');
+    }
+
+    _logger.i('⏰ Starting auto-sync timer every ${interval.inMinutes} minutes');
     _syncTimer = Timer.periodic(interval, (_) async {
       if (_queueBox != null && _queueBox!.isNotEmpty) {
+        _logger.i('⏰ Auto-sync timer triggered with ${_queueBox!.length} pending items');
         await syncAll();
       }
     });

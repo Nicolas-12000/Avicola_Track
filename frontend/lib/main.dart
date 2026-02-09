@@ -31,12 +31,10 @@ void main() async {
     );
   }
 
-  // Inicializar Hive para offline sync
+  // Inicializar Hive para offline sync (solo abrir cajas, el auto-sync lo maneja el provider)
   try {
     await OfflineSyncService().initialize();
-    // Iniciar sincronización automática cada 5 minutos
-    OfflineSyncService().startAutoSync();
-    ErrorHandler.logInfo('Offline sync service initialized with auto-sync');
+    ErrorHandler.logInfo('Offline sync service initialized (Hive boxes ready)');
   } catch (e, stackTrace) {
     ErrorHandler.logError(
       e,

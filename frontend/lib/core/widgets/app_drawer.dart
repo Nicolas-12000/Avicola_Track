@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/farms/presentation/providers/farms_provider.dart';
+import '../../features/veterinary/presentation/providers/veterinary_visits_provider.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -169,27 +170,28 @@ class AppDrawer extends ConsumerWidget {
                     activeIcon: Icons.agriculture,
                     title: 'Granjas',
                     onTap: () {
-                      Navigator.pop(context);
-                      if (isFarmAdmin) {
-                        // Trigger farms load in background if empty, but don't await
-                        final farmsState = ref.read(farmsProvider);
-                        if (farmsState.farms.isEmpty) {
-                          ref.read(farmsProvider.notifier).loadFarms();
-                        }
-                        final currentUserId = authState.user?.id;
-                        final managed = ref
-                            .read(farmsProvider)
-                            .farms
-                            .where((f) => f.farmManagerId == currentUserId)
-                            .toList();
-                        if (managed.length == 1) {
-                          context.push('/farms/${managed.first.id}');
+                        if (isFarmAdmin) {
+                          // Trigger farms load in background if empty, but don't await
+                          final farmsState = ref.read(farmsProvider);
+                          if (farmsState.farms.isEmpty) {
+                            ref.read(farmsProvider.notifier).loadFarms();
+                          }
+                          final currentUserId = authState.user?.id;
+                          final managed = ref
+                              .read(farmsProvider)
+                              .farms
+                              .where((f) => f.farmManagerId == currentUserId)
+                              .toList();
+                          Navigator.pop(context);
+                          if (managed.length == 1) {
+                            context.push('/farms/${managed.first.id}');
+                          } else {
+                            context.push('/farms');
+                          }
                         } else {
+                          Navigator.pop(context);
                           context.push('/farms');
                         }
-                      } else {
-                        context.push('/farms');
-                      }
                     },
                   ),
                   _buildMenuItem(
@@ -240,6 +242,80 @@ class AppDrawer extends ConsumerWidget {
                     onTap: () {
                       Navigator.pop(context);
                       context.push('/veterinary');
+                    },
+                  ),
+
+                // Calendario de visitas - solo para Administrador de Granja
+                if (isFarmAdmin)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.calendar_month_outlined,
+                    activeIcon: Icons.calendar_month,
+                    title: 'Calendario de visitas',
+                    onTap: () async {
+                      // Ensure farms are loaded so we can determine managed farms
+                      final farmsState = ref.read(farmsProvider);
+                      if (farmsState.farms.isEmpty) {
+                        ref.read(farmsProvider.notifier).loadFarms();
+                      }
+
+                      final currentUserId = authState.user?.id;
+                      final managed = ref
+                          .read(farmsProvider)
+                          .farms
+                          .where((f) => f.farmManagerId == currentUserId)
+                          .toList();
+
+                      if (managed.length == 1) {
+                        // Directly open agenda for the single managed farm
+                        final id = managed.first.id;
+                        ref.read(veterinaryAgendaFarmProvider.notifier).state = id;
+                        Navigator.pop(context);
+                        context.push('/veterinary/agenda');
+                        return;
+                      }
+
+                      if (managed.isEmpty) {
+                        // Fallback: open general agenda
+                        ref.read(veterinaryAgendaFarmProvider.notifier).state = null;
+                        Navigator.pop(context);
+                        context.push('/veterinary/agenda');
+                        return;
+                      }
+
+                      // Multiple farms: ask the user to pick one while drawer is still open
+                      final selected = await showDialog<int?>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Selecciona una granja'),
+                          content: SizedBox(
+                            width: double.maxFinite,
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: managed.length,
+                              itemBuilder: (context, index) {
+                                final farm = managed[index];
+                                return ListTile(
+                                  title: Text(farm.name),
+                                  onTap: () => Navigator.of(context).pop(farm.id),
+                                );
+                              },
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(null),
+                              child: const Text('Cancelar'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (selected != null) {
+                        ref.read(veterinaryAgendaFarmProvider.notifier).state = selected;
+                        Navigator.pop(context);
+                        context.push('/veterinary/agenda');
+                      }
                     },
                   ),
                 
@@ -335,8 +411,9 @@ class AppDrawer extends ConsumerWidget {
                 ),
               ),
               onTap: () async {
+                final authNotifier = ref.read(authProvider.notifier);
                 Navigator.pop(context);
-                await ref.read(authProvider.notifier).logout();
+                await authNotifier.logout();
                 if (context.mounted) {
                   context.go('/login');
                 }

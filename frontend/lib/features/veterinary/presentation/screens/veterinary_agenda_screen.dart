@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../data/models/veterinary_visit_model.dart';
 import '../providers/veterinary_visits_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class VeterinaryAgendaScreen extends ConsumerStatefulWidget {
   const VeterinaryAgendaScreen({super.key});
@@ -23,8 +25,14 @@ class _VeterinaryAgendaScreenState
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(veterinaryVisitsProvider.notifier).loadVisits();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Read optional farm id from provider (set by the menu) so the agenda
+      // can show visits scoped to a specific farm when navigated from Farm Admin.
+      final farmId = ref.read(veterinaryAgendaFarmProvider);
+      ref.read(veterinaryVisitsProvider.notifier).loadVisits(farmId: farmId);
+      // clear the temporary selection to avoid reusing it accidentally
+      ref.read(veterinaryAgendaFarmProvider.notifier).state = null;
     });
   }
 
@@ -72,6 +80,21 @@ class _VeterinaryAgendaScreenState
         backgroundColor: AppColors.primary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.medical_services),
+            tooltip: 'Programar visita veterinaria',
+            onPressed: () {
+              final authState = ref.read(authProvider);
+              final assignedFarm = authState.user?.assignedFarm;
+              if (assignedFarm != null) {
+                context.push('/farms/$assignedFarm/schedule-visit');
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No tiene granja asignada')),
+                );
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.today),
             tooltip: 'Hoy',
             onPressed: _goToToday,
@@ -115,15 +138,20 @@ class _VeterinaryAgendaScreenState
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
             onPressed: _previousWeek,
           ),
-          Text(
-            DateFormat('MMMM yyyy', 'es').format(_selectedDate),
-            style: AppTextStyles.textTheme.titleLarge,
+          Expanded(
+            child: Center(
+              child: Text(
+                DateFormat('MMMM yyyy', 'es').format(_selectedDate),
+                style: AppTextStyles.textTheme.titleLarge,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right),
@@ -343,9 +371,7 @@ class _VeterinaryAgendaScreenState
       ),
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ver detalle de visita #${visit.id}')),
-          );
+          context.push('/veterinary/visits/${visit.id}');
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
