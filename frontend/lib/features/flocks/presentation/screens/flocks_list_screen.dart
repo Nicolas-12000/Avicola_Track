@@ -643,7 +643,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                       content: Text(
                         error == null
                             ? '✅ Lote creado exitosamente'
-                            : 'Error: ${error}',
+                            : 'Error: $error',
                       ),
                       backgroundColor:
                           error == null ? null : AppColors.error,

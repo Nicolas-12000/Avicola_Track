@@ -294,7 +294,7 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int?>(
-            value: managers.any((m) => m.id == _selectedManagerId) ? _selectedManagerId : null,
+            initialValue: managers.any((m) => m.id == _selectedManagerId) ? _selectedManagerId : null,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Administrador de granja (opcional)',
@@ -483,7 +483,7 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
                     ),
                   ),
                 DropdownButtonFormField<int?>(
-                  value: galponeros.any((g) => g.id == selectedGalponeroId)
+                  initialValue: galponeros.any((g) => g.id == selectedGalponeroId)
                       ? selectedGalponeroId
                       : null,
                   isExpanded: true,
@@ -590,7 +590,11 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
                         title: Text(g.fullName.isNotEmpty ? g.fullName : (g.username ?? 'Sin nombre')),
                         subtitle: g.assignedFarm != null ? Text('Asignado a granja ${g.assignedFarm}') : null,
                         onChanged: (v) => setDialogState(() {
-                          if (v == true) selected.add(g.id); else selected.remove(g.id);
+                          if (v == true) {
+                            selected.add(g.id);
+                          } else {
+                            selected.remove(g.id);
+                          }
                         }),
                       );
                     },

@@ -159,7 +159,7 @@ class _AlarmsListScreenState extends ConsumerState<AlarmsListScreen>
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<int?>(
-                value: _selectedFarmId,
+                initialValue: _selectedFarmId,
                 decoration: const InputDecoration(
                   labelText: 'Filtrar por Granja',
                   border: InputBorder.none,
