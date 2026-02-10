@@ -197,6 +197,19 @@ class ConnectivityService {
     }
   }
 
+  /// Marcar explícitamente que el backend respondió correctamente
+  /// Útil para limpiar banners de desconexión después de una respuesta exitosa
+  void markBackendReachable() {
+    _updateState(
+      ConnectionState(
+        status: ConnectionStatus.connected,
+        message: 'Conectado',
+        lastChecked: DateTime.now(),
+        connectivityTypes: _currentState.connectivityTypes,
+      ),
+    );
+  }
+
   /// Manejar cambios de conectividad
   Future<void> _handleConnectivityChange(
     List<ConnectivityResult> results,

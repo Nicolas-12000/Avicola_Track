@@ -81,6 +81,21 @@ class InventoryDataSource {
     int alertThresholdDays = 5,
     int criticalThresholdDays = 2,
   }) async {
+    // Si ya sabemos que no hay conexión, evitamos esperar al timeout de Dio
+    if (!_connectivityService.currentState.isConnected) {
+      return _createOfflineInventoryItem(
+        farmId: farmId,
+        name: name,
+        description: description,
+        unit: unit,
+        currentStock: currentStock,
+        minimumStock: minimumStock,
+        shedId: shedId,
+        alertThresholdDays: alertThresholdDays,
+        criticalThresholdDays: criticalThresholdDays,
+      );
+    }
+
     try {
       final response = await dio.post(
         ApiConstants.inventory,
@@ -100,56 +115,17 @@ class InventoryDataSource {
     } catch (e, stackTrace) {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final data = {
-          'farm': farmId,
-          'name': name,
-          'description': description ?? '',
-          'unit': unit,
-          'current_stock': currentStock,
-          'minimum_stock': minimumStock,
-          'shed': shedId,
-          'alert_threshold_days': alertThresholdDays,
-          'critical_threshold_days': criticalThresholdDays,
-        };
-        // Agregar a la cola offline
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.inventory,
-          method: 'POST',
-          data: data,
-          entityType: 'inventory_item',
-        );
-
-        // Crear un placeholder local para mostrar inmediatamente en la UI
-        final tempId = -DateTime.now().millisecondsSinceEpoch;
-        final placeholder = InventoryItemModel(
-          id: tempId,
+        return _createOfflineInventoryItem(
           farmId: farmId,
           name: name,
-          description: description ?? '',
+          description: description,
           unit: unit,
           currentStock: currentStock,
           minimumStock: minimumStock,
+          shedId: shedId,
           alertThresholdDays: alertThresholdDays,
           criticalThresholdDays: criticalThresholdDays,
-          stockStatus: {
-            'status': 'PENDING',
-            'message': '${currentStock.toString()} $unit',
-          },
         );
-
-        // Intentar añadir al cache local para que loadInventoryItems pueda devolverlo
-        try {
-          final key = 'inventory_$farmId';
-          final cached = _offlineService.getCachedData(key);
-          if (cached != null && cached is List) {
-            final newCached = [...cached, placeholder.toJson()];
-            await _offlineService.cacheData(key, newCached);
-          } else {
-            await _offlineService.cacheData(key, [placeholder.toJson()]);
-          }
-        } catch (_) {}
-
-        return placeholder;
       }
 
       ErrorHandler.logError(
@@ -159,6 +135,67 @@ class InventoryDataSource {
       );
       rethrow;
     }
+  }
+
+  Future<InventoryItemModel> _createOfflineInventoryItem({
+    required int farmId,
+    required String name,
+    String? description,
+    required String unit,
+    required double currentStock,
+    required double minimumStock,
+    int? shedId,
+    int alertThresholdDays = 5,
+    int criticalThresholdDays = 2,
+  }) async {
+    final data = {
+      'farm': farmId,
+      'name': name,
+      'description': description ?? '',
+      'unit': unit,
+      'current_stock': currentStock,
+      'minimum_stock': minimumStock,
+      'shed': shedId,
+      'alert_threshold_days': alertThresholdDays,
+      'critical_threshold_days': criticalThresholdDays,
+    };
+
+    await _offlineService.addToQueue(
+      endpoint: ApiConstants.inventory,
+      method: 'POST',
+      data: data,
+      entityType: 'inventory_item',
+    );
+
+    final tempId = -DateTime.now().millisecondsSinceEpoch;
+    final placeholder = InventoryItemModel(
+      id: tempId,
+      farmId: farmId,
+      name: name,
+      description: description ?? '',
+      unit: unit,
+      currentStock: currentStock,
+      minimumStock: minimumStock,
+      alertThresholdDays: alertThresholdDays,
+      criticalThresholdDays: criticalThresholdDays,
+      stockStatus: {
+        'status': 'PENDING',
+        'message': '${currentStock.toString()} $unit',
+      },
+    );
+
+    try {
+      final key = 'inventory_$farmId';
+      final cached = _offlineService.getCachedData(key);
+      if (cached != null && cached is List) {
+        final newCached = [...cached, placeholder.toJson()];
+        await _offlineService.cacheData(key, newCached);
+      } else {
+        await _offlineService.cacheData(key, [placeholder.toJson()]);
+      }
+    } catch (_) {}
+
+    return placeholder;
   }
 
   Future<InventoryItemModel> updateInventoryItem({

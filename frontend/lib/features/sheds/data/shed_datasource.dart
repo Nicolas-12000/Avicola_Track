@@ -55,6 +55,117 @@ class ShedDataSource {
     }
   }
 
+  Future<ShedModel> _createShedOffline({
+    required String name,
+    required int farmId,
+    required int capacity,
+    int? assignedWorkerId,
+  }) async {
+    final data = {
+      'name': name,
+      'farm': farmId,
+      'capacity': capacity,
+      if (assignedWorkerId != null) 'assigned_worker': assignedWorkerId,
+    };
+
+    await _offlineService.addToQueue(
+      endpoint: ApiConstants.sheds,
+      method: 'POST',
+      data: data,
+      entityType: 'shed',
+    );
+
+    final tempId = -DateTime.now().millisecondsSinceEpoch;
+    final placeholder = ShedModel(
+      id: tempId,
+      name: name,
+      farm: farmId,
+      farmName: null,
+      capacity: capacity,
+      assignedWorker: assignedWorkerId,
+      assignedWorkerName: null,
+      currentFlock: null,
+      currentOccupancy: 0,
+      isOccupied: false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      final key = 'sheds_$farmId';
+      final cached = _offlineService.getCachedData(key);
+      if (cached != null && cached is List) {
+        final List updated = List.from(cached);
+        updated.add(placeholder.toJson());
+        await _offlineService.cacheData(key, updated);
+      } else {
+        await _offlineService.cacheData(key, [placeholder.toJson()]);
+      }
+    } catch (_) {}
+
+    return placeholder;
+  }
+
+  Future<ShedModel> _updateShedOffline({
+    required int id,
+    required String name,
+    required int farmId,
+    required int capacity,
+    int? assignedWorkerId,
+  }) async {
+    final data = {
+      'name': name,
+      'farm': farmId,
+      'capacity': capacity,
+      if (assignedWorkerId != null) 'assigned_worker': assignedWorkerId,
+    };
+
+    await _offlineService.addToQueue(
+      endpoint: ApiConstants.shedDetail(id),
+      method: 'PUT',
+      data: data,
+      entityType: 'shed',
+      localId: id,
+    );
+
+    try {
+      final key = 'sheds_$farmId';
+      final cached = _offlineService.getCachedData(key);
+      if (cached != null && cached is List) {
+        final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+        var changed = false;
+        for (var i = 0; i < updated.length; i++) {
+          final map = updated[i];
+          if (map['id'] == id) {
+            map['name'] = name;
+            map['capacity'] = capacity;
+            if (assignedWorkerId != null) map['assigned_worker'] = assignedWorkerId;
+            map['updated_at'] = DateTime.now().toIso8601String();
+            updated[i] = map;
+            changed = true;
+            break;
+          }
+        }
+        if (changed) await _offlineService.cacheData(key, updated);
+      }
+    } catch (_) {}
+
+    return ShedModel(
+      id: id,
+      name: name,
+      farm: farmId,
+      farmName: null,
+      capacity: capacity,
+      assignedWorker: assignedWorkerId,
+      assignedWorkerName: null,
+      currentFlock: null,
+      currentOccupancy: 0,
+      isOccupied: false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
+
   Future<ShedModel> getShed(int id) async {
     try {
       final response = await dio.get(ApiConstants.shedDetail(id));
@@ -75,6 +186,16 @@ class ShedDataSource {
     required int capacity,
     int? assignedWorkerId,
   }) async {
+    // Si ya sabemos que no hay conexión, no esperamos al timeout
+    if (!_connectivityService.currentState.isConnected) {
+      return _createShedOffline(
+        name: name,
+        farmId: farmId,
+        capacity: capacity,
+        assignedWorkerId: assignedWorkerId,
+      );
+    }
+
     try {
       final response = await dio.post(
         ApiConstants.sheds,
@@ -89,49 +210,12 @@ class ShedDataSource {
     } catch (e, stackTrace) {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final data = {
-          'name': name,
-          'farm': farmId,
-          'capacity': capacity,
-          if (assignedWorkerId != null) 'assigned_worker': assignedWorkerId,
-        };
-
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.sheds,
-          method: 'POST',
-          data: data,
-          entityType: 'shed',
-        );
-
-        final tempId = -DateTime.now().millisecondsSinceEpoch;
-        final placeholder = ShedModel(
-          id: tempId,
+        return _createShedOffline(
           name: name,
-          farm: farmId,
-          farmName: null,
+          farmId: farmId,
           capacity: capacity,
-          assignedWorker: assignedWorkerId,
-          assignedWorkerName: null,
-          currentFlock: null,
-          currentOccupancy: 0,
-          isOccupied: false,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          assignedWorkerId: assignedWorkerId,
         );
-
-        try {
-          final key = 'sheds_$farmId';
-          final cached = _offlineService.getCachedData(key);
-          if (cached != null && cached is List) {
-            final List updated = List.from(cached);
-            updated.add(placeholder.toJson());
-            await _offlineService.cacheData(key, updated);
-          } else {
-            await _offlineService.cacheData(key, [placeholder.toJson()]);
-          }
-        } catch (_) {}
-
-        return placeholder;
       }
 
       ErrorHandler.logError(
@@ -150,6 +234,17 @@ class ShedDataSource {
     required int capacity,
     int? assignedWorkerId,
   }) async {
+    // Atajo offline para no esperar al timeout
+    if (!_connectivityService.currentState.isConnected) {
+      return _updateShedOffline(
+        id: id,
+        name: name,
+        farmId: farmId,
+        capacity: capacity,
+        assignedWorkerId: assignedWorkerId,
+      );
+    }
+
     try {
       final response = await dio.put(
         ApiConstants.shedDetail(id),
@@ -164,56 +259,12 @@ class ShedDataSource {
     } catch (e, stackTrace) {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final data = {
-          'name': name,
-          'farm': farmId,
-          'capacity': capacity,
-          if (assignedWorkerId != null) 'assigned_worker': assignedWorkerId,
-        };
-
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.shedDetail(id),
-          method: 'PUT',
-          data: data,
-          entityType: 'shed',
-          localId: id,
-        );
-
-        try {
-          final key = 'sheds_$farmId';
-          final cached = _offlineService.getCachedData(key);
-          if (cached != null && cached is List) {
-            final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
-            var changed = false;
-            for (var i = 0; i < updated.length; i++) {
-              final map = updated[i];
-              if (map['id'] == id) {
-                map['name'] = name;
-                map['capacity'] = capacity;
-                if (assignedWorkerId != null) map['assigned_worker'] = assignedWorkerId;
-                map['updated_at'] = DateTime.now().toIso8601String();
-                updated[i] = map;
-                changed = true;
-                break;
-              }
-            }
-            if (changed) await _offlineService.cacheData(key, updated);
-          }
-        } catch (_) {}
-
-        return ShedModel(
+        return _updateShedOffline(
           id: id,
           name: name,
-          farm: farmId,
-          farmName: null,
+          farmId: farmId,
           capacity: capacity,
-          assignedWorker: assignedWorkerId,
-          assignedWorkerName: null,
-          currentFlock: null,
-          currentOccupancy: 0,
-          isOccupied: false,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          assignedWorkerId: assignedWorkerId,
         );
       }
 

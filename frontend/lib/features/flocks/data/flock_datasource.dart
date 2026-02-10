@@ -91,6 +91,19 @@ class FlockDataSource {
     double? initialWeight,
     String? supplier,
   }) async {
+    // Si ya sabemos que no hay conexión, evitamos esperar al timeout de Dio
+    if (!_connectivityService.currentState.isConnected) {
+      return _createFlockOffline(
+        shedId: shedId,
+        breed: breed,
+        initialQuantity: initialQuantity,
+        gender: gender,
+        arrivalDate: arrivalDate,
+        initialWeight: initialWeight,
+        supplier: supplier,
+      );
+    }
+
     try {
       final response = await dio.post(
         ApiConstants.flocks,
@@ -118,60 +131,15 @@ class FlockDataSource {
     } catch (e, stackTrace) {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final data = {
-            'shed': shedId,
-            'breed': breed,
-            'initial_quantity': initialQuantity,
-            'current_quantity': initialQuantity,
-            'gender': gender,
-            'arrival_date': arrivalDate.toIso8601String().split('T')[0],
-            'initial_weight': initialWeight,
-            'supplier': supplier ?? '',
-            'status': 'ACTIVE',
-          };
-          await _offlineService.addToQueue(
-            endpoint: ApiConstants.flocks,
-            method: 'POST',
-            data: data,
-            entityType: 'flock',
-          );
-
-          // Create a local placeholder flock so UI can show it immediately
-          final tempId = -DateTime.now().millisecondsSinceEpoch;
-          final placeholder = FlockModel(
-            id: tempId,
-            shedId: shedId,
-            shedName: null,
-            farmId: 0,
-            farmName: null,
-            breed: breed,
-            initialQuantity: initialQuantity,
-            currentQuantity: initialQuantity,
-            initialWeight: initialWeight,
-            currentWeight: null,
-            gender: gender,
-            arrivalDate: arrivalDate,
-            saleDate: null,
-            supplier: supplier ?? '',
-            status: 'Pending',
-            createdAt: DateTime.now(),
-            updatedAt: null,
-          );
-
-          // Try to append placeholder to cached list for this shed
-          try {
-            final key = 'flocks_all_${shedId}_all';
-            final cached = _offlineService.getCachedData(key);
-            if (cached != null && cached is List) {
-              final List updated = List.from(cached);
-              updated.add(placeholder.toJson());
-              await _offlineService.cacheData(key, updated);
-            } else {
-              await _offlineService.cacheData(key, [placeholder.toJson()]);
-            }
-          } catch (_) {}
-
-          return placeholder;
+        return _createFlockOffline(
+          shedId: shedId,
+          breed: breed,
+          initialQuantity: initialQuantity,
+          gender: gender,
+          arrivalDate: arrivalDate,
+          initialWeight: initialWeight,
+          supplier: supplier,
+        );
       }
 
       ErrorHandler.logError(
@@ -183,6 +151,70 @@ class FlockDataSource {
     }
   }
 
+  Future<FlockModel> _createFlockOffline({
+    required int shedId,
+    required String breed,
+    required int initialQuantity,
+    required String gender,
+    required DateTime arrivalDate,
+    double? initialWeight,
+    String? supplier,
+  }) async {
+    final data = {
+      'shed': shedId,
+      'breed': breed,
+      'initial_quantity': initialQuantity,
+      'current_quantity': initialQuantity,
+      'gender': gender,
+      'arrival_date': arrivalDate.toIso8601String().split('T')[0],
+      'initial_weight': initialWeight,
+      'supplier': supplier ?? '',
+      'status': 'ACTIVE',
+    };
+
+    await _offlineService.addToQueue(
+      endpoint: ApiConstants.flocks,
+      method: 'POST',
+      data: data,
+      entityType: 'flock',
+    );
+
+    final tempId = -DateTime.now().millisecondsSinceEpoch;
+    final placeholder = FlockModel(
+      id: tempId,
+      shedId: shedId,
+      shedName: null,
+      farmId: 0,
+      farmName: null,
+      breed: breed,
+      initialQuantity: initialQuantity,
+      currentQuantity: initialQuantity,
+      initialWeight: initialWeight,
+      currentWeight: null,
+      gender: gender,
+      arrivalDate: arrivalDate,
+      saleDate: null,
+      supplier: supplier ?? '',
+      status: 'Pending',
+      createdAt: DateTime.now(),
+      updatedAt: null,
+    );
+
+    try {
+      final key = 'flocks_all_${shedId}_all';
+      final cached = _offlineService.getCachedData(key);
+      if (cached != null && cached is List) {
+        final List updated = List.from(cached);
+        updated.add(placeholder.toJson());
+        await _offlineService.cacheData(key, updated);
+      } else {
+        await _offlineService.cacheData(key, [placeholder.toJson()]);
+      }
+    } catch (_) {}
+
+    return placeholder;
+  }
+
   Future<FlockModel> updateFlock({
     required int id,
     int? currentQuantity,
@@ -190,6 +222,17 @@ class FlockDataSource {
     String? status,
     DateTime? saleDate,
   }) async {
+    // Short-circuit si sabemos que no hay conexión
+    if (!_connectivityService.currentState.isConnected) {
+      return _updateFlockOffline(
+        id: id,
+        currentQuantity: currentQuantity,
+        currentWeight: currentWeight,
+        status: status,
+        saleDate: saleDate,
+      );
+    }
+
     try {
       final Map<String, dynamic> data = {};
       if (currentQuantity != null) data['current_quantity'] = currentQuantity;
@@ -204,71 +247,13 @@ class FlockDataSource {
     } catch (e, stackTrace) {
       final isConnected = _connectivityService.currentState.isConnected;
       if (!isConnected) {
-        final Map<String, dynamic> data = {};
-        if (currentQuantity != null) data['current_quantity'] = currentQuantity;
-        if (currentWeight != null) data['current_weight'] = currentWeight;
-        if (status != null) data['status'] = status;
-        if (saleDate != null) {
-          data['sale_date'] = saleDate.toIso8601String().split('T')[0];
-        }
-
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.flockDetail(id),
-          method: 'PATCH',
-          data: data,
-          entityType: 'flock',
-          localId: id,
-        );
-
-        // Update cached flocks so UI reflects changes immediately
-        try {
-          final candidates = <String>[
-            'flocks_all_all_all',
-          ];
-          for (final key in candidates) {
-            try {
-              final cached = _offlineService.getCachedData(key);
-              if (cached != null && cached is List) {
-                final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
-                var changed = false;
-                for (var i = 0; i < updated.length; i++) {
-                  final map = updated[i];
-                  if (map['id'] == id) {
-                    data.forEach((k, v) => map[k] = v);
-                    map['status'] = 'Pending';
-                    updated[i] = map;
-                    changed = true;
-                    break;
-                  }
-                }
-                if (changed) await _offlineService.cacheData(key, updated);
-              }
-            } catch (_) {}
-          }
-        } catch (_) {}
-
-        // Return provisional flock model
-        final provisional = FlockModel(
+        return _updateFlockOffline(
           id: id,
-          shedId: data['shed'] ?? 0,
-          shedName: null,
-          farmId: data['farm'] ?? 0,
-          farmName: null,
-          breed: data['breed'] ?? '',
-          initialQuantity: data['initial_quantity'] ?? 0,
-          currentQuantity: data['current_quantity'] ?? data['initial_quantity'] ?? 0,
-          initialWeight: (data['initial_weight'] is num) ? (data['initial_weight'] as num).toDouble() : null,
-          currentWeight: null,
-          gender: data['gender'] ?? 'Mixed',
-          arrivalDate: DateTime.now(),
-          saleDate: null,
-          supplier: data['supplier'] ?? '',
-          status: 'Pending',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          currentQuantity: currentQuantity,
+          currentWeight: currentWeight,
+          status: status,
+          saleDate: saleDate,
         );
-
-        return provisional;
       }
 
       ErrorHandler.logError(
@@ -278,6 +263,78 @@ class FlockDataSource {
       );
       rethrow;
     }
+  }
+
+  Future<FlockModel> _updateFlockOffline({
+    required int id,
+    int? currentQuantity,
+    double? currentWeight,
+    String? status,
+    DateTime? saleDate,
+  }) async {
+    final Map<String, dynamic> data = {};
+    if (currentQuantity != null) data['current_quantity'] = currentQuantity;
+    if (currentWeight != null) data['current_weight'] = currentWeight;
+    if (status != null) data['status'] = status;
+    if (saleDate != null) {
+      data['sale_date'] = saleDate.toIso8601String().split('T')[0];
+    }
+
+    await _offlineService.addToQueue(
+      endpoint: ApiConstants.flockDetail(id),
+      method: 'PATCH',
+      data: data,
+      entityType: 'flock',
+      localId: id,
+    );
+
+    // Update cached flocks so UI reflects changes immediately
+    try {
+      const candidates = <String>['flocks_all_all_all'];
+      for (final key in candidates) {
+        try {
+          final cached = _offlineService.getCachedData(key);
+          if (cached != null && cached is List) {
+            final List updated = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+            var changed = false;
+            for (var i = 0; i < updated.length; i++) {
+              final map = updated[i];
+              if (map['id'] == id) {
+                data.forEach((k, v) => map[k] = v);
+                map['status'] = 'Pending';
+                updated[i] = map;
+                changed = true;
+                break;
+              }
+            }
+            if (changed) await _offlineService.cacheData(key, updated);
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    // Return provisional flock model
+    final provisional = FlockModel(
+      id: id,
+      shedId: data['shed'] ?? 0,
+      shedName: null,
+      farmId: data['farm'] ?? 0,
+      farmName: null,
+      breed: data['breed'] ?? '',
+      initialQuantity: data['initial_quantity'] ?? 0,
+      currentQuantity: data['current_quantity'] ?? data['initial_quantity'] ?? 0,
+      initialWeight: (data['initial_weight'] is num) ? (data['initial_weight'] as num).toDouble() : null,
+      currentWeight: null,
+      gender: data['gender'] ?? 'Mixed',
+      arrivalDate: DateTime.now(),
+      saleDate: null,
+      supplier: data['supplier'] ?? '',
+      status: 'Pending',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    return provisional;
   }
 
   Future<void> deleteFlock(int id) async {

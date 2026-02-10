@@ -42,6 +42,13 @@ class ConnectivityInterceptor extends Interceptor {
   }
 
   @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    // Una respuesta exitosa confirma que el backend está alcanzable
+    _connectivityService.markBackendReachable();
+    super.onResponse(response, handler);
+  }
+
+  @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     // Convertir errores de conexión a mensajes amigables
     if (err.type == DioExceptionType.connectionError ||
