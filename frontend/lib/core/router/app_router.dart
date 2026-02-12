@@ -13,6 +13,8 @@ import '../../features/sheds/presentation/screens/sheds_list_screen.dart';
 import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
 import '../../features/flocks/presentation/screens/weight_records_screen.dart';
 import '../../features/flocks/presentation/screens/mortality_records_screen.dart';
+import '../../features/flocks/presentation/screens/daily_records_screen.dart';
+import '../../features/flocks/presentation/screens/dispatch_records_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_list_screen.dart';
 import '../../features/alarms/presentation/screens/alarms_list_screen.dart';
 import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart';
@@ -265,6 +267,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               final id = int.tryParse(idParam ?? '');
               if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
               return MortalityRecordsScreen(flockId: id);
+            },
+          ),
+          GoRoute(
+            path: ':id/daily-records',
+            name: 'flock-daily-records',
+            builder: (context, state) {
+              final idParam = state.pathParameters['id'];
+              final id = int.tryParse(idParam ?? '');
+              if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
+              return DailyRecordsScreen(flockId: id);
+            },
+          ),
+          GoRoute(
+            path: ':id/dispatches',
+            name: 'flock-dispatches',
+            builder: (context, state) {
+              final idParam = state.pathParameters['id'];
+              final id = int.tryParse(idParam ?? '');
+              if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
+              return DispatchRecordsScreen(flockId: id);
             },
           ),
         ],

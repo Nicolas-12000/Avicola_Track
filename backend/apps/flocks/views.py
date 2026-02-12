@@ -1,19 +1,21 @@
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
 from .models import Flock
 from .serializers import FlockSerializer
 from .permissions import IsAssignedShedWorkerOrFarmAdmin
+from .mixins import RoleFilteredMixin
+from django.utils import timezone
+from apps.alarms.models import Alarm
+from apps.alarms.services import AlarmNotificationService
 
 
-class FlockViewSet(viewsets.ModelViewSet):
+class FlockViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     queryset = Flock.objects.all()
     serializer_class = FlockSerializer
     permission_classes = [permissions.IsAuthenticated, IsAssignedShedWorkerOrFarmAdmin]
+    role_flock_path = 'shed'  # Flock -> shed directamente
 
     def get_queryset(self):
-        user = self.request.user
-        role_name = getattr(getattr(user, 'role', None), 'name', None)
-
-        # Start from all flocks and allow filtering by query params
         qs = Flock.objects.all()
 
         farm_param = self.request.query_params.get('farm')
@@ -37,15 +39,71 @@ class FlockViewSet(viewsets.ModelViewSet):
         if status_param:
             qs = qs.filter(status__iexact=status_param)
 
-        # Apply role-based restrictions
-        if user.is_staff or role_name == 'Administrador Sistema':
-            return qs
-        if role_name == 'Administrador de Granja':
-            return qs.filter(shed__farm__farm_manager=user)
-        if role_name == 'Galponero':
-            return qs.filter(shed__assigned_worker=user)
+        return self.apply_role_filter(qs)
 
-        return Flock.objects.none()
+    @action(detail=True, methods=['post'], url_path='mark-inactive')
+    def mark_inactive(self, request, pk=None):
+        """Marcar un lote como inactivo y notificar a las partes interesadas.
+
+        Permisos: solo `IsAssignedShedWorkerOrFarmAdmin` (ya aplicado a la vista).
+        """
+        flock = self.get_object()
+        # verificar permisos de objeto
+        self.check_object_permissions(request, flock)
+
+        if flock.status == 'INACTIVE':
+            return Response({'detail': 'Lote ya está inactivo'}, status=status.HTTP_200_OK)
+
+        flock.status = 'INACTIVE'
+        flock.save(update_fields=['status'])
+
+        # Crear una alarma/registro de notificación
+        try:
+            alarm = Alarm.objects.create(
+                alarm_type='FLOCK_INACTIVITY',
+                description=f'Lote marcado como inactivo: {str(flock)}',
+                priority='LOW',
+                farm=getattr(flock.shed, 'farm', None),
+                flock=flock,
+                shed=flock.shed,
+                source_type='flock',
+                source_date=timezone.now().date(),
+                source_id=flock.id,
+            )
+        except Exception:
+            alarm = None
+
+        # Recipientes: administrador de granja y galponero asignado
+        recipients = []
+        farm = getattr(flock.shed, 'farm', None)
+        if farm and getattr(farm, 'farm_manager', None):
+            recipients.append(farm.farm_manager)
+
+        if getattr(flock.shed, 'assigned_worker', None):
+            recipients.append(flock.shed.assigned_worker)
+
+        # Evitar duplicados
+        unique_recipients = []
+        seen = set()
+        for r in recipients:
+            if not r:
+                continue
+            if r.id in seen:
+                continue
+            seen.add(r.id)
+            unique_recipients.append(r)
+
+        # Enviar notificaciones directamente usando el servicio existente
+        sent = 0
+        if alarm:
+            for r in unique_recipients:
+                try:
+                    AlarmNotificationService.send_direct_notification(alarm, r)
+                    sent += 1
+                except Exception:
+                    pass
+
+        return Response({'detail': 'Lote marcado como inactivo', 'notifications_sent': sent}, status=status.HTTP_200_OK)
 from django.shortcuts import render
 
 # Create your views here.

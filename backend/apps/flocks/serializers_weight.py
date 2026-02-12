@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import DailyWeightRecord, BreedReference
 
 
-class BreedReferenceSerializer(serializers.ModelSerializer):
+class BreedReferenceMinimalSerializer(serializers.ModelSerializer):
+    """Minimal read-only serializer for breed references (used in weight context)."""
     class Meta:
         model = BreedReference
         fields = ['id', 'breed', 'age_days', 'expected_weight']

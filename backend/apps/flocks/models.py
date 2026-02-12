@@ -3,12 +3,22 @@ from django.utils import timezone
 from django.conf import settings
 
 from apps.farms.models import Shed
-from django.conf import settings
 
 
 class BaseModel(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		abstract = True
+
+
+class SyncableRecordModel(BaseModel):
+	"""Modelo base para registros sincronizables con campos de auditoría comunes."""
+	recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+	client_id = models.CharField(max_length=50, null=True, blank=True)
+	sync_status = models.CharField(max_length=20, default='SYNCED')
+	created_by_device = models.CharField(max_length=100, null=True, blank=True)
 
 	class Meta:
 		abstract = True
@@ -23,6 +33,7 @@ class Flock(BaseModel):
 	]
 	STATUS_CHOICES = [
 		('ACTIVE', 'Activo'),
+		('INACTIVE', 'Inactivo'),
 		('SOLD', 'Vendido'),
 		('FINISHED', 'Terminado'),
 		('TRANSFERRED', 'Transferido'),
@@ -33,6 +44,14 @@ class Flock(BaseModel):
 	initial_quantity = models.PositiveIntegerField()
 	current_quantity = models.PositiveIntegerField()
 	initial_weight = models.DecimalField(max_digits=6, decimal_places=2)
+
+	# Sub-grupos Machos/Hembras
+	initial_quantity_male = models.PositiveIntegerField(default=0, help_text="Cantidad inicial machos")
+	initial_quantity_female = models.PositiveIntegerField(default=0, help_text="Cantidad inicial hembras")
+	current_quantity_male = models.PositiveIntegerField(default=0, help_text="Cantidad actual machos")
+	current_quantity_female = models.PositiveIntegerField(default=0, help_text="Cantidad actual hembras")
+	initial_weight_male = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Peso inicial promedio machos (g)")
+	initial_weight_female = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Peso inicial promedio hembras (g)")
 
 	# Umbrales personalizables por lote (opcionales)
 	weight_alert_low = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
@@ -64,6 +83,24 @@ class Flock(BaseModel):
 		# Auto-setear current_quantity en creación
 		if not self.pk and (self.current_quantity is None or self.current_quantity == 0):
 			self.current_quantity = self.initial_quantity
+		
+		# Auto-setear cantidades male/female en creación
+		if not self.pk:
+			if self.initial_quantity_male == 0 and self.initial_quantity_female == 0:
+				# Si no se especificaron sub-grupos, todo va al género indicado
+				if self.gender == 'M':
+					self.initial_quantity_male = self.initial_quantity
+					self.initial_quantity_female = 0
+				elif self.gender == 'F':
+					self.initial_quantity_male = 0
+					self.initial_quantity_female = self.initial_quantity
+				else:
+					# Mixto: dividir mitad y mitad
+					self.initial_quantity_male = self.initial_quantity // 2
+					self.initial_quantity_female = self.initial_quantity - self.initial_quantity_male
+			if self.current_quantity_male == 0 and self.current_quantity_female == 0:
+				self.current_quantity_male = self.initial_quantity_male
+				self.current_quantity_female = self.initial_quantity_female
 		
 		# Validar capacidad del galpón antes de crear nuevo lote
 		if not self.pk:  # Solo en creación
@@ -126,19 +163,14 @@ class BreedReference(BaseModel):
 		).order_by('-version').first()
 
 
-class DailyWeightRecord(BaseModel):
+class DailyWeightRecord(SyncableRecordModel):
 	flock = models.ForeignKey(Flock, on_delete=models.CASCADE, related_name='weight_records')
 	date = models.DateField()
 	average_weight = models.DecimalField(max_digits=6, decimal_places=2)
 	sample_size = models.PositiveIntegerField(default=10)
-	recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 	expected_weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
 	deviation_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-
-	client_id = models.CharField(max_length=50, null=True, blank=True)
-	sync_status = models.CharField(max_length=20, default='SYNCED')
-	created_by_device = models.CharField(max_length=100, null=True, blank=True)
 
 	class Meta:
 		unique_together = ['flock', 'date']
@@ -226,16 +258,6 @@ class DailyWeightRecord(BaseModel):
 						}
 					)
 
-	def _calculate_expected_weight(self):
-		age_days = (self.date - self.flock.arrival_date).days
-		reference = BreedReference.objects.filter(
-			breed=self.flock.breed,
-			age_days=age_days,
-			is_active=True
-		).order_by('-version').first()
-
-		return reference.expected_weight if reference else None
-
 
 class MortalityCause(BaseModel):
 	"""Catálogo de causas de mortalidad"""
@@ -251,21 +273,17 @@ class MortalityCause(BaseModel):
 	is_active = models.BooleanField(default=True)
 
 
-class MortalityRecord(BaseModel):
+class MortalityRecord(SyncableRecordModel):
 	"""Registro de mortalidad con actualización automática del lote"""
 	flock = models.ForeignKey(Flock, on_delete=models.CASCADE, related_name='mortality_records')
 	date = models.DateField()
 	deaths = models.PositiveIntegerField()
 	cause = models.ForeignKey(MortalityCause, on_delete=models.SET_NULL, null=True, blank=True)
-	recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 	# Campos para análisis
 	temperature = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
 	notes = models.TextField(blank=True)
 
-	client_id = models.CharField(max_length=50, null=True, blank=True)
-	sync_status = models.CharField(max_length=20, default='SYNCED')
-	created_by_device = models.CharField(max_length=100, null=True, blank=True)
 
 	class Meta:
 		unique_together = ['flock', 'date']
@@ -354,3 +372,170 @@ class ReferenceImportLog(BaseModel):
 	updates = models.PositiveIntegerField(default=0)
 	errors = models.PositiveIntegerField(default=0)
 	error_details = models.JSONField(default=list)
+
+
+class DailyRecord(SyncableRecordModel):
+	"""Registro diario consolidado por lote - replica la hoja CONSUMO DIARIO del Excel"""
+	flock = models.ForeignKey(Flock, on_delete=models.CASCADE, related_name='daily_records')
+	date = models.DateField()
+	week_number = models.PositiveIntegerField(help_text="Número de semana desde llegada")
+	day_number = models.PositiveIntegerField(help_text="Día desde llegada (edad)")
+
+	# Mortalidad por sub-grupo
+	mortality_male = models.PositiveIntegerField(default=0)
+	mortality_female = models.PositiveIntegerField(default=0)
+
+	# Salida a proceso (pollos enviados a planta)
+	process_output_male = models.PositiveIntegerField(default=0, help_text="Machos enviados a proceso")
+	process_output_female = models.PositiveIntegerField(default=0, help_text="Hembras enviadas a proceso")
+
+	# Saldo de pollitos (calculado: anterior - mortalidad - salida_proceso)
+	balance_male = models.PositiveIntegerField(default=0, help_text="Saldo pollitos machos")
+	balance_female = models.PositiveIntegerField(default=0, help_text="Saldo pollitos hembras")
+
+	# Consumo de alimento
+	feed_consumed_kg_male = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="KG alimento consumido machos")
+	feed_consumed_kg_female = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="KG alimento consumido hembras")
+	feed_per_bird_gr_male = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="Consumo por pollo machos (gr)")
+	feed_per_bird_gr_female = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="Consumo por pollo hembras (gr)")
+	accumulated_feed_per_bird_gr_male = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="Consumo acumulado por pollo machos (gr)")
+	accumulated_feed_per_bird_gr_female = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="Consumo acumulado por pollo hembras (gr)")
+
+	# Peso
+	weight_male = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Peso promedio machos (gr)")
+	weight_female = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Peso promedio hembras (gr)")
+
+	# Ganancia de peso
+	weekly_weight_gain_male = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Ganancia peso semanal machos (gr)")
+	weekly_weight_gain_female = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Ganancia peso semanal hembras (gr)")
+	daily_avg_weight_gain_male = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Ganancia peso promedio diario machos (gr)")
+	daily_avg_weight_gain_female = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Ganancia peso promedio diario hembras (gr)")
+
+	# Conversión alimenticia
+	feed_conversion_male = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, help_text="Conversión alimenticia machos")
+	feed_conversion_female = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, help_text="Conversión alimenticia hembras")
+
+	# Temperatura ambiente
+	temperature = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+	notes = models.TextField(blank=True)
+
+	class Meta:
+		unique_together = ['flock', 'date']
+		ordering = ['date']
+
+	def __str__(self):
+		return f"Registro {self.flock} - Día {self.day_number} ({self.date})"
+
+	def save(self, *args, **kwargs):
+		# Auto-calcular semana y día desde la fecha de llegada
+		if self.flock and self.date:
+			days_since = (self.date - self.flock.arrival_date).days
+			self.day_number = days_since
+			self.week_number = (days_since // 7) + 1
+
+		# Auto-calcular consumo por pollo
+		if self.balance_male > 0 and self.feed_consumed_kg_male > 0:
+			self.feed_per_bird_gr_male = (self.feed_consumed_kg_male * 1000) / self.balance_male
+		if self.balance_female > 0 and self.feed_consumed_kg_female > 0:
+			self.feed_per_bird_gr_female = (self.feed_consumed_kg_female * 1000) / self.balance_female
+
+		# Auto-calcular conversión alimenticia
+		if self.weight_male and self.accumulated_feed_per_bird_gr_male and self.weight_male > 0:
+			initial_w = float(self.flock.initial_weight_male or self.flock.initial_weight or 0)
+			weight_gain = float(self.weight_male) - initial_w
+			if weight_gain > 0:
+				self.feed_conversion_male = float(self.accumulated_feed_per_bird_gr_male) / weight_gain
+
+		if self.weight_female and self.accumulated_feed_per_bird_gr_female and self.weight_female > 0:
+			initial_w = float(self.flock.initial_weight_female or self.flock.initial_weight or 0)
+			weight_gain = float(self.weight_female) - initial_w
+			if weight_gain > 0:
+				self.feed_conversion_female = float(self.accumulated_feed_per_bird_gr_female) / weight_gain
+
+		# Actualizar cantidades del lote
+		if not kwargs.pop('_skip_flock_update', False):
+			total_mortality = (self.mortality_male or 0) + (self.mortality_female or 0)
+			total_process = (self.process_output_male or 0) + (self.process_output_female or 0)
+			self.flock.current_quantity_male = self.balance_male
+			self.flock.current_quantity_female = self.balance_female
+			self.flock.current_quantity = self.balance_male + self.balance_female
+			self.flock.save(update_fields=['current_quantity', 'current_quantity_male', 'current_quantity_female'])
+
+		super().save(*args, **kwargs)
+
+
+class DispatchRecord(SyncableRecordModel):
+	"""Registro de despacho/pesas - replica la hoja PESAS del Excel"""
+	flock = models.ForeignKey(Flock, on_delete=models.CASCADE, related_name='dispatch_records')
+
+	# Info general despacho
+	dispatch_date = models.DateField()
+	day_number = models.PositiveIntegerField(help_text="Día de edad al despacho")
+	manifest_number = models.CharField(max_length=50, help_text="Número de planilla")
+	shed_name = models.CharField(max_length=50, blank=True, help_text="Galpón")
+
+	# Cantidades despachadas
+	males_count = models.PositiveIntegerField(default=0, help_text="Cantidad machos despachados")
+	females_count = models.PositiveIntegerField(default=0, help_text="Cantidad hembras despachadas")
+	total_birds = models.PositiveIntegerField(help_text="Total pollos despachados")
+
+	# Peso en granja
+	farm_avg_weight = models.DecimalField(max_digits=8, decimal_places=2, help_text="Peso promedio granja (kg)")
+	farm_total_kg = models.DecimalField(max_digits=10, decimal_places=2, help_text="Kilos totales granja")
+
+	# Peso en planta de proceso
+	plant_birds = models.PositiveIntegerField(null=True, blank=True, help_text="Pollos recibidos planta (descontando faltantes)")
+	plant_missing = models.PositiveIntegerField(default=0, help_text="Pollos faltantes en planta")
+	drowned = models.PositiveIntegerField(default=0, help_text="Ahogados en transporte")
+	plant_avg_weight = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True, help_text="Peso promedio planta (kg)")
+	plant_total_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Kilos totales planta")
+	plant_shrinkage_grams = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, help_text="Merma planta (gramos por pollo)")
+
+	# Peso venta
+	sale_birds = models.PositiveIntegerField(null=True, blank=True, help_text="Pollos vendidos")
+	sale_discount_kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Descuento en kilos")
+	sale_total_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Kilos venta")
+	sale_avg_weight = models.DecimalField(max_digits=8, decimal_places=6, null=True, blank=True, help_text="Peso promedio venta (kg)")
+	total_shrinkage_grams = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, help_text="Merma total granja-venta (gramos por pollo)")
+
+	# Observaciones
+	observations = models.TextField(blank=True, help_text="Observaciones del despacho (ej: descuentos por comprador)")
+
+	class Meta:
+		ordering = ['dispatch_date']
+
+	def __str__(self):
+		return f"Despacho {self.manifest_number} - {self.flock} ({self.dispatch_date})"
+
+	def save(self, *args, **kwargs):
+		# Auto-calcular total_birds si no se proporcionó
+		if not self.total_birds:
+			self.total_birds = (self.males_count or 0) + (self.females_count or 0)
+
+		# Auto-calcular day_number
+		if self.flock and self.dispatch_date and not self.day_number:
+			self.day_number = (self.dispatch_date - self.flock.arrival_date).days
+
+		# Auto-calcular merma planta
+		if self.farm_total_kg and self.plant_total_kg and self.plant_birds and self.plant_birds > 0:
+			shrinkage_kg = float(self.farm_total_kg) - float(self.plant_total_kg)
+			self.plant_shrinkage_grams = (shrinkage_kg / self.plant_birds) * 1000
+
+		# Auto-calcular merma total
+		if self.farm_total_kg and self.sale_total_kg and self.total_birds and self.total_birds > 0:
+			total_shrinkage_kg = float(self.farm_total_kg) - float(self.sale_total_kg)
+			self.total_shrinkage_grams = (total_shrinkage_kg / self.total_birds) * 1000
+
+		# Auto-calcular plant_birds
+		if not self.plant_birds and self.total_birds:
+			self.plant_birds = self.total_birds - (self.drowned or 0) - (self.plant_missing or 0)
+
+		# Actualizar el saldo del lote (restar pollos despachados)
+		if not kwargs.pop('_skip_flock_update', False):
+			if not self.pk:  # Solo en creación
+				self.flock.current_quantity = max(0, self.flock.current_quantity - self.total_birds)
+				self.flock.current_quantity_male = max(0, self.flock.current_quantity_male - (self.males_count or 0))
+				self.flock.current_quantity_female = max(0, self.flock.current_quantity_female - (self.females_count or 0))
+				self.flock.save(update_fields=['current_quantity', 'current_quantity_male', 'current_quantity_female'])
+
+		super().save(*args, **kwargs)

@@ -17,6 +17,14 @@ class FlockModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  // Sub-grupos Machos/Hembras
+  final int initialQuantityMale;
+  final int initialQuantityFemale;
+  final int currentQuantityMale;
+  final int currentQuantityFemale;
+  final double? initialWeightMale;
+  final double? initialWeightFemale;
+
   FlockModel({
     required this.id,
     required this.shedId,
@@ -35,6 +43,12 @@ class FlockModel {
     required this.status,
     required this.createdAt,
     this.updatedAt,
+    this.initialQuantityMale = 0,
+    this.initialQuantityFemale = 0,
+    this.currentQuantityMale = 0,
+    this.currentQuantityFemale = 0,
+    this.initialWeightMale,
+    this.initialWeightFemale,
   });
 
   factory FlockModel.fromJson(Map<String, dynamic> json) {
@@ -56,6 +70,12 @@ class FlockModel {
       currentQuantity: json['current_quantity'] as int? ?? 0,
       initialWeight: toDouble(json['initial_weight']),
       currentWeight: toDouble(json['current_weight']),
+      initialQuantityMale: json['initial_quantity_male'] as int? ?? 0,
+      initialQuantityFemale: json['initial_quantity_female'] as int? ?? 0,
+      currentQuantityMale: json['current_quantity_male'] as int? ?? 0,
+      currentQuantityFemale: json['current_quantity_female'] as int? ?? 0,
+      initialWeightMale: toDouble(json['initial_weight_male']),
+      initialWeightFemale: toDouble(json['initial_weight_female']),
       gender: json['gender'] as String? ?? 'Mixed',
       arrivalDate: json['arrival_date'] != null 
           ? DateTime.parse(json['arrival_date'] as String)
@@ -100,6 +120,12 @@ class FlockModel {
       'current_quantity': currentQuantity,
       'initial_weight': initialWeight,
       'current_weight': currentWeight,
+      'initial_quantity_male': initialQuantityMale,
+      'initial_quantity_female': initialQuantityFemale,
+      'current_quantity_male': currentQuantityMale,
+      'current_quantity_female': currentQuantityFemale,
+      'initial_weight_male': initialWeightMale,
+      'initial_weight_female': initialWeightFemale,
       'gender': gender,
       'arrival_date': arrivalDate.toIso8601String().split('T')[0],
       'sale_date': saleDate?.toIso8601String().split('T')[0],
@@ -148,6 +174,12 @@ class FlockModel {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? initialQuantityMale,
+    int? initialQuantityFemale,
+    int? currentQuantityMale,
+    int? currentQuantityFemale,
+    double? initialWeightMale,
+    double? initialWeightFemale,
   }) {
     return FlockModel(
       id: id ?? this.id,
@@ -167,6 +199,12 @@ class FlockModel {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      initialQuantityMale: initialQuantityMale ?? this.initialQuantityMale,
+      initialQuantityFemale: initialQuantityFemale ?? this.initialQuantityFemale,
+      currentQuantityMale: currentQuantityMale ?? this.currentQuantityMale,
+      currentQuantityFemale: currentQuantityFemale ?? this.currentQuantityFemale,
+      initialWeightMale: initialWeightMale ?? this.initialWeightMale,
+      initialWeightFemale: initialWeightFemale ?? this.initialWeightFemale,
     );
   }
 }

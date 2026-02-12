@@ -13,7 +13,6 @@ from .models import DailyWeightRecord, BreedReference
 from .models import SyncConflict
 from .serializers_weight import (
     DailyWeightSerializer,
-    BreedReferenceSerializer,
     BulkSyncRequestSerializer,
     BulkSyncResultSerializer,
     DashboardResponseSerializer,

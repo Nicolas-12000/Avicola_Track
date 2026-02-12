@@ -306,6 +306,24 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                       context.push('/flocks/${flock.id}/mortality');
                     },
                   ),
+                  ListTile(
+                    leading: const Icon(Icons.calendar_month),
+                    title: const Text('Registro Diario'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/flocks/${flock.id}/daily-records');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.local_shipping),
+                    title: const Text('Despachos / Pesas'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/flocks/${flock.id}/dispatches');
+                    },
+                  ),
                 ],
               ),
               actions: [

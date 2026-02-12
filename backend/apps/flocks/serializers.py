@@ -57,10 +57,13 @@ class FlockSerializer(serializers.ModelSerializer):
         model = Flock
         fields = [
             'id', 'arrival_date', 'initial_quantity', 'current_quantity', 'initial_weight',
+            'initial_quantity_male', 'initial_quantity_female',
+            'current_quantity_male', 'current_quantity_female',
+            'initial_weight_male', 'initial_weight_female',
             'weight_alert_low', 'weight_alert_high',
             'breed', 'gender', 'supplier', 'shed', 'status', 'current_age_days', 'survival_rate', 'created_by'
         ]
-        read_only_fields = ['current_quantity', 'status', 'current_age_days', 'survival_rate', 'created_by']
+        read_only_fields = ['current_quantity', 'current_quantity_male', 'current_quantity_female', 'status', 'current_age_days', 'survival_rate', 'created_by']
 
     def validate(self, data):
         shed = data.get('shed')

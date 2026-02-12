@@ -62,6 +62,16 @@ class ApiConstants {
   static String flockMortalityRecords(int flockId) =>
       '$flocks$flockId/mortality-records/';
 
+  // Daily Records (Registro diario consolidado)
+  static const String dailyRecords = '$apiPrefix/daily-records/';
+  static String dailyRecordDetail(int id) => '$dailyRecords$id/';
+  static const String dailyRecordsBulkSync = '${dailyRecords}bulk-sync/';
+  static const String dailyRecordsSummary = '${dailyRecords}summary/';
+
+  // Dispatches (Despachos/Pesas)
+  static const String dispatches = '$apiPrefix/dispatches/';
+  static String dispatchDetail(int id) => '$dispatches$id/';
+
   // Inventory
   static const String inventory = '$apiPrefix/inventory/';
   static String inventoryDetail(int id) => '$inventory$id/';

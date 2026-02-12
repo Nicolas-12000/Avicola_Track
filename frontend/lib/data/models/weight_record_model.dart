@@ -1,3 +1,5 @@
+import '../../core/utils/json_parsers.dart';
+
 class WeightRecordModel {
   final int id;
   final int flockId;
@@ -21,8 +23,8 @@ class WeightRecordModel {
     return WeightRecordModel(
       id: json['id'] as int,
       flockId: json['flock'] as int,
-      averageWeight: _toDouble(json['average_weight']),
-      sampleSize: _toInt(json['sample_size']),
+      averageWeight: JsonParsers.toDouble(json['average_weight']),
+      sampleSize: JsonParsers.toInt(json['sample_size']),
       recordDate: DateTime.parse(json['record_date'] as String),
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -35,28 +37,9 @@ class WeightRecordModel {
       'flock': flockId,
       'average_weight': averageWeight,
       'sample_size': sampleSize,
-      'record_date': recordDate.toIso8601String().split('T')[0],
+      'record_date': JsonParsers.toDateString(recordDate),
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
     };
-  }
-
-  static double _toDouble(dynamic value) {
-    if (value is num) return value.toDouble();
-    if (value is String) {
-      final parsed = double.tryParse(value);
-      if (parsed != null) return parsed;
-    }
-    return 0;
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) {
-      final parsed = int.tryParse(value);
-      if (parsed != null) return parsed;
-    }
-    return 0;
   }
 }
