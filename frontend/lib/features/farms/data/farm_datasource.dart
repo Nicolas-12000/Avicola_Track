@@ -4,6 +4,7 @@ import '../../../data/models/farm_model.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/errors/offline_exceptions.dart';
+import '../../../core/utils/api_helpers.dart';
 
 class FarmDataSource {
   final Dio _dio;
@@ -18,10 +19,7 @@ class FarmDataSource {
       final response = await _dio.get(ApiConstants.farms);
 
       if (response.statusCode == 200) {
-        final responseData = response.data;
-        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
-            ? responseData['results']
-            : responseData;
+        final data = parsePaginatedResponse(response.data);
         // cache
         try {
           await _offlineService.cacheData('farms_all', data);
@@ -194,10 +192,7 @@ class FarmDataSource {
       final response = await _dio.get(ApiConstants.farmSheds(farmId));
 
       if (response.statusCode == 200) {
-        final responseData = response.data;
-        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
-            ? responseData['results']
-            : responseData;
+        final data = parsePaginatedResponse(response.data);
         return data;
       }
 

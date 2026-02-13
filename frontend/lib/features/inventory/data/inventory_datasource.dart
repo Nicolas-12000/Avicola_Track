@@ -5,6 +5,7 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/errors/offline_exceptions.dart';
+import '../../../core/utils/api_helpers.dart';
 
 class InventoryDataSource {
   final Dio dio;
@@ -21,10 +22,7 @@ class InventoryDataSource {
         queryParameters: queryParams,
       );
 
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
-          ? responseData['results']
-          : responseData;
+      final data = parsePaginatedResponse(response.data);
       try {
         final key = 'inventory_${farmId ?? 'all'}';
         await _offlineService.cacheData(key, data);
@@ -382,10 +380,7 @@ class InventoryDataSource {
         queryParameters: queryParams,
       );
       
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
-          ? responseData['results']
-          : responseData;
+      final data = parsePaginatedResponse(response.data);
       return List<Map<String, dynamic>>.from(data);
     } catch (e, stackTrace) {
       ErrorHandler.logError(

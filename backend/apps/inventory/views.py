@@ -16,19 +16,19 @@ from .serializers import (
 )
 from .permissions import CanManageInventory
 from apps.flocks.models import Flock
+from apps.flocks.mixins import RoleFilteredMixin
 
 
-class InventoryViewSet(viewsets.ModelViewSet):
+class InventoryViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     queryset = InventoryItem.objects.all()
     serializer_class = InventoryItemSerializer
     permission_classes = [IsAuthenticated]
+    role_farm_path = 'farm'
+    role_flock_path = None
 
     def get_queryset(self):
-        user = self.request.user
-        # Start from all items and optionally apply query param filters
         qs = InventoryItem.objects.all()
 
-        # Support filtering by farm via query parameter `farm=<id>`
         farm_param = self.request.query_params.get('farm')
         if farm_param:
             try:
@@ -37,15 +37,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
             except (TypeError, ValueError):
                 return InventoryItem.objects.none()
 
-        # Role-based scoping on top of the (possibly filtered) queryset
-        if hasattr(user, 'role') and user.role and user.role.name == 'Administrador Sistema':
-            return qs
-
-        if hasattr(user, 'role') and user.role and user.role.name == 'Administrador de Granja':
-            return qs.filter(farm__farm_manager=user)
-
-        # Default: restrict to user's farms
-        return qs.filter(farm__in=user.farms.all())
+        return self.apply_role_filter(qs)
 
     @action(detail=False, methods=['get'], url_path='stock-alerts')
     def stock_alerts(self, request):

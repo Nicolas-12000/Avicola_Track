@@ -4,6 +4,7 @@ import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
+import '../../../core/utils/api_helpers.dart';
 
 class ShedDataSource {
   final Dio dio;
@@ -20,10 +21,7 @@ class ShedDataSource {
         queryParameters: queryParams,
       );
 
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
-          ? responseData['results'] as List<dynamic>
-          : responseData as List<dynamic>;
+      final data = parsePaginatedResponse(response.data);
 
       // Cache response for offline
       try {

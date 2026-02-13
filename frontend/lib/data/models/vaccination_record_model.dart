@@ -1,3 +1,5 @@
+import '../../core/utils/json_parsers.dart';
+
 class VaccinationRecordModel {
   final int id;
   final int flockId;
@@ -48,10 +50,10 @@ class VaccinationRecordModel {
       appliedBy: json['applied_by'] as int?,
       administrationRoute: json['administration_route'] as String,
         dosage: json['dosage'] != null
-          ? _toDouble(json['dosage'])
+          ? JsonParsers.toDouble(json['dosage'])
           : null,
       dosageUnit: json['dosage_unit'] as String?,
-        birdCount: _toInt(json['bird_count']),
+        birdCount: JsonParsers.toIntNullable(json['bird_count']),
       status: json['status'] as String,
       notes: json['notes'] as String?,
       batchNumber: json['batch_number'] as String?,
@@ -140,20 +142,4 @@ class VaccinationRecordModel {
     return status == 'scheduled' && daysUntil >= 0 && daysUntil <= 7;
   }
 
-  static double _toDouble(dynamic value) {
-    if (value is num) return value.toDouble();
-    if (value is String) {
-      final parsed = double.tryParse(value);
-      if (parsed != null) return parsed;
-    }
-    return 0;
-  }
-
-  static int? _toInt(dynamic value) {
-    if (value == null) return null;
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value);
-    return null;
-  }
 }

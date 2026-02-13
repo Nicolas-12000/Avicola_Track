@@ -1,3 +1,5 @@
+import '../../core/utils/json_parsers.dart';
+
 class DiseaseModel {
   final int id;
   final String name;
@@ -65,9 +67,9 @@ class DiseaseModel {
           .map((e) => e as String)
           .toList(),
       vaccineAvailable: json['vaccine_available'] as String?,
-        incubationPeriodDays: _toInt(json['incubation_period_days']),
-        mortalityRate: _toDouble(json['mortality_rate']),
-        morbidityRate: _toDouble(json['morbidity_rate']),
+        incubationPeriodDays: JsonParsers.toIntNullable(json['incubation_period_days']),
+        mortalityRate: JsonParsers.toDoubleNullable(json['mortality_rate']),
+        morbidityRate: JsonParsers.toDoubleNullable(json['morbidity_rate']),
       imageUrl: json['image_url'] as String?,
       description: json['description'] as String?,
       isNotifiable: json['is_notifiable'] as bool? ?? false,
@@ -166,18 +168,4 @@ class DiseaseModel {
     }
   }
 
-  static double? _toDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value);
-    return null;
-  }
-
-  static int? _toInt(dynamic value) {
-    if (value == null) return null;
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value);
-    return null;
-  }
 }

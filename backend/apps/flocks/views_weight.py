@@ -10,7 +10,7 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 
 from .models import DailyWeightRecord, BreedReference
-from .models import SyncConflict
+from .models import FlockSyncConflict
 from .serializers_weight import (
     DailyWeightSerializer,
     BulkSyncRequestSerializer,
@@ -94,7 +94,7 @@ class DailyWeightViewSet(viewsets.ModelViewSet):
                 }
             else:
                 # Persist conflict for manual resolution
-                conflict = SyncConflict.objects.create(
+                conflict = FlockSyncConflict.objects.create(
                     source='daily_weight',
                     client_id=client_id,
                     payload={

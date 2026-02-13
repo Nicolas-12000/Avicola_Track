@@ -82,12 +82,18 @@ class InventoryItem(models.Model):
 		
 		# Stock normal sin histórico de consumo
 		return {'status': 'NORMAL', 'color': 'green', 'message': f'{current:.1f} {self.unit}'}
+
+	def update_consumption_stats(self, start_date=None, end_date=None):
+		"""Recalcular estadísticas de consumo promedio."""
+		if start_date is None:
+			end_date = timezone.now().date()
+			start_date = end_date - timedelta(days=30)
 		total = self.consumption_records.filter(date__range=[start_date, end_date]).aggregate(
 			total=models.Sum('quantity_consumed')
 		)['total'] or 0
 
-		# Promedio por día
-		self.daily_avg_consumption = float(total) / 30 if total else 0
+		days = (end_date - start_date).days or 1
+		self.daily_avg_consumption = float(total) / days if total else 0
 
 		last = self.consumption_records.order_by('-date').first()
 		if last:

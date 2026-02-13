@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from apps.users.models import Role
+from apps.users.utils import validate_password_policy
 
 User = get_user_model()
 
@@ -28,14 +29,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, password):
-        if len(password) < 8:
-            raise ValidationError("Contraseña debe tener mínimo 8 caracteres")
-        if not re.search(r'[A-Z]', password):
-            raise ValidationError("Debe contener al menos una mayúscula")
-        if not re.search(r'[a-z]', password):
-            raise ValidationError("Debe contener al menos una minúscula")
-        if not re.search(r'\d', password):
-            raise ValidationError("Debe contener al menos un número")
+        validate_password_policy(password)
         return password
 
     def validate(self, data):
@@ -107,17 +101,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         if data.get('new_password') != data.get('new_password_confirm'):
             raise ValidationError('Las contraseñas no coinciden')
 
-        # password policy (same as registration)
-        pwd = data.get('new_password')
-        if len(pwd) < 8:
-            raise ValidationError('Contraseña debe tener mínimo 8 caracteres')
-        import re
-        if not re.search(r'[A-Z]', pwd):
-            raise ValidationError('Debe contener al menos una mayúscula')
-        if not re.search(r'[a-z]', pwd):
-            raise ValidationError('Debe contener al menos una minúscula')
-        if not re.search(r'\d', pwd):
-            raise ValidationError('Debe contener al menos un número')
+        validate_password_policy(data.get('new_password'))
 
         return data
 
@@ -160,17 +144,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         if data.get('new_password') != data.get('new_password_confirm'):
             raise ValidationError({'new_password_confirm': 'Las contraseñas no coinciden'})
 
-        # password policy
-        pwd = data.get('new_password')
-        if len(pwd) < 8:
-            raise ValidationError({'new_password': 'Contraseña debe tener mínimo 8 caracteres'})
-        import re
-        if not re.search(r'[A-Z]', pwd):
-            raise ValidationError({'new_password': 'Debe contener al menos una mayúscula'})
-        if not re.search(r'[a-z]', pwd):
-            raise ValidationError({'new_password': 'Debe contener al menos una minúscula'})
-        if not re.search(r'\d', pwd):
-            raise ValidationError({'new_password': 'Debe contener al menos un número'})
+        validate_password_policy(data.get('new_password'))
 
         return data
 

@@ -5,12 +5,12 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from drf_spectacular.utils import OpenApiExample
 from django.utils import timezone
 
-from .models import SyncConflict
+from .models import FlockSyncConflict
 from .serializers_conflict import SyncConflictSerializer, ResolveConflictSerializer
 
 
 class SyncConflictViewSet(viewsets.ModelViewSet):
-    queryset = SyncConflict.objects.all().order_by('-created_at')
+    queryset = FlockSyncConflict.objects.all().order_by('-created_at')
     # Provide a serializer for schema generation and simple CRUD
     serializer_class = SyncConflictSerializer
 

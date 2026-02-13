@@ -2,15 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
-from apps.farms.models import Farm
-
-
-class BaseModel(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
+from apps.farms.models import Farm, BaseModel
 
 
 class AlarmConfiguration(BaseModel):
@@ -69,6 +61,7 @@ class AlarmConfiguration(BaseModel):
 class Alarm(BaseModel):
     STATUS_CHOICES = [
         ('PENDING', 'Pendiente'),
+        ('ACKNOWLEDGED', 'Atendida'),
         ('RESOLVED', 'Resuelta'),
         ('ESCALATED', 'Escalada'),
     ]

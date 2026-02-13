@@ -6,6 +6,7 @@ import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
+import '../../../core/utils/api_helpers.dart';
 import '../../../core/errors/offline_exceptions.dart';
 
 class FlockDataSource {
@@ -32,10 +33,7 @@ class FlockDataSource {
       );
 
       // Handle paginated response from Django REST Framework
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
-          ? responseData['results'] as List<dynamic>
-          : responseData as List<dynamic>;
+      final data = parsePaginatedResponse(response.data);
           
       // Cache for offline
       try {
@@ -392,10 +390,7 @@ class FlockDataSource {
         queryParameters: {'flock': flockId},
       );
       
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
-          ? responseData['results'] as List<dynamic>
-          : response.data as List<dynamic>;
+      final data = parsePaginatedResponse(response.data);
       
       return data
           .map(
@@ -468,10 +463,7 @@ class FlockDataSource {
         queryParameters: {'flock': flockId},
       );
       
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map<String, dynamic> && responseData.containsKey('results')
-          ? responseData['results'] as List<dynamic>
-          : response.data as List<dynamic>;
+      final data = parsePaginatedResponse(response.data);
       
       return data
           .map(

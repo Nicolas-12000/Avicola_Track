@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/models/user_model.dart';
+import '../../../core/utils/api_helpers.dart';
 
 class UserDataSource {
   final Dio _dio;
@@ -13,10 +14,7 @@ class UserDataSource {
       final response = await _dio.get(ApiConstants.users);
 
       if (response.statusCode == 200) {
-        final responseData = response.data;
-        final List<dynamic> data = responseData is Map && responseData.containsKey('results')
-            ? responseData['results']
-            : responseData;
+        final data = parsePaginatedResponse(response.data);
         return data.map((json) => UserModel.fromJson(json)).toList();
       }
 
@@ -36,12 +34,7 @@ class UserDataSource {
       final response = await _dio.get(ApiConstants.galponeros);
 
       if (response.statusCode == 200) {
-        final responseData = response.data;
-        final List<dynamic> data = responseData is List
-            ? responseData
-            : (responseData is Map && responseData.containsKey('results')
-                ? responseData['results']
-                : []);
+        final data = parsePaginatedResponse(response.data);
         return data.map((json) => UserModel.fromJson(json)).toList();
       }
 

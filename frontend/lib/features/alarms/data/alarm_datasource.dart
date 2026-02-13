@@ -5,6 +5,7 @@ import '../../../core/utils/error_handler.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/errors/offline_exceptions.dart';
+import '../../../core/utils/api_helpers.dart';
 
 class AlarmDataSource {
   final Dio dio;
@@ -29,12 +30,7 @@ class AlarmDataSource {
         queryParameters: queryParams,
       );
 
-      final responseData = response.data;
-      final List<dynamic> data =
-          responseData is Map<String, dynamic> &&
-                  responseData.containsKey('results')
-              ? responseData['results'] as List<dynamic>
-              : responseData as List<dynamic>;
+      final data = parsePaginatedResponse(response.data);
 
       try {
         final key = 'alarms_${farmId ?? 'all'}_${severity ?? 'all'}_${isResolved ?? 'all'}';

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../domain/reports_repository.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/utils/api_helpers.dart';
 
 class ReportsDataSource {
   final Dio dio;
@@ -17,7 +18,7 @@ class ReportsDataSource {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['results'] ?? response.data;
+        final data = parsePaginatedResponse(response.data);
         return data
             .map((json) => Report.fromJson(_mapReportJson(json)))
             .toList();
@@ -126,10 +127,7 @@ class ReportsDataSource {
     try {
       final response = await dio.get(ApiConstants.reportTemplates);
       
-      final responseData = response.data;
-      final List<dynamic> data = responseData is Map && responseData.containsKey('results')
-          ? responseData['results']
-          : responseData;
+      final data = parsePaginatedResponse(response.data);
       
       return data.map((template) {
         return ReportTemplate(

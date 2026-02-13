@@ -104,6 +104,7 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         stats = user_alarms.aggregate(
             total=Count('id'),
             pending=Count('id', filter=dj_models.Q(status='PENDING')),
+            acknowledged=Count('id', filter=dj_models.Q(status='ACKNOWLEDGED')),
             resolved=Count('id', filter=dj_models.Q(status='RESOLVED')),
             escalated=Count('id', filter=dj_models.Q(status='ESCALATED')),
         )
@@ -141,18 +142,19 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def acknowledge(self, request, pk=None):
-        """Marcar alarma como atendida"""
+        """Marcar alarma como atendida (estado intermedio antes de resolver)"""
         alarm = self.get_object()
 
         if alarm.status != 'PENDING':
             return Response({'error': 'Solo se pueden atender alarmas pendientes'}, status=400)
 
-        alarm.status = 'RESOLVED'
+        alarm.status = 'ACKNOWLEDGED'
         alarm.save(update_fields=['status'])
 
-        logger.info(f"Alarm {alarm.id} resolved by {request.user.username}")
+        logger.info(f"Alarm {alarm.id} acknowledged by {request.user.username}")
 
-        return Response({'message': 'Alarma resuelta'})
+        serializer = self.get_serializer(alarm)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['post'], url_path='bulk-acknowledge')
     def bulk_acknowledge(self, request):
@@ -163,17 +165,17 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         user_alarms = self.get_queryset()
         alarms_to_update = user_alarms.filter(id__in=alarm_ids, status='PENDING')
 
-        updated_count = alarms_to_update.update(status='RESOLVED')
+        updated_count = alarms_to_update.update(status='ACKNOWLEDGED')
 
-        return Response({'updated_count': updated_count, 'message': f'{updated_count} alarmas resueltas'})
+        return Response({'updated_count': updated_count, 'message': f'{updated_count} alarmas atendidas'})
 
     @action(detail=True, methods=['post'])
     def resolve(self, request, pk=None):
         """Resolver alarma manualmente"""
         alarm = self.get_object()
 
-        if alarm.status != 'PENDING':
-            return Response({'error': 'Solo se pueden resolver alarmas pendientes'}, status=400)
+        if alarm.status not in ('PENDING', 'ACKNOWLEDGED'):
+            return Response({'error': 'Solo se pueden resolver alarmas pendientes o atendidas'}, status=400)
 
         alarm.status = 'RESOLVED'
         alarm.save(update_fields=['status'])

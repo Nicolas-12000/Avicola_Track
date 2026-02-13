@@ -2,15 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
-from apps.farms.models import Shed
-
-
-class BaseModel(models.Model):
-	created_at = models.DateTimeField(auto_now_add=True)
-	updated_at = models.DateTimeField(auto_now=True)
-
-	class Meta:
-		abstract = True
+from apps.farms.models import Shed, BaseModel
 
 
 class SyncableRecordModel(BaseModel):
@@ -347,8 +339,8 @@ class MortalityRecord(SyncableRecordModel):
 			)
 
 
-class SyncConflict(BaseModel):
-	"""Registro de conflictos detectados durante sincronización offline"""
+class FlockSyncConflict(BaseModel):
+	"""Registro de conflictos detectados durante sincronización offline de flocks"""
 	source = models.CharField(max_length=50)  # e.g. 'daily_weight', 'mortality'
 	client_id = models.CharField(max_length=100, null=True, blank=True)
 	payload = models.JSONField()
@@ -360,6 +352,7 @@ class SyncConflict(BaseModel):
 	flock = models.ForeignKey(Flock, null=True, blank=True, on_delete=models.SET_NULL)
 
 	class Meta:
+		db_table = 'flocks_syncconflict'  # Keep existing table name
 		indexes = [models.Index(fields=['source', 'client_id']), models.Index(fields=['resolved_at'])]
 
 

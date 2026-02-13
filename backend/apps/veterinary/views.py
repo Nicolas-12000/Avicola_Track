@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Q, Count
+from apps.flocks.mixins import RoleFilteredMixin
 from .models import (
     VeterinaryVisit,
     VaccinationRecord,
@@ -21,12 +22,16 @@ from .serializers import (
 )
 
 
-class VeterinaryVisitViewSet(viewsets.ModelViewSet):
+class VeterinaryVisitViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     serializer_class = VeterinaryVisitSerializer
     permission_classes = [IsAuthenticated]
+    role_farm_path = 'farm'
+    role_flock_path = None
     
     def get_queryset(self):
-        queryset = VeterinaryVisit.objects.all().prefetch_related('flocks')
+        queryset = self.apply_role_filter(
+            VeterinaryVisit.objects.all().prefetch_related('flocks')
+        )
         farm_id = self.request.query_params.get('farm_id')
         flock_id = self.request.query_params.get('flock_id')
         status_param = self.request.query_params.get('status')
@@ -69,12 +74,13 @@ class VeterinaryVisitViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class VaccinationRecordViewSet(viewsets.ModelViewSet):
+class VaccinationRecordViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     serializer_class = VaccinationRecordSerializer
     permission_classes = [IsAuthenticated]
+    role_flock_path = 'flock__shed'
     
     def get_queryset(self):
-        queryset = VaccinationRecord.objects.all()
+        queryset = self.apply_role_filter(VaccinationRecord.objects.all())
         flock_id = self.request.query_params.get('flock_id')
         status_param = self.request.query_params.get('status')
         
@@ -113,12 +119,13 @@ class VaccinationRecordViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class MedicationViewSet(viewsets.ModelViewSet):
+class MedicationViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     serializer_class = MedicationSerializer
     permission_classes = [IsAuthenticated]
+    role_flock_path = 'flock__shed'
     
     def get_queryset(self):
-        queryset = Medication.objects.all()
+        queryset = self.apply_role_filter(Medication.objects.all())
         flock_id = self.request.query_params.get('flock_id')
         status_param = self.request.query_params.get('status')
         
@@ -164,6 +171,7 @@ class MedicationViewSet(viewsets.ModelViewSet):
 
 
 class DiseaseViewSet(viewsets.ModelViewSet):
+    """Enfermedades son catálogo global — no necesitan filtrado por rol."""
     queryset = Disease.objects.all()
     serializer_class = DiseaseSerializer
     permission_classes = [IsAuthenticated]
@@ -192,12 +200,14 @@ class DiseaseViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class BiosecurityChecklistViewSet(viewsets.ModelViewSet):
+class BiosecurityChecklistViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     serializer_class = BiosecurityChecklistSerializer
     permission_classes = [IsAuthenticated]
+    role_farm_path = 'farm'
+    role_flock_path = 'shed'
     
     def get_queryset(self):
-        queryset = BiosecurityChecklist.objects.all()
+        queryset = self.apply_role_filter(BiosecurityChecklist.objects.all())
         farm_id = self.request.query_params.get('farm_id')
         shed_id = self.request.query_params.get('shed_id')
         checklist_type = self.request.query_params.get('checklist_type')
