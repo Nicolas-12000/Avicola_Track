@@ -3,8 +3,6 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../data/models/flock_model.dart';
-import '../../../data/models/weight_record_model.dart';
-import '../../../data/models/mortality_record_model.dart';
 import '../data/flock_datasource.dart';
 
 class FlockRepository {
@@ -127,94 +125,6 @@ class FlockRepository {
         message: ErrorHandler.getUserMessage(
           e,
           context: 'Failed to delete flock',
-        ),
-      ));
-    }
-  }
-
-  // Weight Records
-  Future<Either<Failure, List<WeightRecordModel>>> getWeightRecords(
-    int flockId,
-  ) async {
-    try {
-      final records = await dataSource.getWeightRecords(flockId);
-      return Right(records);
-    } catch (e) {
-      return Left(ServerFailure(
-        message: ErrorHandler.getUserMessage(
-          e,
-          context: 'Failed to load weight records',
-        ),
-      ));
-    }
-  }
-
-  Future<Either<Failure, WeightRecordModel>> createWeightRecord({
-    required int flockId,
-    required double averageWeight,
-    required int sampleSize,
-    required DateTime recordDate,
-    String? notes,
-  }) async {
-    try {
-      final record = await dataSource.createWeightRecord(
-        flockId: flockId,
-        averageWeight: averageWeight,
-        sampleSize: sampleSize,
-        recordDate: recordDate,
-        notes: notes,
-      );
-      return Right(record);
-    } catch (e) {
-      return Left(ServerFailure(
-        message: ErrorHandler.getUserMessage(
-          e,
-          context: 'Failed to create weight record',
-        ),
-      ));
-    }
-  }
-
-  // Mortality Records
-  Future<Either<Failure, List<MortalityRecordModel>>> getMortalityRecords(
-    int flockId,
-  ) async {
-    try {
-      final records = await dataSource.getMortalityRecords(flockId);
-      return Right(records);
-    } catch (e) {
-      return Left(ServerFailure(
-        message: ErrorHandler.getUserMessage(
-          e,
-          context: 'Failed to load mortality records',
-        ),
-      ));
-    }
-  }
-
-  Future<Either<Failure, MortalityRecordModel>> createMortalityRecord({
-    required int flockId,
-    required int quantity,
-    required String cause,
-    required DateTime recordDate,
-    double? temperature,
-    String? notes,
-  }) async {
-    try {
-      final record = await dataSource.createMortalityRecord(
-        flockId: flockId,
-        quantity: quantity,
-        cause: cause,
-        recordDate: recordDate,
-        temperature: temperature,
-        notes: notes,
-      );
-      return Right(record);
-    } catch (e) {
-      return Left(ServerFailure(
-        message: ErrorHandler.getUserMessage(
-          e,
-          context: 'Failed to create mortality record',
         ),
       ));
     }

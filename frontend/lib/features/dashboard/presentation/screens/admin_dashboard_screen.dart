@@ -409,21 +409,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
                       onPressed: () {
-                        final farmName =
-                            farmsState.farms.isNotEmpty &&
-                                index < farmsState.farms.length
-                            ? farmsState.farms[index].name
-                            : 'Granja';
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('🏢 Ver detalle de $farmName'),
-                            duration: const Duration(seconds: 2),
-                            action: SnackBarAction(
-                              label: 'Ir a Granjas',
-                              onPressed: () => context.push('/farms'),
-                            ),
-                          ),
-                        );
+                        context.push('/farms/${farm.id}');
                       },
                     ),
                   ],

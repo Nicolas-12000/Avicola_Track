@@ -265,7 +265,7 @@ class _VeterinaryDashboardScreenState
               title: Text('Lote #${visit.flockId}'),
               subtitle: Text(visit.visitType),
               trailing: ElevatedButton(
-                onPressed: () => context.push('/flocks/${visit.flockId}'),
+                onPressed: () => context.push('/veterinary/visits/${visit.id}'),
                 child: const Text('Iniciar'),
               ),
             ),
@@ -332,7 +332,7 @@ class _VeterinaryDashboardScreenState
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () => context.push('/inventory'),
+              onPressed: () => context.push('/alarms'),
               child: const Text('Ver todos'),
             ),
           ],
@@ -387,7 +387,7 @@ class _VeterinaryDashboardScreenState
               title: const Text('Registrar Visita'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to create visit
+                context.push('/veterinary/agenda');
               },
             ),
             ListTile(
@@ -395,7 +395,7 @@ class _VeterinaryDashboardScreenState
               title: const Text('Aplicar Vacuna'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to apply vaccination
+                context.push('/veterinary/agenda');
               },
             ),
             ListTile(
@@ -403,7 +403,7 @@ class _VeterinaryDashboardScreenState
               title: const Text('Prescribir Medicamento'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to prescribe medication
+                context.push('/veterinary/agenda');
               },
             ),
             ListTile(
@@ -411,7 +411,7 @@ class _VeterinaryDashboardScreenState
               title: const Text('Checklist Bioseguridad'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to biosecurity checklist
+                context.push('/veterinary/agenda');
               },
             ),
           ],

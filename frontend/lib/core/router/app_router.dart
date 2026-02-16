@@ -11,8 +11,6 @@ import '../../features/farms/presentation/screens/farm_detail_screen.dart';
 import '../../features/users/presentation/screens/users_list_screen.dart';
 import '../../features/sheds/presentation/screens/sheds_list_screen.dart';
 import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
-import '../../features/flocks/presentation/screens/weight_records_screen.dart';
-import '../../features/flocks/presentation/screens/mortality_records_screen.dart';
 import '../../features/flocks/presentation/screens/daily_records_screen.dart';
 import '../../features/flocks/presentation/screens/dispatch_records_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_list_screen.dart';
@@ -163,8 +161,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'create',
             name: 'create-farm',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Create Farm - TODO'))),
+            redirect: (context, state) => '/farms',
           ),
           GoRoute(
             path: 'dashboard',
@@ -220,18 +217,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'create',
             name: 'create-user',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Create User - TODO'))),
+            redirect: (context, state) => '/users',
           ),
           GoRoute(
             path: ':id',
             name: 'user-detail',
-            builder: (context, state) {
-              final id = state.pathParameters['id'];
-              return Scaffold(
-                body: Center(child: Text('User Detail $id - TODO')),
-              );
-            },
+            redirect: (context, state) => '/users',
           ),
         ],
       ),
@@ -249,24 +240,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'flocks',
         builder: (context, state) => const FlocksListScreen(),
         routes: [
+          // Legacy routes redirect to daily-records
           GoRoute(
             path: ':id/weight',
             name: 'flock-weight',
-            builder: (context, state) {
-              final idParam = state.pathParameters['id'];
-              final id = int.tryParse(idParam ?? '');
-              if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
-              return WeightRecordsScreen(flockId: id);
+            redirect: (context, state) {
+              final id = state.pathParameters['id'];
+              return '/flocks/$id/daily-records';
             },
           ),
           GoRoute(
             path: ':id/mortality',
             name: 'flock-mortality',
-            builder: (context, state) {
-              final idParam = state.pathParameters['id'];
-              final id = int.tryParse(idParam ?? '');
-              if (id == null) return const Scaffold(body: Center(child: Text('ID inválido')));
-              return MortalityRecordsScreen(flockId: id);
+            redirect: (context, state) {
+              final id = state.pathParameters['id'];
+              return '/flocks/$id/daily-records';
             },
           ),
           GoRoute(

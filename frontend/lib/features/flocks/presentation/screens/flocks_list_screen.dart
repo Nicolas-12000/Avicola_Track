@@ -162,7 +162,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<int?>(
-                initialValue: _selectedFarmId,
+                value: _selectedFarmId,
                 decoration: const InputDecoration(
                   labelText: 'Filtrar por Granja',
                   border: InputBorder.none,
@@ -289,26 +289,9 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                   ),
                   const SizedBox(height: 8),
                   ListTile(
-                    leading: const Icon(Icons.monitor_weight),
-                    title: const Text('Registros de Peso'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/flocks/${flock.id}/weight');
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.warning_amber),
-                    title: const Text('Registros de Mortalidad'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/flocks/${flock.id}/mortality');
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.calendar_month),
+                    leading: const Icon(Icons.edit_calendar),
                     title: const Text('Registro Diario'),
+                    subtitle: const Text('Peso, mortalidad, alimento, etc.'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.pop(context);
@@ -529,7 +512,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                 children: [
                   if (widget.shedId == null)
                     DropdownButtonFormField<int>(
-                      initialValue: selectedShedId,
+                      value: selectedShedId,
                       decoration: const InputDecoration(
                         labelText: 'Galpón',
                         border: OutlineInputBorder(),
@@ -568,7 +551,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    initialValue: selectedGender,
+                    value: selectedGender,
                     decoration: const InputDecoration(
                       labelText: 'Género',
                       border: OutlineInputBorder(),

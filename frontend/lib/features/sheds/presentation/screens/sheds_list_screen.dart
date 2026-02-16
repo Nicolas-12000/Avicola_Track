@@ -163,7 +163,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<int?>(
-                initialValue: _selectedFarmId,
+                value: _selectedFarmId,
                 decoration: const InputDecoration(
                   labelText: 'Filtrar por Granja',
                   border: InputBorder.none,
@@ -375,7 +375,7 @@ class _ShedsListScreenState extends ConsumerState<ShedsListScreen> {
               children: [
                 if (widget.farmId == null)
                   DropdownButtonFormField<int>(
-                    initialValue: selectedFarmId,
+                    value: selectedFarmId,
                     decoration: const InputDecoration(
                       labelText: 'Granja',
                       border: OutlineInputBorder(),

@@ -114,7 +114,7 @@ class _FarmDashboardScreenState extends ConsumerState<FarmDashboardScreen> {
                           vertical: 8,
                         ),
                         child: DropdownButtonFormField<int>(
-                          initialValue: selectedFarmId,
+                          value: selectedFarmId,
                           decoration: const InputDecoration(
                             labelText: 'Seleccionar Granja',
                             border: InputBorder.none,

@@ -207,19 +207,19 @@ class _ShedKeeperDashboardScreenState
       children: [
         Expanded(
           child: _buildQuickActionButton(
-            'Peso',
-            Icons.scale,
+            'Registro Diario',
+            Icons.edit_calendar,
             Colors.blue,
-            () => _navigateToWeightRecord(),
+            () => _navigateToDailyRecord(),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildQuickActionButton(
-            'Mortalidad',
-            Icons.trending_down,
-            Colors.red,
-            () => _navigateToMortalityRecord(),
+            'Despachos',
+            Icons.local_shipping,
+            Colors.orange,
+            () => _navigateToDispatches(),
           ),
         ),
         const SizedBox(width: 12),
@@ -572,15 +572,15 @@ class _ShedKeeperDashboardScreenState
     final tasks = <Map<String, dynamic>>[];
     final now = DateTime.now();
 
-    // Check for weight records needed (weekly)
+    // Check for daily records needed
     for (final flock in flocksState.activeFlocks) {
       final daysSinceStart = now.difference(flock.arrivalDate).inDays;
       if (daysSinceStart % 7 == 0) {
         tasks.add({
-          'title': 'Registro de Peso',
-          'description': 'Lote #${flock.id} - Pesaje semanal',
-          'icon': Icons.scale,
-          'action': 'weight',
+          'title': 'Registro Diario',
+          'description': 'Lote #${flock.id} - Pesaje semanal + registro diario',
+          'icon': Icons.edit_calendar,
+          'action': 'daily',
           'flockId': flock.id,
         });
       }
@@ -590,36 +590,80 @@ class _ShedKeeperDashboardScreenState
   }
 
   void _handleTaskAction(Map<String, dynamic> task) {
-    final action = task['action'] as String;
-
-    switch (action) {
-      case 'weight':
-        _navigateToWeightRecord();
-        break;
-      case 'mortality':
-        _navigateToMortalityRecord();
-        break;
-      default:
-        break;
+    final flockId = task['flockId'] as int?;
+    if (flockId != null) {
+      context.push('/flocks/$flockId/daily-records');
+    } else {
+      _navigateToDailyRecord();
     }
   }
 
-  void _navigateToWeightRecord() {
-    context.push('/flocks');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Selecciona un lote para registrar peso'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  void _navigateToDailyRecord() {
+    final flocksState = ref.read(flocksProvider);
+    final activeFlocks = flocksState.activeFlocks;
+
+    if (activeFlocks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay lotes activos')),
+      );
+      return;
+    }
+
+    if (activeFlocks.length == 1) {
+      context.push('/flocks/${activeFlocks.first.id}/daily-records');
+      return;
+    }
+
+    // Multiple flocks: show selector
+    _showFlockSelector('daily-records');
   }
 
-  void _navigateToMortalityRecord() {
-    context.push('/flocks');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Selecciona un lote para registrar mortalidad'),
-        duration: Duration(seconds: 2),
+  void _navigateToDispatches() {
+    final flocksState = ref.read(flocksProvider);
+    final activeFlocks = flocksState.activeFlocks;
+
+    if (activeFlocks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay lotes activos')),
+      );
+      return;
+    }
+
+    if (activeFlocks.length == 1) {
+      context.push('/flocks/${activeFlocks.first.id}/dispatches');
+      return;
+    }
+
+    _showFlockSelector('dispatches');
+  }
+
+  void _showFlockSelector(String subRoute) {
+    final activeFlocks = ref.read(flocksProvider).activeFlocks;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Selecciona un Lote'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: activeFlocks.map((flock) {
+            return ListTile(
+              leading: const Icon(Icons.pets, color: Colors.blue),
+              title: Text('Lote #${flock.id}'),
+              subtitle: Text('${flock.currentQuantity} aves - ${flock.breed}'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                context.push('/flocks/${flock.id}/$subRoute');
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+        ],
       ),
     );
   }
@@ -633,19 +677,21 @@ class _ShedKeeperDashboardScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.scale, color: Colors.blue),
-              title: const Text('Registrar Peso'),
+              leading: const Icon(Icons.edit_calendar, color: Colors.blue),
+              title: const Text('Registro Diario'),
+              subtitle: const Text('Peso, mortalidad, alimento, etc.'),
               onTap: () {
                 Navigator.of(context).pop();
-                _navigateToWeightRecord();
+                _navigateToDailyRecord();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.trending_down, color: Colors.red),
-              title: const Text('Registrar Mortalidad'),
+              leading: const Icon(Icons.local_shipping, color: Colors.orange),
+              title: const Text('Despacho / Pesas'),
+              subtitle: const Text('Registro de envío a planta'),
               onTap: () {
                 Navigator.of(context).pop();
-                _navigateToMortalityRecord();
+                _navigateToDispatches();
               },
             ),
             ListTile(

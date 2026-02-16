@@ -719,12 +719,7 @@ class _FarmSearchDelegate extends SearchDelegate {
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               close(context, null);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('🏢 Seleccionaste: $farmName'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+              context.push('/farms/${farm.id}');
             },
           ),
         );

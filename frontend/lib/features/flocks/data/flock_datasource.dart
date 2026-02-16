@@ -1,13 +1,10 @@
 import 'package:dio/dio.dart';
 import '../../../data/models/flock_model.dart';
-import '../../../data/models/weight_record_model.dart';
-import '../../../data/models/mortality_record_model.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/utils/api_helpers.dart';
-import '../../../core/errors/offline_exceptions.dart';
 
 class FlockDataSource {
   final Dio dio;
@@ -376,158 +373,6 @@ class FlockDataSource {
       ErrorHandler.logError(
         e,
         context: 'Failed to delete flock',
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  // Weight Records
-  Future<List<WeightRecordModel>> getWeightRecords(int flockId) async {
-    try {
-      final response = await dio.get(
-        ApiConstants.dailyWeights,
-        queryParameters: {'flock': flockId},
-      );
-      
-      final data = parsePaginatedResponse(response.data);
-      
-      return data
-          .map(
-            (json) => WeightRecordModel.fromJson(json as Map<String, dynamic>),
-          )
-          .toList();
-    } catch (e, stackTrace) {
-      ErrorHandler.logError(
-        e,
-        context: 'Failed to load weight records',
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  Future<WeightRecordModel> createWeightRecord({
-    required int flockId,
-    required double averageWeight,
-    required int sampleSize,
-    required DateTime recordDate,
-    String? notes,
-  }) async {
-    try {
-      final response = await dio.post(
-        ApiConstants.dailyWeights,
-        data: {
-          'flock': flockId,
-          'average_weight': averageWeight,
-          'sample_size': sampleSize,
-          'record_date': recordDate.toIso8601String().split('T')[0],
-          'notes': notes,
-        },
-      );
-      return WeightRecordModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e, stackTrace) {
-      final isConnected = _connectivityService.currentState.isConnected;
-      if (!isConnected) {
-        final data = {
-          'flock': flockId,
-          'average_weight': averageWeight,
-          'sample_size': sampleSize,
-          'record_date': recordDate.toIso8601String().split('T')[0],
-          'notes': notes,
-        };
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.dailyWeights,
-          method: 'POST',
-          data: data,
-          entityType: 'weight_record',
-          localId: flockId,
-        );
-        throw OfflineQueuedException('Peso encolado para sincronizar');
-      }
-
-      ErrorHandler.logError(
-        e,
-        context: 'Failed to create weight record',
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  // Mortality Records
-  Future<List<MortalityRecordModel>> getMortalityRecords(int flockId) async {
-    try {
-      final response = await dio.get(
-        ApiConstants.mortality,
-        queryParameters: {'flock': flockId},
-      );
-      
-      final data = parsePaginatedResponse(response.data);
-      
-      return data
-          .map(
-            (json) =>
-                MortalityRecordModel.fromJson(json as Map<String, dynamic>),
-          )
-          .toList();
-    } catch (e, stackTrace) {
-      ErrorHandler.logError(
-        e,
-        context: 'Failed to load mortality records',
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  Future<MortalityRecordModel> createMortalityRecord({
-    required int flockId,
-    required int quantity,
-    required String cause,
-    required DateTime recordDate,
-    double? temperature,
-    String? notes,
-  }) async {
-    try {
-      final response = await dio.post(
-        ApiConstants.mortality,
-        data: {
-          'flock': flockId,
-          'quantity': quantity,
-          'cause': cause,
-          'record_date': recordDate.toIso8601String().split('T')[0],
-          'temperature': temperature,
-          'notes': notes,
-        },
-      );
-      return MortalityRecordModel.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-    } catch (e, stackTrace) {
-      final isConnected = _connectivityService.currentState.isConnected;
-      if (!isConnected) {
-        final data = {
-          'flock': flockId,
-          'quantity': quantity,
-          'cause': cause,
-          'record_date': recordDate.toIso8601String().split('T')[0],
-          'temperature': temperature,
-          'notes': notes,
-        };
-        await _offlineService.addToQueue(
-          endpoint: ApiConstants.mortality,
-          method: 'POST',
-          data: data,
-          entityType: 'mortality_record',
-          localId: flockId,
-        );
-        throw OfflineQueuedException('Mortalidad encolada para sincronizar');
-      }
-
-      ErrorHandler.logError(
-        e,
-        context: 'Failed to create mortality record',
         stackTrace: stackTrace,
       );
       rethrow;

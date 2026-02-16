@@ -422,7 +422,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<int>(
-                    initialValue: selectedRoleId,
+                    value: selectedRoleId,
                     decoration: const InputDecoration(
                       labelText: 'Rol',
                       prefixIcon: Icon(Icons.work),
@@ -451,7 +451,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<int?>(
-                    initialValue: selectedFarmId,
+                    value: selectedFarmId,
                     decoration: const InputDecoration(
                       labelText: 'Granja Asignada',
                       prefixIcon: Icon(Icons.business),

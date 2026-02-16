@@ -7,104 +7,42 @@ import '../../../core/providers/offline_provider.dart';
 
 /// Extension para agregar capacidad offline a providers
 extension OfflineCapable on StateNotifierProvider {
-  /// Ejemplo de método para crear registro de peso offline
-  static Future<bool> createWeightRecordOffline({
+  /// Método para crear registro diario offline (unificado: peso + mortalidad + alimento)
+  static Future<bool> createDailyRecordOffline({
     required WidgetRef ref,
     required int flockId,
-    required double weight,
     required DateTime date,
-    int? sampleSize,
+    Map<String, dynamic>? extraFields,
   }) async {
     final isOffline = ref.read(isOfflineModeProvider);
 
     final data = {
       'flock': flockId,
-      'weight': weight,
-      'date': date.toIso8601String().split('T')[0],
-      'sample_size': sampleSize ?? 10,
-    };
-
-    if (isOffline) {
-      // Guardar en cola offline
-      await ref
-          .read(offlineProvider.notifier)
-          .addToQueue(
-            endpoint: ApiConstants.dailyWeights,
-            method: 'POST',
-            data: data,
-            entityType: 'weight_record',
-          );
-
-      // Guardar en caché local (opcional, para mostrar en UI)
-      final localId = DateTime.now().millisecondsSinceEpoch;
-      await ref.read(offlineProvider.notifier).cacheData(
-        'weight_record_$localId',
-        {...data, 'id': localId, 'status': 'pending'},
-      );
-
-      return true;
-    } else {
-      // Online: intentar enviar directamente
-      try {
-        // Aquí iría la llamada normal al provider
-        // await ref.read(flocksProvider.notifier).createWeightRecord(...);
-        return true;
-      } catch (e) {
-        // Si falla, agregar a cola offline
-        await ref
-            .read(offlineProvider.notifier)
-            .addToQueue(
-            endpoint: ApiConstants.dailyWeights,
-              method: 'POST',
-              data: data,
-              entityType: 'weight_record',
-            );
-        return false;
-      }
-    }
-  }
-
-  /// Ejemplo para mortalidad
-  static Future<bool> createMortalityRecordOffline({
-    required WidgetRef ref,
-    required int flockId,
-    required int quantity,
-    required DateTime date,
-    String? cause,
-    String? notes,
-  }) async {
-    final isOffline = ref.read(isOfflineModeProvider);
-
-    final data = {
-      'flock': flockId,
-      'quantity': quantity,
-      'date': date.toIso8601String().split('T')[0],
-      'cause': cause ?? 'Unknown',
-      'notes': notes,
+      'record_date': date.toIso8601String().split('T')[0],
+      ...?extraFields,
     };
 
     if (isOffline) {
       await ref
           .read(offlineProvider.notifier)
           .addToQueue(
-            endpoint: ApiConstants.mortality,
+            endpoint: ApiConstants.dailyRecords,
             method: 'POST',
             data: data,
-            entityType: 'mortality_record',
+            entityType: 'daily_record',
           );
       return true;
     } else {
       try {
-        // Llamada online normal
         return true;
       } catch (e) {
         await ref
             .read(offlineProvider.notifier)
             .addToQueue(
-            endpoint: ApiConstants.mortality,
+            endpoint: ApiConstants.dailyRecords,
               method: 'POST',
               data: data,
-              entityType: 'mortality_record',
+              entityType: 'daily_record',
             );
         return false;
       }

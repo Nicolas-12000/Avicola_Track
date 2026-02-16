@@ -294,7 +294,7 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int?>(
-            initialValue: managers.any((m) => m.id == _selectedManagerId) ? _selectedManagerId : null,
+            value: managers.any((m) => m.id == _selectedManagerId) ? _selectedManagerId : null,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Administrador de granja (opcional)',
@@ -483,7 +483,7 @@ class _FarmDetailScreenState extends ConsumerState<FarmDetailScreen> {
                     ),
                   ),
                 DropdownButtonFormField<int?>(
-                  initialValue: galponeros.any((g) => g.id == selectedGalponeroId)
+                  value: galponeros.any((g) => g.id == selectedGalponeroId)
                       ? selectedGalponeroId
                       : null,
                   isExpanded: true,

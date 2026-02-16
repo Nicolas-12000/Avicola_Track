@@ -3,16 +3,12 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/providers/offline_provider.dart';
 import '../../../../core/services/connectivity_service.dart';
 import '../../../../data/models/flock_model.dart';
-import '../../../../data/models/weight_record_model.dart';
-import '../../../../data/models/mortality_record_model.dart';
 import '../../data/flock_datasource.dart';
 import '../../domain/flock_repository.dart';
 
 // State
 class FlocksState {
   final List<FlockModel> flocks;
-  final List<WeightRecordModel> weightRecords;
-  final List<MortalityRecordModel> mortalityRecords;
   final bool isLoading;
   final bool isLoadingMore;
   final String? error;
@@ -23,8 +19,6 @@ class FlocksState {
 
   FlocksState({
     this.flocks = const [],
-    this.weightRecords = const [],
-    this.mortalityRecords = const [],
     this.isLoading = false,
     this.isLoadingMore = false,
     this.error,
@@ -34,8 +28,6 @@ class FlocksState {
 
   FlocksState copyWith({
     List<FlockModel>? flocks,
-    List<WeightRecordModel>? weightRecords,
-    List<MortalityRecordModel>? mortalityRecords,
     bool? isLoading,
     bool? isLoadingMore,
     String? error,
@@ -44,8 +36,6 @@ class FlocksState {
   }) {
     return FlocksState(
       flocks: flocks ?? this.flocks,
-      weightRecords: weightRecords ?? this.weightRecords,
-      mortalityRecords: mortalityRecords ?? this.mortalityRecords,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
@@ -190,79 +180,6 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
     ) {
       final updatedFlocks = state.flocks.where((f) => f.id != id).toList();
       state = state.copyWith(flocks: updatedFlocks, error: null);
-    });
-  }
-
-  // Weight Records
-  Future<void> loadWeightRecords(int flockId) async {
-    final result = await repository.getWeightRecords(flockId);
-
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (records) => state = state.copyWith(weightRecords: records, error: null),
-    );
-  }
-
-  Future<void> createWeightRecord({
-    required int flockId,
-    required double averageWeight,
-    required int sampleSize,
-    required DateTime recordDate,
-    String? notes,
-  }) async {
-    final result = await repository.createWeightRecord(
-      flockId: flockId,
-      averageWeight: averageWeight,
-      sampleSize: sampleSize,
-      recordDate: recordDate,
-      notes: notes,
-    );
-
-    result.fold((failure) => state = state.copyWith(error: failure.message), (
-      record,
-    ) {
-      state = state.copyWith(
-        weightRecords: [...state.weightRecords, record],
-        error: null,
-      );
-    });
-  }
-
-  // Mortality Records
-  Future<void> loadMortalityRecords(int flockId) async {
-    final result = await repository.getMortalityRecords(flockId);
-
-    result.fold(
-      (failure) => state = state.copyWith(error: failure.message),
-      (records) =>
-          state = state.copyWith(mortalityRecords: records, error: null),
-    );
-  }
-
-  Future<void> createMortalityRecord({
-    required int flockId,
-    required int quantity,
-    required String cause,
-    required DateTime recordDate,
-    double? temperature,
-    String? notes,
-  }) async {
-    final result = await repository.createMortalityRecord(
-      flockId: flockId,
-      quantity: quantity,
-      cause: cause,
-      recordDate: recordDate,
-      temperature: temperature,
-      notes: notes,
-    );
-
-    result.fold((failure) => state = state.copyWith(error: failure.message), (
-      record,
-    ) {
-      state = state.copyWith(
-        mortalityRecords: [...state.mortalityRecords, record],
-        error: null,
-      );
     });
   }
 }

@@ -228,7 +228,7 @@ class _ScheduleVeterinaryVisitScreenState
 
   Widget _buildVeterinarianSelector(List<UserModel> veterinarians) {
     return DropdownButtonFormField<int>(
-      initialValue: _selectedVeterinarianId,
+      value: _selectedVeterinarianId,
       decoration: const InputDecoration(
         labelText: 'Veterinario *',
         prefixIcon: Icon(Icons.medical_services),
@@ -325,7 +325,7 @@ class _ScheduleVeterinaryVisitScreenState
 
   Widget _buildVisitTypeSelector() {
     return DropdownButtonFormField<String>(
-      initialValue: _visitType,
+      value: _visitType,
       decoration: const InputDecoration(
         labelText: 'Tipo de Visita *',
         prefixIcon: Icon(Icons.category),

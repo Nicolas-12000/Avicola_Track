@@ -88,7 +88,7 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
 
                   // Farm Selector
                   DropdownButtonFormField<int>(
-                    initialValue: selectedFarmId,
+                    value: selectedFarmId,
                     decoration: const InputDecoration(
                       labelText: 'Granja',
                       border: OutlineInputBorder(),
