@@ -85,6 +85,7 @@ class FlockDataSource {
     required DateTime arrivalDate,
     double? initialWeight,
     String? supplier,
+    String productionStage = 'GROW_OUT',
   }) async {
     // Si ya sabemos que no hay conexión, evitamos esperar al timeout de Dio
     if (!_connectivityService.currentState.isConnected) {
@@ -96,6 +97,7 @@ class FlockDataSource {
         arrivalDate: arrivalDate,
         initialWeight: initialWeight,
         supplier: supplier,
+        productionStage: productionStage,
       );
     }
 
@@ -112,6 +114,7 @@ class FlockDataSource {
           'initial_weight': initialWeight,
           'supplier': supplier ?? '', // backend no acepta null
           'status': 'ACTIVE', // backend choice
+          'production_stage': productionStage,
         },
       );
       if (response.statusCode == 201) {
@@ -134,6 +137,7 @@ class FlockDataSource {
           arrivalDate: arrivalDate,
           initialWeight: initialWeight,
           supplier: supplier,
+          productionStage: productionStage,
         );
       }
 
@@ -154,6 +158,7 @@ class FlockDataSource {
     required DateTime arrivalDate,
     double? initialWeight,
     String? supplier,
+    String productionStage = 'GROW_OUT',
   }) async {
     final data = {
       'shed': shedId,
@@ -165,6 +170,7 @@ class FlockDataSource {
       'initial_weight': initialWeight,
       'supplier': supplier ?? '',
       'status': 'ACTIVE',
+      'production_stage': productionStage,
     };
 
     await _offlineService.addToQueue(

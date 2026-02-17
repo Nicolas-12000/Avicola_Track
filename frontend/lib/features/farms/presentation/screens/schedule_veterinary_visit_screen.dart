@@ -408,7 +408,7 @@ class _ScheduleVeterinaryVisitScreenState
                   },
                   title: Text('Lote #${flock.id} - ${flock.breed}'),
                   subtitle: Text(
-                    'Edad: ${flock.ageInDays} días - ${flock.birdCount} aves',
+                    'Edad: ${flock.ageInWeeks} sem - ${flock.currentQuantity} aves',
                   ),
                 );
               },

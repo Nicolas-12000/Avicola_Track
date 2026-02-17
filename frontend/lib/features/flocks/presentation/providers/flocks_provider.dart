@@ -129,6 +129,7 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
     required DateTime arrivalDate,
     double? initialWeight,
     String? supplier,
+    String productionStage = 'GROW_OUT',
   }) async {
     final result = await repository.createFlock(
       shedId: shedId,
@@ -138,6 +139,7 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
       arrivalDate: arrivalDate,
       initialWeight: initialWeight,
       supplier: supplier,
+      productionStage: productionStage,
     );
 
     result.fold(

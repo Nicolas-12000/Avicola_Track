@@ -51,7 +51,10 @@ logger = logging.getLogger(__name__)
 class FlockSerializer(serializers.ModelSerializer):
     # Use SerializerMethodField and annotate return types so drf-spectacular can infer schema
     current_age_days = serializers.SerializerMethodField()
+    current_age_weeks = serializers.SerializerMethodField()
     survival_rate = serializers.SerializerMethodField()
+    production_stage_display = serializers.SerializerMethodField()
+    processing_stage_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Flock
@@ -61,9 +64,12 @@ class FlockSerializer(serializers.ModelSerializer):
             'current_quantity_male', 'current_quantity_female',
             'initial_weight_male', 'initial_weight_female',
             'weight_alert_low', 'weight_alert_high',
-            'breed', 'gender', 'supplier', 'shed', 'status', 'current_age_days', 'survival_rate', 'created_by'
+            'breed', 'gender', 'supplier', 'shed', 'status',
+            'production_stage', 'processing_stage',
+            'production_stage_display', 'processing_stage_display',
+            'current_age_days', 'current_age_weeks', 'survival_rate', 'created_by'
         ]
-        read_only_fields = ['current_quantity', 'current_quantity_male', 'current_quantity_female', 'status', 'current_age_days', 'survival_rate', 'created_by']
+        read_only_fields = ['current_quantity', 'current_quantity_male', 'current_quantity_female', 'status', 'current_age_days', 'current_age_weeks', 'survival_rate', 'production_stage_display', 'processing_stage_display', 'created_by']
 
     def validate(self, data):
         shed = data.get('shed')
@@ -174,6 +180,14 @@ class FlockSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_current_age_weeks(self, obj: Flock):
+        """Return the current age in weeks."""
+        try:
+            return obj.current_age_weeks
+        except Exception:
+            return None
+
     @extend_schema_field(OpenApiTypes.NUMBER)
     def get_survival_rate(self, obj: Flock):
         """Return survival rate as a percentage (0-100)."""
@@ -181,3 +195,15 @@ class FlockSerializer(serializers.ModelSerializer):
             return obj.survival_rate
         except Exception:
             return None
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_production_stage_display(self, obj: Flock):
+        """Return the human-readable production stage label."""
+        return obj.get_production_stage_display()
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_processing_stage_display(self, obj: Flock):
+        """Return the human-readable processing stage label."""
+        if obj.processing_stage:
+            return obj.get_processing_stage_display()
+        return None

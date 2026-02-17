@@ -1,3 +1,53 @@
+import 'package:flutter/material.dart';
+
+/// Etapas del proceso de producción avícola.
+enum ProductionStage {
+  breeder('BREEDER', 'Rebaño reproductor', Icons.egg_alt),
+  pulletFarm('PULLET_FARM', 'Granja de pletinas', Icons.house),
+  brooder('BROODER', 'Casa criadora', Icons.heat_pump),
+  hatchery('HATCHERY', 'Criadero', Icons.child_care),
+  growOut('GROW_OUT', 'Granja de engorde', Icons.agriculture),
+  processing('PROCESSING', 'Procesamiento', Icons.factory),
+  distribution('DISTRIBUTION', 'Distribución', Icons.local_shipping);
+
+  final String value;
+  final String label;
+  final IconData icon;
+  const ProductionStage(this.value, this.label, this.icon);
+
+  static ProductionStage fromValue(String? v) =>
+      ProductionStage.values.firstWhere(
+        (e) => e.value == v,
+        orElse: () => ProductionStage.growOut,
+      );
+}
+
+/// Sub-etapas de procesamiento industrial.
+enum ProcessingStage {
+  reception('RECEPTION', 'Recepción y Espera'),
+  hanging('HANGING', 'Colgado'),
+  stunning('STUNNING', 'Aturdimiento y Sacrificio'),
+  bleeding('BLEEDING', 'Desangrado'),
+  scalding('SCALDING', 'Escaldado y Desplumado'),
+  evisceration('EVISCERATION', 'Eviscerado'),
+  postMortem('POST_MORTEM', 'Inspección Post-Mortem'),
+  chilling('CHILLING', 'Enfriamiento'),
+  classification('CLASSIFICATION', 'Clasificación y Empaque'),
+  storage('STORAGE', 'Almacenamiento y Distribución');
+
+  final String value;
+  final String label;
+  const ProcessingStage(this.value, this.label);
+
+  static ProcessingStage? fromValue(String? v) {
+    if (v == null || v.isEmpty) return null;
+    return ProcessingStage.values.firstWhere(
+      (e) => e.value == v,
+      orElse: () => ProcessingStage.reception,
+    );
+  }
+}
+
 class FlockModel {
   final int id;
   final int shedId;
@@ -25,6 +75,10 @@ class FlockModel {
   final double? initialWeightMale;
   final double? initialWeightFemale;
 
+  // Etapas de producción
+  final ProductionStage productionStage;
+  final ProcessingStage? processingStage;
+
   FlockModel({
     required this.id,
     required this.shedId,
@@ -49,6 +103,8 @@ class FlockModel {
     this.currentQuantityFemale = 0,
     this.initialWeightMale,
     this.initialWeightFemale,
+    this.productionStage = ProductionStage.growOut,
+    this.processingStage,
   });
 
   factory FlockModel.fromJson(Map<String, dynamic> json) {
@@ -76,6 +132,8 @@ class FlockModel {
       currentQuantityFemale: json['current_quantity_female'] as int? ?? 0,
       initialWeightMale: toDouble(json['initial_weight_male']),
       initialWeightFemale: toDouble(json['initial_weight_female']),
+      productionStage: ProductionStage.fromValue(json['production_stage'] as String?),
+      processingStage: ProcessingStage.fromValue(json['processing_stage'] as String?),
       gender: json['gender'] as String? ?? 'Mixed',
       arrivalDate: json['arrival_date'] != null 
           ? DateTime.parse(json['arrival_date'] as String)
@@ -126,6 +184,8 @@ class FlockModel {
       'current_quantity_female': currentQuantityFemale,
       'initial_weight_male': initialWeightMale,
       'initial_weight_female': initialWeightFemale,
+      'production_stage': productionStage.value,
+      'processing_stage': processingStage?.value,
       'gender': gender,
       'arrival_date': arrivalDate.toIso8601String().split('T')[0],
       'sale_date': saleDate?.toIso8601String().split('T')[0],
@@ -138,6 +198,11 @@ class FlockModel {
 
   int get ageInDays {
     return DateTime.now().difference(arrivalDate).inDays;
+  }
+
+  int get ageInWeeks {
+    final days = ageInDays;
+    return days > 0 ? (days ~/ 7) + (days % 7 > 0 ? 1 : 0) : 0;
   }
 
   int get deadCount => initialQuantity - currentQuantity;
@@ -180,6 +245,8 @@ class FlockModel {
     int? currentQuantityFemale,
     double? initialWeightMale,
     double? initialWeightFemale,
+    ProductionStage? productionStage,
+    ProcessingStage? processingStage,
   }) {
     return FlockModel(
       id: id ?? this.id,
@@ -205,6 +272,8 @@ class FlockModel {
       currentQuantityFemale: currentQuantityFemale ?? this.currentQuantityFemale,
       initialWeightMale: initialWeightMale ?? this.initialWeightMale,
       initialWeightFemale: initialWeightFemale ?? this.initialWeightFemale,
+      productionStage: productionStage ?? this.productionStage,
+      processingStage: processingStage ?? this.processingStage,
     );
   }
 }

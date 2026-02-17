@@ -54,6 +54,7 @@ class FlockRepository {
     required DateTime arrivalDate,
     double? initialWeight,
     String? supplier,
+    String productionStage = 'GROW_OUT',
   }) async {
     try {
       final flock = await dataSource.createFlock(
@@ -64,6 +65,7 @@ class FlockRepository {
         arrivalDate: arrivalDate,
         initialWeight: initialWeight,
         supplier: supplier,
+        productionStage: productionStage,
       );
       return Right(flock);
     } catch (e) {

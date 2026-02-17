@@ -498,8 +498,13 @@ class _ShedKeeperDashboardScreenState
                       ),
                     ),
                     Text(
-                      '${activeFlock.initialQuantity} aves',
+                      '${activeFlock.currentQuantity} aves · ${activeFlock.ageInWeeks} sem',
                       style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      activeFlock.productionStage.label,
+                      style: TextStyle(fontSize: 10, color: AppColors.primary),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ] else ...[
                     Text(
@@ -650,7 +655,7 @@ class _ShedKeeperDashboardScreenState
             return ListTile(
               leading: const Icon(Icons.pets, color: Colors.blue),
               title: Text('Lote #${flock.id}'),
-              subtitle: Text('${flock.currentQuantity} aves - ${flock.breed}'),
+              subtitle: Text('${flock.currentQuantity} aves · ${flock.ageInWeeks} sem - ${flock.breed}'),
               onTap: () {
                 Navigator.of(ctx).pop();
                 context.push('/flocks/${flock.id}/$subRoute');

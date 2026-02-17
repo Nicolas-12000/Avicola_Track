@@ -282,6 +282,22 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                   ),
                   _buildInfoRow(Icons.biotech, 'Raza', flock.breed),
                   _buildInfoRow(Icons.info_outline, 'Estado', flock.status),
+                  _buildInfoRow(
+                    flock.productionStage.icon,
+                    'Etapa',
+                    flock.productionStage.label,
+                  ),
+                  if (flock.processingStage != null)
+                    _buildInfoRow(
+                      Icons.precision_manufacturing,
+                      'Sub-etapa',
+                      flock.processingStage!.label,
+                    ),
+                  _buildInfoRow(
+                    Icons.calendar_today,
+                    'Edad',
+                    '${flock.ageInWeeks} semanas (${flock.ageInDays} días)',
+                  ),
                   const Divider(height: 24),
                   const Text(
                     'Acciones disponibles:',
@@ -377,13 +393,45 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                 ],
               ),
               const Divider(height: 24),
+              // Etapa de producción
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(flock.productionStage.icon, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      flock.productionStage.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    if (flock.processingStage != null) ...[
+                      const Text(' › ', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        flock.processingStage!.label,
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               Row(
                 children: [
                   Expanded(
                     child: _buildInfoChip(
                       icon: Icons.calendar_today,
                       label: 'Edad',
-                      value: '${flock.ageInDays} días',
+                      value: '${flock.ageInWeeks} sem (${flock.ageInDays}d)',
                     ),
                   ),
                   Expanded(
@@ -495,6 +543,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
 
     int? selectedShedId = flock?.shedId ?? widget.shedId;
     String selectedGender = flock?.gender ?? 'X';
+    ProductionStage selectedStage = flock?.productionStage ?? ProductionStage.growOut;
     DateTime selectedDate = flock?.arrivalDate ?? DateTime.now();
 
     final parentContext = context;
@@ -582,6 +631,29 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
+                  DropdownButtonFormField<ProductionStage>(
+                    value: selectedStage,
+                    decoration: const InputDecoration(
+                      labelText: 'Etapa de producción',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: ProductionStage.values.map((stage) {
+                      return DropdownMenuItem(
+                        value: stage,
+                        child: Row(
+                          children: [
+                            Icon(stage.icon, size: 18),
+                            const SizedBox(width: 8),
+                            Text(stage.label),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) setState(() => selectedStage = value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   ListTile(
                     title: const Text('Fecha de llegada'),
                     subtitle: Text(
@@ -631,6 +703,7 @@ class _FlocksListScreenState extends ConsumerState<FlocksListScreen>
                           supplier: supplierController.text.isEmpty
                               ? null
                               : supplierController.text,
+                          productionStage: selectedStage.value,
                         );
                   }
 

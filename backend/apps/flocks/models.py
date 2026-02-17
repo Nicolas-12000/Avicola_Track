@@ -30,6 +30,27 @@ class Flock(BaseModel):
 		('FINISHED', 'Terminado'),
 		('TRANSFERRED', 'Transferido'),
 	]
+	PRODUCTION_STAGE_CHOICES = [
+		('BREEDER', 'Rebaño reproductor'),
+		('PULLET_FARM', 'Granja de pletinas'),
+		('BROODER', 'Casa criadora'),
+		('HATCHERY', 'Criadero'),
+		('GROW_OUT', 'Granja de engorde'),
+		('PROCESSING', 'Procesamiento'),
+		('DISTRIBUTION', 'Distribución'),
+	]
+	PROCESSING_STAGE_CHOICES = [
+		('RECEPTION', 'Recepción y Espera'),
+		('HANGING', 'Colgado'),
+		('STUNNING', 'Aturdimiento y Sacrificio'),
+		('BLEEDING', 'Desangrado'),
+		('SCALDING', 'Escaldado y Desplumado'),
+		('EVISCERATION', 'Eviscerado'),
+		('POST_MORTEM', 'Inspección Post-Mortem'),
+		('CHILLING', 'Enfriamiento'),
+		('CLASSIFICATION', 'Clasificación y Empaque'),
+		('STORAGE', 'Almacenamiento y Distribución'),
+	]
 
 	# Datos iniciales del lote
 	arrival_date = models.DateField()
@@ -52,6 +73,16 @@ class Flock(BaseModel):
 	gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
 	supplier = models.CharField(max_length=100)
 
+	# Etapa de producción
+	production_stage = models.CharField(
+		max_length=15, choices=PRODUCTION_STAGE_CHOICES, default='GROW_OUT',
+		help_text='Etapa del proceso de producción en la que se encuentra el lote'
+	)
+	processing_stage = models.CharField(
+		max_length=15, choices=PROCESSING_STAGE_CHOICES, null=True, blank=True,
+		help_text='Sub-etapa de procesamiento (solo cuando production_stage=PROCESSING)'
+	)
+
 	# Relaciones
 	shed = models.ForeignKey(Shed, on_delete=models.CASCADE, related_name='flocks')
 	status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='ACTIVE')
@@ -64,6 +95,12 @@ class Flock(BaseModel):
 	@property
 	def current_age_days(self):
 		return (timezone.now().date() - self.arrival_date).days
+
+	@property
+	def current_age_weeks(self):
+		"""Edad del lote en semanas (redondeado hacia arriba)"""
+		days = self.current_age_days
+		return (days // 7) + (1 if days % 7 > 0 else 0) if days > 0 else 0
 
 	@property
 	def survival_rate(self):
