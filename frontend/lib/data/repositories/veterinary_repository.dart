@@ -131,6 +131,28 @@ class VeterinaryRepository {
     }
   }
 
+  Future<Either<Failure, VeterinaryVisitModel>> approveVisit(int id) async {
+    try {
+      final visit = await _dataSource.approveVisit(id);
+      return Right(visit);
+    } on DioException catch (e) {
+      return Left(ServerFailure(message: e.message ?? 'Error al aprobar visita'));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  Future<Either<Failure, VeterinaryVisitModel>> rejectVisit(int id, {String? reason}) async {
+    try {
+      final visit = await _dataSource.rejectVisit(id, reason: reason);
+      return Right(visit);
+    } on DioException catch (e) {
+      return Left(ServerFailure(message: e.message ?? 'Error al rechazar visita'));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
   // ==================== VACCINATIONS ====================
 
   Future<Either<Failure, List<VaccinationRecordModel>>> getVaccinations({

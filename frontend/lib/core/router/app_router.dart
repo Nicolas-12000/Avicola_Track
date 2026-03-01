@@ -15,6 +15,7 @@ import '../../features/flocks/presentation/screens/daily_records_screen.dart';
 import '../../features/flocks/presentation/screens/dispatch_records_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_list_screen.dart';
 import '../../features/alarms/presentation/screens/alarms_list_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/shed_keeper_dashboard_screen.dart';
 import '../../features/reports/presentation/screens/reports_list_screen.dart';
@@ -92,7 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           
           // Galponero solo puede acceder a su dashboard, lotes, inventario y alarmas
           if (userRole.isShedKeeper) {
-            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alarms', '/inventory', '/profile'];
+            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alarms', '/notifications', '/inventory', '/profile'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
             print('🚦 Router: Galponero verificando $location, permitido=$isAllowed');
             if (!isAllowed && location != '/') {
@@ -106,7 +107,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           
           // Veterinario solo puede acceder a veterinary y perfil
           if (userRole.isVeterinarian) {
-            final allowedPaths = ['/veterinary', '/alarms', '/farms', '/profile'];
+            final allowedPaths = ['/veterinary', '/alarms', '/notifications', '/farms', '/profile'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
             if (!isAllowed && location != '/') {
               print('🚦 Router: Veterinario sin acceso a $location -> /veterinary');
@@ -292,6 +293,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/alarms',
         name: 'alarms',
         builder: (context, state) => const AlarmsListScreen(),
+      ),
+      // Notifications Routes
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
 
       // Reports Routes

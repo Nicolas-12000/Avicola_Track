@@ -170,6 +170,44 @@ class VeterinaryDataSource {
     }
   }
 
+  Future<VeterinaryVisitModel> approveVisit(int id) async {
+    try {
+      final response = await _dio.post('/api/veterinary/visits/$id/approve/');
+      return VeterinaryVisitModel.fromJson(response.data);
+    } catch (_) {
+      if (!_isOnline) {
+        await _enqueue(
+          endpoint: '/api/veterinary/visits/$id/approve/',
+          method: 'POST',
+          data: {},
+          entity: 'veterinary_visit',
+          localId: id,
+        );
+        throw OfflineQueuedException('Aprobación de visita encolada');
+      }
+      rethrow;
+    }
+  }
+
+  Future<VeterinaryVisitModel> rejectVisit(int id, {String? reason}) async {
+    try {
+      final response = await _dio.post('/api/veterinary/visits/$id/reject/', data: {'reason': reason});
+      return VeterinaryVisitModel.fromJson(response.data);
+    } catch (_) {
+      if (!_isOnline) {
+        await _enqueue(
+          endpoint: '/api/veterinary/visits/$id/reject/',
+          method: 'POST',
+          data: {'reason': reason},
+          entity: 'veterinary_visit',
+          localId: id,
+        );
+        throw OfflineQueuedException('Rechazo de visita encolado');
+      }
+      rethrow;
+    }
+  }
+
   // ==================== VACCINATIONS ====================
 
   Future<List<VaccinationRecordModel>> getVaccinations({

@@ -85,7 +85,7 @@ class _ShedKeeperDashboardScreenState
                   ),
               ],
             ),
-            onPressed: () => context.push('/alarms'),
+            onPressed: () => context.push('/notifications'),
           ),
         ],
       ),
@@ -394,7 +394,7 @@ class _ShedKeeperDashboardScreenState
               style: const TextStyle(fontSize: 12),
             ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () => context.push('/alarms'),
+            onTap: () => context.push('/notifications'),
           );
         }).toList(),
       ),

@@ -1,5 +1,7 @@
 import logging
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import Farm
 from .serializers import FarmSerializer
 from rest_framework import mixins
@@ -18,6 +20,94 @@ class FarmViewSet(viewsets.ModelViewSet):
     queryset = Farm.objects.all()
     serializer_class = FarmSerializer
     permission_classes = [permissions.IsAuthenticated, IsSystemAdminOrReadOnly]
+
+    @action(detail=True, methods=['post'], url_path='add-veterinarian')
+    def add_veterinarian(self, request, pk=None):
+        """Asignar un veterinario a la granja. Solo Admin Sistema o Admin de Granja (dueño)"""
+        farm = self.get_object()
+        user = request.user
+        role_name = getattr(getattr(user, 'role', None), 'name', None)
+
+        # Permisos: System admin puede, Farm admin sólo si es manager de la granja
+        if not (user.is_staff or role_name == 'Administrador Sistema' or (role_name == 'Administrador de Granja' and farm.farm_manager == user)):
+            return Response({'detail': 'No tienes permisos para asignar veterinarios.'}, status=403)
+
+        vet_id = request.data.get('veterinarian')
+        if not vet_id:
+            return Response({'detail': 'veterinarian id requerido'}, status=400)
+
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            vet = User.objects.get(pk=vet_id)
+        except Exception:
+            return Response({'detail': 'Veterinario no encontrado'}, status=404)
+
+        # Verificar rol del usuario objetivo
+        vet_role = getattr(getattr(vet, 'role', None), 'name', None)
+        if vet_role != 'Veterinario':
+            return Response({'detail': 'El usuario no es un veterinario'}, status=400)
+
+        farm.veterinarians.add(vet)
+        farm.save()
+        logger.info(f"Veterinario {vet.username} asignado a granja {farm.name} por {user.username}")
+
+        # Crear AuditLog sencillo
+        try:
+            from apps.users.models import AuditLog
+            AuditLog.objects.create(
+                actor=user,
+                content_type='farms.Farm',
+                object_id=str(farm.pk),
+                object_repr=str(farm),
+                action='updated',
+                changes={'veterinarian_added': vet.pk}
+            )
+        except Exception:
+            pass
+
+        return Response({'detail': 'Veterinario asignado correctamente'})
+
+    @action(detail=True, methods=['post'], url_path='remove-veterinarian')
+    def remove_veterinarian(self, request, pk=None):
+        """Remover un veterinario de la granja."""
+        farm = self.get_object()
+        user = request.user
+        role_name = getattr(getattr(user, 'role', None), 'name', None)
+
+        if not (user.is_staff or role_name == 'Administrador Sistema' or (role_name == 'Administrador de Granja' and farm.farm_manager == user)):
+            return Response({'detail': 'No tienes permisos para remover veterinarios.'}, status=403)
+
+        vet_id = request.data.get('veterinarian')
+        if not vet_id:
+            return Response({'detail': 'veterinarian id requerido'}, status=400)
+
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            vet = User.objects.get(pk=vet_id)
+        except Exception:
+            return Response({'detail': 'Veterinario no encontrado'}, status=404)
+
+        farm.veterinarians.remove(vet)
+        farm.save()
+        logger.info(f"Veterinario {vet.username} removido de granja {farm.name} por {user.username}")
+
+        # Crear AuditLog sencillo
+        try:
+            from apps.users.models import AuditLog
+            AuditLog.objects.create(
+                actor=user,
+                content_type='farms.Farm',
+                object_id=str(farm.pk),
+                object_repr=str(farm),
+                action='updated',
+                changes={'veterinarian_removed': vet.pk}
+            )
+        except Exception:
+            pass
+
+        return Response({'detail': 'Veterinario removido correctamente'})
 
     @extend_schema(parameters=[OpenApiParameter(name='pk', required=True, type=OpenApiTypes.INT)])
     def retrieve(self, request, *args, **kwargs):
@@ -44,8 +134,6 @@ class FarmViewSet(viewsets.ModelViewSet):
         # Placeholder for setting up defaults (alarms etc.)
         logger.info(f"Nueva granja creada: {farm.name} por {self.request.user}")
         return farm
-from django.shortcuts import render
-
 # Create your views here.
 
 

@@ -59,6 +59,47 @@ class VeterinaryVisitViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(visit)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Marcar una solicitud como aceptada por el veterinario o admin de granja.
+        Esto cambia el estado a 'in_progress' indicando que el veterinario asumió la visita.
+        """
+        visit = self.get_object()
+        user = request.user
+
+        # Permitir aprobar si es el veterinario asignado o admin de granja/system admin
+        role_name = getattr(getattr(user, 'role', None), 'name', None)
+        is_farm_admin = role_name == 'Administrador de Granja' and getattr(visit.farm, 'farm_manager', None) == user
+        if not (user.is_staff or role_name == 'Administrador Sistema' or is_farm_admin or visit.veterinarian == user):
+            return Response({'detail': 'No tienes permisos para aprobar esta visita.'}, status=403)
+
+        visit.status = 'in_progress'
+        visit.save()
+        logger.info(f"Visita {visit.id} aprobada por {user.username}")
+        serializer = self.get_serializer(visit)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Rechazar/cancelar una solicitud de visita."""
+        visit = self.get_object()
+        user = request.user
+
+        role_name = getattr(getattr(user, 'role', None), 'name', None)
+        is_farm_admin = role_name == 'Administrador de Granja' and getattr(visit.farm, 'farm_manager', None) == user
+        if not (user.is_staff or role_name == 'Administrador Sistema' or is_farm_admin or visit.veterinarian == user):
+            return Response({'detail': 'No tienes permisos para rechazar esta visita.'}, status=403)
+
+        visit.status = 'cancelled'
+        # Opcional: almacenar motivo de rechazo si viene en request.data['reason']
+        reason = request.data.get('reason')
+        if reason:
+            visit.notes = (visit.notes or '') + f"\n[Rechazado por {user.username}]: {reason}"
+        visit.save()
+        logger.info(f"Visita {visit.id} rechazada por {user.username}")
+        serializer = self.get_serializer(visit)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['get'], url_path='today_upcoming')
     def today_upcoming(self, request):
         """Obtener visitas de hoy y próximas 7 días"""

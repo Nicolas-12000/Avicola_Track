@@ -69,7 +69,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () {
-              context.push('/alarms');
+              context.push('/notifications');
             },
           ),
           const SizedBox(width: 8),

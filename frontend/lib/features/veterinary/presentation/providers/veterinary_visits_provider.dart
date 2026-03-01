@@ -209,6 +209,36 @@ class VeterinaryVisitsNotifier extends StateNotifier<VeterinaryVisitsState> {
     );
   }
 
+  Future<bool> approveVisit(int id) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _repository.approveVisit(id);
+
+    return result.fold((failure) {
+      state = state.copyWith(isLoading: false, error: failure.message);
+      return false;
+    }, (updatedVisit) {
+      final updated = state.visits.map((v) => v.id == id ? updatedVisit : v).toList();
+      state = state.copyWith(visits: updated, isLoading: false, error: null);
+      return true;
+    });
+  }
+
+  Future<bool> rejectVisit(int id, {String? reason}) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _repository.rejectVisit(id, reason: reason);
+
+    return result.fold((failure) {
+      state = state.copyWith(isLoading: false, error: failure.message);
+      return false;
+    }, (updatedVisit) {
+      final updated = state.visits.map((v) => v.id == id ? updatedVisit : v).toList();
+      state = state.copyWith(visits: updated, isLoading: false, error: null);
+      return true;
+    });
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }

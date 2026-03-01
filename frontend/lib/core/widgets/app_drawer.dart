@@ -396,7 +396,7 @@ class AppDrawer extends ConsumerWidget {
                   badgeColor: Colors.red,
                   onTap: () {
                     Navigator.pop(context);
-                    context.push('/alarms');
+                    context.push('/notifications');
                   },
                 ),
                 

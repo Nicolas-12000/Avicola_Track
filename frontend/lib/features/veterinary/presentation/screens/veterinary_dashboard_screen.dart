@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../providers/veterinary_visits_provider.dart';
 import '../providers/veterinary_other_providers.dart';
+import '../../../farms/presentation/providers/farms_provider.dart';
 
 class VeterinaryDashboardScreen extends ConsumerStatefulWidget {
   const VeterinaryDashboardScreen({super.key});
@@ -15,6 +16,7 @@ class VeterinaryDashboardScreen extends ConsumerStatefulWidget {
 
 class _VeterinaryDashboardScreenState
     extends ConsumerState<VeterinaryDashboardScreen> {
+  int? _selectedFarmId;
   @override
   void initState() {
     super.initState();
@@ -24,8 +26,16 @@ class _VeterinaryDashboardScreenState
   }
 
   Future<void> _loadData() async {
+    // Load farms first (backend returns only assigned farms for veterinarians)
+    await ref.read(farmsProvider.notifier).loadFarms();
+
+    final farms = ref.read(farmsProvider).farms;
+    if (farms.isNotEmpty && _selectedFarmId == null) {
+      _selectedFarmId = farms.first.id;
+    }
+
     await Future.wait([
-      ref.read(veterinaryVisitsProvider.notifier).loadVisits(),
+      ref.read(veterinaryVisitsProvider.notifier).loadVisits(farmId: _selectedFarmId),
       ref.read(vaccinationsProvider.notifier).loadUpcomingVaccinations(7),
       ref.read(medicationsProvider.notifier).loadActiveMedications(),
     ]);
@@ -53,7 +63,7 @@ class _VeterinaryDashboardScreenState
               label: Text('${visitsState.totalOverdue}'),
               child: const Icon(Icons.notifications),
             ),
-            onPressed: () => context.push('/alarms'),
+            onPressed: () => context.push('/notifications'),
           ),
         ],
       ),
@@ -64,6 +74,37 @@ class _VeterinaryDashboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Farm selector for veterinarians
+              Consumer(builder: (context, ref, _) {
+                final farmsState = ref.watch(farmsProvider);
+                if (farmsState.farms.isEmpty) return const SizedBox.shrink();
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Granja activa',
+                      border: OutlineInputBorder(),
+                    ),
+                    initialValue: _selectedFarmId ?? farmsState.farms.first.id,
+                    items: farmsState.farms
+                        .map(
+                          (f) => DropdownMenuItem<int>(
+                            value: f.id,
+                            child: Text(f.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) async {
+                      setState(() => _selectedFarmId = value);
+                      // Reload visits and other data for selected farm
+                      await ref.read(veterinaryVisitsProvider.notifier).loadVisits(farmId: _selectedFarmId);
+                      await ref.read(vaccinationsProvider.notifier).loadUpcomingVaccinations(7);
+                      await ref.read(medicationsProvider.notifier).loadActiveMedications();
+                    },
+                  ),
+                );
+              }),
               // KPIs
               _buildKPIsSection(
                 visitsState,
@@ -81,6 +122,10 @@ class _VeterinaryDashboardScreenState
 
               // Visitas de Hoy
               _buildTodayVisitsSection(visitsState),
+              const SizedBox(height: 20),
+
+              // Solicitudes pendientes (para aprobar/rechazar)
+              _buildPendingRequestsSection(visitsState),
               const SizedBox(height: 20),
 
               // Vacunas Pendientes
@@ -208,21 +253,21 @@ class _VeterinaryDashboardScreenState
               ],
             ),
             const SizedBox(height: 12),
-            if (visitsState.totalOverdue > 0)
+                if (visitsState.totalOverdue > 0)
               ListTile(
                 leading: const Icon(Icons.event_busy, color: Colors.red),
                 title: Text('${visitsState.totalOverdue} visitas atrasadas'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => context.push('/alarms'),
+                onTap: () => context.push('/notifications'),
               ),
-            if (vaccinationsState.totalOverdue > 0)
+                if (vaccinationsState.totalOverdue > 0)
               ListTile(
                 leading: const Icon(Icons.vaccines, color: Colors.red),
                 title: Text(
                   '${vaccinationsState.totalOverdue} vacunas atrasadas',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => context.push('/alarms'),
+                onTap: () => context.push('/notifications'),
               ),
           ],
         ),
@@ -272,6 +317,70 @@ class _VeterinaryDashboardScreenState
               ),
             ),
           ),
+        ),
+      ],
+      );
+  }
+
+  Widget _buildPendingRequestsSection(visitsState) {
+    if (visitsState.pendingVisits.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Solicitudes Pendientes',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ...visitsState.pendingVisits.map(
+          (visit) {
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: visit.isEmergency ? Colors.red : Colors.blue,
+                  child: Icon(
+                    visit.isEmergency ? Icons.emergency : Icons.event,
+                    color: Colors.white,
+                  ),
+                ),
+                title: Text('Granja ${visit.farmId} - ${visit.visitType}'),
+                subtitle: Text(visit.reason ?? 'Sin motivo'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Builder(builder: (btnContext) {
+                      return ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(btnContext);
+                          final ok = await ref.read(veterinaryVisitsProvider.notifier).approveVisit(visit.id);
+                          if (!ok) {
+                            messenger.showSnackBar(const SnackBar(content: Text('Error al aprobar')));
+                          }
+                        },
+                        child: const Text('Aprobar'),
+                      );
+                    }),
+                    const SizedBox(width: 8),
+                    Builder(builder: (btnContext) {
+                      return OutlinedButton(
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(btnContext);
+                          final ok = await ref.read(veterinaryVisitsProvider.notifier).rejectVisit(visit.id);
+                          if (!ok) {
+                            messenger.showSnackBar(const SnackBar(content: Text('Error al rechazar')));
+                          }
+                        },
+                        child: const Text('Rechazar'),
+                      );
+                    }),
+                  ],
+                ),
+                onTap: () => context.push('/veterinary/visits/${visit.id}'),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -334,7 +443,7 @@ class _VeterinaryDashboardScreenState
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () => context.push('/alarms'),
+              onPressed: () => context.push('/notifications'),
               child: const Text('Ver todos'),
             ),
           ],
