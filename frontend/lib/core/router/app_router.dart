@@ -104,9 +104,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
           }
           
-          // Veterinario solo puede acceder a veterinary
+          // Veterinario solo puede acceder a veterinary y perfil
           if (userRole.isVeterinarian) {
-            final allowedPaths = ['/veterinary', '/alarms', '/farms'];
+            final allowedPaths = ['/veterinary', '/alarms', '/farms', '/profile'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
             if (!isAllowed && location != '/') {
               print('🚦 Router: Veterinario sin acceso a $location -> /veterinary');

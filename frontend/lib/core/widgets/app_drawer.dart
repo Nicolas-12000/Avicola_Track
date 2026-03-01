@@ -244,6 +244,61 @@ class AppDrawer extends ConsumerWidget {
                       context.push('/veterinary');
                     },
                   ),
+                // Sección específica para veterinarios: accesos rápidos reutilizando el mismo drawer
+                if (isVeterinarian) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'VETERINARIA',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.calendar_month_outlined,
+                    activeIcon: Icons.calendar_month,
+                    title: 'Agenda',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/veterinary/agenda');
+                    },
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.event,
+                    activeIcon: Icons.event,
+                    title: 'Visitas',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/veterinary/visits');
+                    },
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.vaccines_outlined,
+                    activeIcon: Icons.vaccines,
+                    title: 'Vacunas',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/veterinary/vaccinations');
+                    },
+                  ),
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.medication_outlined,
+                    activeIcon: Icons.medication,
+                    title: 'Medicamentos',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/veterinary/medications');
+                    },
+                  ),
+                ],
 
                 // Calendario de visitas - solo para Administrador de Granja
                 if (isFarmAdmin)
@@ -387,6 +442,18 @@ class AppDrawer extends ConsumerWidget {
             ),
           ),
           
+          // Perfil universal (accesible para todos los usuarios)
+          _buildMenuItem(
+            context: context,
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
+            title: 'Mi Perfil',
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/profile');
+            },
+          ),
+
           // Footer con logout
           Container(
             decoration: BoxDecoration(

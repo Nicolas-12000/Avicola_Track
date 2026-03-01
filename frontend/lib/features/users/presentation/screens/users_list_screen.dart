@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../../core/widgets/error_widget.dart' as app;
 import '../../../../data/models/user_model.dart';
@@ -365,8 +366,8 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                       }
                       if (value != null &&
                           value.isNotEmpty &&
-                          value.length < 6) {
-                        return 'La contraseña debe tener al menos 6 caracteres';
+                          value.length < AppConstants.minPasswordLength) {
+                        return 'La contraseña debe tener al menos ${AppConstants.minPasswordLength} caracteres';
                       }
                       return null;
                     },

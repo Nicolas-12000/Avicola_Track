@@ -320,7 +320,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<int?>(
-                value: inventoryState.selectedFarmId,
+                initialValue: inventoryState.selectedFarmId,
                 decoration: const InputDecoration(
                   labelText: 'Filtrar por Granja',
                   border: OutlineInputBorder(),
@@ -653,7 +653,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       builder: (context, ref, _) {
                         final farmsState = ref.watch(farmsProvider);
                         return DropdownButtonFormField<int>(
-                          value: selectedFarmId,
+                          initialValue: selectedFarmId,
                           decoration: const InputDecoration(
                             labelText: 'Granja',
                             border: OutlineInputBorder(),

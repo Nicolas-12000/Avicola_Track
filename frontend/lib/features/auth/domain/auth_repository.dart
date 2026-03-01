@@ -70,6 +70,20 @@ class AuthRepository {
     }
   }
 
+  Future<UserModel> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final updated = await dataSource.updateProfile(data);
+
+      // Persist updated user data locally
+      final userData = jsonEncode(updated.toJson());
+      await SecureStorage.saveUserData(userData);
+
+      return updated;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<bool> isAuthenticated() async {
     final token = await SecureStorage.getToken();
     return token != null;

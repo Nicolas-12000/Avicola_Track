@@ -48,6 +48,16 @@ class AuthDataSource {
     }
   }
 
+  /// Actualizar perfil del usuario autenticado (PATCH /admin-users/me/)
+  Future<UserModel> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await dio.patch('${ApiConstants.users}me/', data: data);
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   /// Cambiar contraseña del usuario autenticado
   Future<void> changePassword({
     required String currentPassword,

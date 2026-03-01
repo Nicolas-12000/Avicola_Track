@@ -118,10 +118,16 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 		serializer = self.get_serializer(galponeros, many=True)
 		return Response(serializer.data)
 
-	@action(detail=False, methods=['get'])
+	@action(detail=False, methods=['get', 'patch', 'put'])
 	def me(self, request):
-		"""Obtener perfil del usuario autenticado"""
-		serializer = self.get_serializer(request.user)
+		"""Obtener o actualizar el perfil del usuario autenticado"""
+		if request.method == 'GET':
+			serializer = self.get_serializer(request.user)
+			return Response(serializer.data)
+		# Allow partial updates (PATCH/PUT) to current user's profile
+		serializer = self.get_serializer(request.user, data=request.data, partial=True)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
 		return Response(serializer.data)
 
 

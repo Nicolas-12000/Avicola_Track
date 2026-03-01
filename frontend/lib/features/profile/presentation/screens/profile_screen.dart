@@ -5,6 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/data/auth_datasource.dart';
+import '../../../auth/domain/auth_repository.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -127,6 +129,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _buildSectionTitle('Información Personal'),
                   const SizedBox(height: 12),
                   _buildInfoCard([
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(''),
+                        IconButton(
+                          tooltip: 'Editar perfil',
+                          onPressed: user == null ? null : () => _showEditProfileDialog(user),
+                          icon: const Icon(Icons.edit, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
                     _buildInfoRow(
                       icon: Icons.person_outline,
                       label: 'Usuario',
@@ -165,16 +178,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final confirm = await _showLogoutConfirmation();
-                        if (confirm && mounted) {
-                          // Guardar referencia antes del await
-                          final router = GoRouter.of(context);
+                          final confirm = await _showLogoutConfirmation();
+                          if (!confirm) return;
+
                           await ref.read(authProvider.notifier).logout();
-                          if (mounted) {
-                            router.go('/login');
-                          }
-                        }
-                      },
+                          if (!mounted) return;
+
+                          GoRouter.of(context).go('/login');
+                        },
                       icon: const Icon(Icons.logout, color: Colors.red),
                       label: const Text(
                         'Cerrar Sesión',
@@ -205,6 +216,95 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 32),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(user) {
+    final usernameController = TextEditingController(text: user.username);
+    final emailController = TextEditingController(text: user.email);
+    final phoneController = TextEditingController(text: user.phone);
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Editar Perfil'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Usuario',
+                      helperText: 'No se puede cambiar. Contacta al administrador',
+                    ),
+                    enabled: false,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'Correo'),
+                    validator: (v) {
+                      if (v?.isEmpty ?? true) return 'Requerido';
+                      if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}").hasMatch(v!)) return 'Correo inválido';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Teléfono'),
+                    validator: (v) => (v?.isEmpty ?? true) ? 'Requerido' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: isLoading ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() => isLoading = true);
+                      // Capture navigator and messenger before async gaps
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      try {
+                        final repo = ref.read(authRepositoryProvider);
+                        await repo.updateProfile({
+                          'username': usernameController.text.trim(),
+                          'email': emailController.text.trim(),
+                          'phone': phoneController.text.trim(),
+                        });
+
+                        // Refresh auth state to reflect updated user
+                        await ref.read(authProvider.notifier).checkAuth();
+
+                        if (mounted) {
+                          navigator.pop();
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('Perfil actualizado'), backgroundColor: Colors.green),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        final msg = e.toString().replaceAll('Exception: ', '');
+                        messenger.showSnackBar(SnackBar(content: Text(msg)));
+                      }
+                    },
+              child: isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Guardar'),
             ),
           ],
         ),
@@ -463,16 +563,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   TextFormField(
                     controller: newPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nueva Contraseña',
                       prefixIcon: Icon(Icons.lock),
                       border: OutlineInputBorder(),
-                      helperText: 'Mín. 8 caracteres, mayúscula, minúscula y número',
+                      helperText: 'Mín. ${AppConstants.minPasswordLength} caracteres, mayúscula, minúscula y número',
                       helperMaxLines: 2,
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) return 'Requerido';
-                      if (value!.length < 8) return 'Mínimo 8 caracteres';
+                      if (value!.length < AppConstants.minPasswordLength) return 'Mínimo ${AppConstants.minPasswordLength} caracteres';
                       if (!RegExp(r'[A-Z]').hasMatch(value)) {
                         return 'Debe contener una mayúscula';
                       }

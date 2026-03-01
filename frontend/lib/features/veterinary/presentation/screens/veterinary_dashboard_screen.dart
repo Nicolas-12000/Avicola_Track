@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../providers/veterinary_visits_provider.dart';
 import '../providers/veterinary_other_providers.dart';
 
@@ -37,6 +38,7 @@ class _VeterinaryDashboardScreenState
     final medicationsState = ref.watch(medicationsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Dashboard Veterinario'),
         actions: [
