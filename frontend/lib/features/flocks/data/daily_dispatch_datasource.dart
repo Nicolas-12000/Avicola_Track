@@ -16,12 +16,15 @@ class DailyRecordDataSource {
     String? dateFrom,
     String? dateTo,
     int? week,
+    int? page,
+    int pageSize = 20,
   }) async {
     try {
-      final Map<String, dynamic> queryParams = {'flock': flockId};
+      final Map<String, dynamic> queryParams = {'flock': flockId, 'page_size': pageSize};
       if (dateFrom != null) queryParams['date_from'] = dateFrom;
       if (dateTo != null) queryParams['date_to'] = dateTo;
       if (week != null) queryParams['week'] = week;
+      if (page != null) queryParams['page'] = page;
 
       final response = await dio.get(
         ApiConstants.dailyRecords,
@@ -89,12 +92,15 @@ class DispatchDataSource {
     int? flockId,
     String? dateFrom,
     String? dateTo,
+    int? page,
+    int pageSize = 20,
   }) async {
     try {
-      final Map<String, dynamic> queryParams = {};
+      final Map<String, dynamic> queryParams = {'page_size': pageSize};
       if (flockId != null) queryParams['flock'] = flockId;
       if (dateFrom != null) queryParams['date_from'] = dateFrom;
       if (dateTo != null) queryParams['date_to'] = dateTo;
+      if (page != null) queryParams['page'] = page;
 
       final response = await dio.get(
         ApiConstants.dispatches,

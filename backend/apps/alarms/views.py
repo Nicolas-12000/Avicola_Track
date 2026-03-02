@@ -40,23 +40,35 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         role_name = getattr(user.role, 'name', None)
 
         if role_name == 'Administrador Sistema':
-            queryset = Alarm.objects.all()
+            queryset = Alarm.objects.select_related(
+                'farm', 'flock', 'flock__shed', 'shed', 'inventory_item',
+                'configuration', 'resolved_by'
+            ).all()
         elif role_name == 'Administrador de Granja':
-            queryset = Alarm.objects.filter(
+            queryset = Alarm.objects.select_related(
+                'farm', 'flock', 'flock__shed', 'shed', 'inventory_item',
+                'configuration', 'resolved_by'
+            ).filter(
                 dj_models.Q(flock__shed__farm__farm_manager=user) |
                 dj_models.Q(inventory_item__farm__farm_manager=user) |
                 dj_models.Q(shed__farm__farm_manager=user) |
                 dj_models.Q(farm__farm_manager=user)
             )
         elif role_name == 'Galponero':
-            queryset = Alarm.objects.filter(
+            queryset = Alarm.objects.select_related(
+                'farm', 'flock', 'flock__shed', 'shed', 'inventory_item',
+                'configuration', 'resolved_by'
+            ).filter(
                 dj_models.Q(flock__shed__assigned_worker=user) |
                 dj_models.Q(shed__assigned_worker=user)
             )
         elif role_name == 'Veterinario':
             assigned_farms = getattr(user, 'assigned_farms', None)
             if assigned_farms is not None:
-                queryset = Alarm.objects.filter(
+                queryset = Alarm.objects.select_related(
+                    'farm', 'flock', 'flock__shed', 'shed', 'inventory_item',
+                    'configuration', 'resolved_by'
+                ).filter(
                     dj_models.Q(flock__shed__farm__in=assigned_farms.all()) |
                     dj_models.Q(inventory_item__farm__in=assigned_farms.all()) |
                     dj_models.Q(shed__farm__in=assigned_farms.all()) |
@@ -219,27 +231,21 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet para consultar notificaciones del usuario autenticado"""
+class NotificationLogViewSet(viewsets.ModelViewSet):
+    """ViewSet para consultar, marcar como leída y eliminar notificaciones del usuario autenticado"""
     serializer_class = NotificationLogSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        """Solo notificaciones del usuario actual"""
-        return NotificationLog.objects.filter(
+        """Solo notificaciones visibles del usuario actual (excluye borradas y leídas > 30 días)"""
+        return NotificationLog.objects.visible().filter(
             recipient=self.request.user
         ).select_related('alarm', 'recipient').order_by('-created_at')
     
     @action(detail=False, methods=['get'])
     def unread(self, request):
-        """Obtener notificaciones no leídas (creadas en últimas 24h)"""
-        from datetime import timedelta
-        
-        cutoff_time = timezone.now() - timedelta(hours=24)
-        notifications = self.get_queryset().filter(
-            created_at__gte=cutoff_time,
-            status='SENT'
-        )
+        """Obtener notificaciones no leídas (sin read_at)"""
+        notifications = self.get_queryset().filter(read_at__isnull=True)
         
         serializer = self.get_serializer(notifications, many=True)
         return Response({
@@ -249,17 +255,49 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'])
     def recent(self, request):
-        """Obtener notificaciones recientes (últimos 7 días)"""
-        from datetime import timedelta
+        """Obtener notificaciones recientes paginadas.
         
-        cutoff_time = timezone.now() - timedelta(days=7)
-        notifications = self.get_queryset().filter(
-            created_at__gte=cutoff_time
-        )[:50]  # Límite de 50
+        Query params:
+          - page_size (default 5)
+          - page (default 1)
+        """
+        page_size = min(int(request.query_params.get('page_size', 5)), 50)
+        page = max(int(request.query_params.get('page', 1)), 1)
+        offset = (page - 1) * page_size
+
+        qs = self.get_queryset()
+        total = qs.count()
+        notifications = qs[offset:offset + page_size]
         
         serializer = self.get_serializer(notifications, many=True)
         return Response({
-            'count': notifications.count(),
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'has_next': (offset + page_size) < total,
             'notifications': serializer.data
         })
+    
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        """Marcar una notificación como leída"""
+        notification = self.get_object()
+        if notification.read_at is None:
+            notification.read_at = timezone.now()
+            notification.save(update_fields=['read_at'])
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'], url_path='mark-all-read')
+    def mark_all_read(self, request):
+        """Marcar todas las notificaciones no leídas como leídas"""
+        updated = self.get_queryset().filter(read_at__isnull=True).update(read_at=timezone.now())
+        return Response({'updated': updated})
+    
+    def destroy(self, request, *args, **kwargs):
+        """Soft-delete: marcar como eliminada en vez de borrar de la BD"""
+        notification = self.get_object()
+        notification.is_deleted = True
+        notification.save(update_fields=['is_deleted'])
+        return Response(status=204)
 

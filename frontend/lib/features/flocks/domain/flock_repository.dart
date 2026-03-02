@@ -14,12 +14,16 @@ class FlockRepository {
     int? farmId,
     int? shedId,
     String? status,
+    int? page,
+    int pageSize = 20,
   }) async {
     try {
       final flocks = await dataSource.getFlocks(
         farmId: farmId,
         shedId: shedId,
         status: status,
+        page: page,
+        pageSize: pageSize,
       );
       return Right(flocks);
     } catch (e) {

@@ -129,11 +129,16 @@ class InventoryItem(models.Model):
 		if float(self.current_stock) < float(quantity_to_consume):
 			raise ValidationError(f"Stock insuficiente. Disponible: {self.current_stock}, Solicitado: {quantity_to_consume}")
 		
-		# Obtener lotes ordenados por fecha (FIFO)
-		batches = self.food_batches.filter(current_quantity__gt=0).order_by('entry_date')
+		# Obtener lotes ordenados por fecha (FIFO) with row-level locking
+		batches = list(
+			self.food_batches.filter(current_quantity__gt=0)
+			.order_by('entry_date')
+			.select_for_update()
+		)
 		
 		remaining_to_consume = float(quantity_to_consume)
 		fifo_details = []
+		updated_batches = []
 		
 		for batch in batches:
 			if remaining_to_consume <= 0:
@@ -142,9 +147,9 @@ class InventoryItem(models.Model):
 			batch_available = float(batch.current_quantity)
 			consume_from_batch = min(remaining_to_consume, batch_available)
 			
-			# Actualizar lote
+			# Update batch in memory
 			batch.current_quantity -= consume_from_batch
-			batch.save()
+			updated_batches.append(batch)
 			
 			# Registrar detalle FIFO
 			fifo_details.append({
@@ -155,6 +160,10 @@ class InventoryItem(models.Model):
 			})
 			
 			remaining_to_consume -= consume_from_batch
+		
+		# Bulk update all batches at once instead of individual saves
+		if updated_batches:
+			FoodBatch.objects.bulk_update(updated_batches, ['current_quantity'])
 		
 		# Actualizar stock total
 		self.current_stock -= quantity_to_consume
@@ -240,7 +249,7 @@ class FoodConsumptionRecord(models.Model):
 		super().save(*args, **kwargs)
 		# Actualizar métricas del item de inventario
 		try:
-			self.inventory_item.update_consumption_metrics()
+			self.inventory_item.update_consumption_stats()
 		except Exception:
 			pass
 
@@ -258,7 +267,7 @@ class InventoryConsumptionRecord(models.Model):
 		super().save(*args, **kwargs)
 		# Después de guardar, actualizar métricas en el item
 		try:
-			self.inventory_item.update_consumption_metrics()
+			self.inventory_item.update_consumption_stats()
 		except Exception:
 			pass
 

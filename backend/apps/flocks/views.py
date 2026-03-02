@@ -16,7 +16,7 @@ class FlockViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     role_flock_path = 'shed'  # Flock -> shed directamente
 
     def get_queryset(self):
-        qs = Flock.objects.all()
+        qs = Flock.objects.select_related('shed', 'shed__farm', 'shed__assigned_worker', 'created_by').all()
 
         farm_param = self.request.query_params.get('farm')
         shed_param = self.request.query_params.get('shed')

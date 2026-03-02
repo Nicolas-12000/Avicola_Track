@@ -17,12 +17,16 @@ class FlockDataSource {
     int? farmId,
     int? shedId,
     String? status,
+    int? page,
+    int pageSize = 20,
   }) async {
     try {
       final Map<String, dynamic> queryParams = {};
       if (farmId != null) queryParams['farm'] = farmId;
       if (shedId != null) queryParams['shed'] = shedId;
       if (status != null) queryParams['status'] = status;
+      if (page != null) queryParams['page'] = page;
+      queryParams['page_size'] = pageSize;
 
       final response = await dio.get(
         ApiConstants.flocks,

@@ -15,42 +15,59 @@ final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
 // State
 class ReportsState extends Equatable {
   final bool isLoading;
+  final bool isLoadingMore;
   final List<Report> reports;
   final List<ReportTemplate> templates;
   final String? errorMessage;
   final Report? selectedReport;
+  final int currentPage;
+  final bool hasMoreData;
+
+  static const int pageSize = 20;
 
   const ReportsState({
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.reports = const [],
     this.templates = const [],
     this.errorMessage,
     this.selectedReport,
+    this.currentPage = 1,
+    this.hasMoreData = true,
   });
 
   ReportsState copyWith({
     bool? isLoading,
+    bool? isLoadingMore,
     List<Report>? reports,
     List<ReportTemplate>? templates,
     String? errorMessage,
     Report? selectedReport,
+    int? currentPage,
+    bool? hasMoreData,
   }) {
     return ReportsState(
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       reports: reports ?? this.reports,
       templates: templates ?? this.templates,
       errorMessage: errorMessage,
       selectedReport: selectedReport,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
     );
   }
 
   @override
   List<Object?> get props => [
     isLoading,
+    isLoadingMore,
     reports,
     templates,
     errorMessage,
     selectedReport,
+    currentPage,
+    hasMoreData,
   ];
 }
 
@@ -62,11 +79,19 @@ class ReportsNotifier extends StateNotifier<ReportsState> {
     loadTemplates();
   }
 
+  int? _lastFarmId;
+
   // Load Reports
   Future<void> loadReports({int? farmId}) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    _lastFarmId = farmId;
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      currentPage: 1,
+      hasMoreData: true,
+    );
 
-    final result = await repository.getReports(farmId: farmId);
+    final result = await repository.getReports(farmId: farmId, page: 1);
 
     result.fold(
       (failure) {
@@ -77,6 +102,32 @@ class ReportsNotifier extends StateNotifier<ReportsState> {
           isLoading: false,
           reports: reports,
           errorMessage: null,
+          currentPage: 1,
+          hasMoreData: reports.length >= ReportsState.pageSize,
+        );
+      },
+    );
+  }
+
+  // Load More Reports (infinite scroll)
+  Future<void> loadMoreReports() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+
+    final result = await repository.getReports(farmId: _lastFarmId, page: nextPage);
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(isLoadingMore: false, errorMessage: failure.message);
+      },
+      (newReports) {
+        state = state.copyWith(
+          reports: [...state.reports, ...newReports],
+          isLoadingMore: false,
+          currentPage: nextPage,
+          hasMoreData: newReports.length >= ReportsState.pageSize,
         );
       },
     );

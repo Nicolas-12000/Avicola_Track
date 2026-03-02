@@ -8,9 +8,9 @@ class FarmRepository {
 
   FarmRepository(this._dataSource);
 
-  Future<({List<FarmModel>? farms, Failure? failure})> getFarms() async {
+  Future<({List<FarmModel>? farms, Failure? failure})> getFarms({int? page, int pageSize = 20}) async {
     try {
-      final farms = await _dataSource.getFarms();
+      final farms = await _dataSource.getFarms(page: page, pageSize: pageSize);
       return (farms: farms, failure: null);
     } on DioException catch (e) {
       if (e.response == null) {

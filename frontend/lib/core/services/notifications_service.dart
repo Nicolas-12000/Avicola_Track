@@ -12,6 +12,8 @@ class BackendNotification {
   final String notificationType;
   final String status;
   final DateTime createdAt;
+  final DateTime? readAt;
+  final bool isRead;
 
   BackendNotification({
     required this.id,
@@ -20,6 +22,8 @@ class BackendNotification {
     required this.notificationType,
     required this.status,
     required this.createdAt,
+    this.readAt,
+    this.isRead = false,
   });
 
   factory BackendNotification.fromJson(Map<String, dynamic> json) {
@@ -30,6 +34,8 @@ class BackendNotification {
       notificationType: json['notification_type'],
       status: json['status'],
       createdAt: DateTime.parse(json['created_at']),
+      readAt: json['read_at'] != null ? DateTime.tryParse(json['read_at']) : null,
+      isRead: json['is_read'] ?? false,
     );
   }
 
@@ -240,26 +246,84 @@ class NotificationsService {
     // La navegación se maneja desde el UI cuando el usuario toca la notificación
   }
 
-  /// Obtener notificaciones recientes (últimos 7 días)
-  Future<List<BackendNotification>> fetchRecentNotifications() async {
-    if (_dio == null) return [];
+  /// Obtener notificaciones recientes paginadas
+  /// Devuelve un mapa con 'notifications', 'has_next', 'page', 'count'
+  Future<Map<String, dynamic>> fetchRecentNotificationsPaginated({
+    int page = 1,
+    int pageSize = 5,
+  }) async {
+    if (_dio == null) {
+      return {'notifications': <BackendNotification>[], 'has_next': false, 'page': page, 'count': 0};
+    }
 
     try {
-      final response = await _dio!.get(ApiConstants.notificationsRecent);
+      final response = await _dio!.get(
+        ApiConstants.notificationsRecent,
+        queryParameters: {'page': page, 'page_size': pageSize},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;
         final List<dynamic> notificationsList = data['notifications'] ?? [];
 
-        return notificationsList
+        final notifications = notificationsList
             .map((json) => BackendNotification.fromJson(json))
             .toList();
+
+        return {
+          'notifications': notifications,
+          'has_next': data['has_next'] ?? false,
+          'page': data['page'] ?? page,
+          'count': data['count'] ?? 0,
+        };
       }
     } catch (e) {
       _logger.e('Error fetching recent notifications: $e');
     }
 
-    return [];
+    return {'notifications': <BackendNotification>[], 'has_next': false, 'page': page, 'count': 0};
+  }
+
+  /// Obtener notificaciones recientes (legacy — devuelve lista plana)
+  Future<List<BackendNotification>> fetchRecentNotifications() async {
+    final result = await fetchRecentNotificationsPaginated(page: 1, pageSize: 50);
+    return result['notifications'] as List<BackendNotification>;
+  }
+
+  /// Marcar una notificación como leída
+  Future<bool> markNotificationRead(int id) async {
+    if (_dio == null) return false;
+    try {
+      final response = await _dio!.post(ApiConstants.notificationMarkRead(id));
+      return response.statusCode == 200;
+    } catch (e) {
+      _logger.e('Error marking notification $id as read: $e');
+      return false;
+    }
+  }
+
+  /// Eliminar una notificación (soft-delete)
+  Future<bool> deleteNotification(int id) async {
+    if (_dio == null) return false;
+    try {
+      final response = await _dio!.delete(ApiConstants.notificationDelete(id));
+      return response.statusCode == 204;
+    } catch (e) {
+      _logger.e('Error deleting notification $id: $e');
+      return false;
+    }
+  }
+
+  /// Marcar todas como leídas
+  Future<bool> markAllRead() async {
+    if (_dio == null) return false;
+    try {
+      final response = await _dio!.post(ApiConstants.notificationsMarkAllRead);
+      return response.statusCode == 200;
+    } catch (e) {
+      _logger.e('Error marking all notifications as read: $e');
+      return false;
+    }
   }
 
   /// Limpiar notificaciones mostradas (al cerrar sesión)

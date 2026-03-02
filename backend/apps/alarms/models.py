@@ -93,7 +93,15 @@ class Alarm(BaseModel):
         return f"Alarm {self.id} - {self.alarm_type} - {self.status}"
 
     class Meta:
-        indexes = [models.Index(fields=['source_type', 'source_date']), models.Index(fields=['farm', 'flock'])]
+        indexes = [
+            models.Index(fields=['source_type', 'source_date']),
+            models.Index(fields=['farm', 'flock']),
+            models.Index(fields=['status']),
+            models.Index(fields=['alarm_type']),
+            models.Index(fields=['priority']),
+            models.Index(fields=['status', 'priority']),
+            models.Index(fields=['farm', 'status']),
+        ]
 
 
 class AlarmEscalation(BaseModel):
@@ -103,6 +111,18 @@ class AlarmEscalation(BaseModel):
     escalated_at = models.DateTimeField(auto_now_add=True)
 
 
+class NotificationLogQuerySet(models.QuerySet):
+    """Custom queryset that excludes soft-deleted and expired-read notifications."""
+
+    def visible(self):
+        """Exclude soft-deleted items and notifications read more than 30 days ago."""
+        from datetime import timedelta
+        expiry = timezone.now() - timedelta(days=30)
+        return self.filter(is_deleted=False).exclude(
+            read_at__isnull=False, read_at__lt=expiry
+        )
+
+
 class NotificationLog(BaseModel):
     alarm = models.ForeignKey(Alarm, on_delete=models.CASCADE, related_name='notification_logs')
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -110,4 +130,18 @@ class NotificationLog(BaseModel):
     status = models.CharField(max_length=20, choices=[('SENT', 'Sent'), ('ERROR', 'Error'), ('DELIVERED', 'Delivered')])
     error_message = models.TextField(blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+
+    objects = NotificationLogQuerySet.as_manager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['recipient', 'is_deleted', 'read_at']),
+            models.Index(fields=['recipient', 'created_at']),
+        ]
+
+    @property
+    def is_read(self):
+        return self.read_at is not None
 

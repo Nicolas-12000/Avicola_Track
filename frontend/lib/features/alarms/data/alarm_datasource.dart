@@ -18,12 +18,16 @@ class AlarmDataSource {
     int? farmId,
     String? severity,
     bool? isResolved,
+    int? page,
+    int pageSize = 20,
   }) async {
     try {
       final Map<String, dynamic> queryParams = {};
       if (farmId != null) queryParams['farm'] = farmId;
       if (severity != null) queryParams['severity'] = severity;
       if (isResolved != null) queryParams['is_resolved'] = isResolved;
+      if (page != null) queryParams['page'] = page;
+      queryParams['page_size'] = pageSize;
 
       final response = await dio.get(
         ApiConstants.alarmsManage,

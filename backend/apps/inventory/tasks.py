@@ -10,7 +10,7 @@ def update_all_inventory_metrics_task():
     
     for item in items:
         try:
-            item.update_consumption_metrics()
+            item.update_consumption_stats()
             updated_count += 1
         except Exception as e:
             # Log el error pero continúa con los demás items

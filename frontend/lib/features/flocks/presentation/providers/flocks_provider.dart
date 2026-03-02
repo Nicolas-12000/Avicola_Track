@@ -80,6 +80,7 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
       farmId: farmId,
       shedId: shedId,
       status: status,
+      page: 1,
     );
 
     result.fold(
@@ -89,6 +90,7 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
         flocks: flocks,
         isLoading: false,
         error: null,
+        currentPage: 1,
         hasMoreData: flocks.length >= FlocksState.pageSize,
       ),
     );
@@ -98,11 +100,13 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
     if (state.isLoadingMore || !state.hasMoreData) return;
 
     state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
 
     final result = await repository.getFlocks(
       farmId: _lastFarmId,
       shedId: _lastShedId,
       status: _lastStatus,
+      page: nextPage,
     );
 
     result.fold(
@@ -113,7 +117,7 @@ class FlocksNotifier extends StateNotifier<FlocksState> {
         state = state.copyWith(
           flocks: allFlocks,
           isLoadingMore: false,
-          currentPage: state.currentPage + 1,
+          currentPage: nextPage,
           hasMoreData: newFlocks.length >= FlocksState.pageSize,
           error: null,
         );

@@ -129,6 +129,9 @@ class ApiConstants {
   static const String alarmsBulkAcknowledge = '${alarmsManage}bulk-acknowledge/';
   static const String notificationsUnread = '$apiPrefix/notifications/unread/';
   static const String notificationsRecent = '$apiPrefix/notifications/recent/';
+  static String notificationMarkRead(int id) => '$apiPrefix/notifications/$id/mark_read/';
+  static String notificationDelete(int id) => '$apiPrefix/notifications/$id/';
+  static const String notificationsMarkAllRead = '$apiPrefix/notifications/mark-all-read/';
 
   // Flocks - endpoints adicionales
   static const String flocksDashboard = '$apiPrefix/dashboard/';

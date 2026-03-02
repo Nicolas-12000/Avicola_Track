@@ -13,12 +13,16 @@ class AlarmRepository {
     int? farmId,
     String? severity,
     bool? isResolved,
+    int? page,
+    int pageSize = 20,
   }) async {
     try {
       final alarms = await dataSource.getAlarms(
         farmId: farmId,
         severity: severity,
         isResolved: isResolved,
+        page: page,
+        pageSize: pageSize,
       );
       return Right(alarms);
     } catch (e) {

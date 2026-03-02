@@ -19,15 +19,33 @@ typedef DispatchesState = ListState<DispatchRecordModel>;
 
 class DailyRecordsNotifier extends StateNotifier<DailyRecordsState> {
   final DailyRecordRepository repository;
+  int? _lastFlockId;
 
   DailyRecordsNotifier(this.repository) : super(const DailyRecordsState());
 
   Future<void> loadDailyRecords({required int flockId}) async {
+    _lastFlockId = flockId;
     state = state.loading();
-    final result = await repository.getDailyRecords(flockId: flockId);
+    final result = await repository.getDailyRecords(flockId: flockId, page: 1);
     result.fold(
       (failure) => state = state.failed(failure.message),
       (records) => state = state.loaded(records),
+    );
+  }
+
+  Future<void> loadMoreDailyRecords() async {
+    if (state.isLoadingMore || !state.hasMoreData || _lastFlockId == null) return;
+
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+
+    final result = await repository.getDailyRecords(
+      flockId: _lastFlockId!,
+      page: nextPage,
+    );
+    result.fold(
+      (failure) => state = state.failed(failure.message),
+      (newRecords) => state = state.appendPage(newRecords, nextPage),
     );
   }
 
@@ -52,15 +70,33 @@ class DailyRecordsNotifier extends StateNotifier<DailyRecordsState> {
 
 class DispatchesNotifier extends StateNotifier<DispatchesState> {
   final DispatchRepository repository;
+  int? _lastFlockId;
 
   DispatchesNotifier(this.repository) : super(const DispatchesState());
 
   Future<void> loadDispatches({int? flockId}) async {
+    _lastFlockId = flockId;
     state = state.loading();
-    final result = await repository.getDispatches(flockId: flockId);
+    final result = await repository.getDispatches(flockId: flockId, page: 1);
     result.fold(
       (failure) => state = state.failed(failure.message),
       (dispatches) => state = state.loaded(dispatches),
+    );
+  }
+
+  Future<void> loadMoreDispatches() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+
+    final result = await repository.getDispatches(
+      flockId: _lastFlockId,
+      page: nextPage,
+    );
+    result.fold(
+      (failure) => state = state.failed(failure.message),
+      (newDispatches) => state = state.appendPage(newDispatches, nextPage),
     );
   }
 

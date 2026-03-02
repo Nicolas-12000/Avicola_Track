@@ -23,6 +23,9 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
+  // Use BackgroundTransformer to decode JSON on a separate isolate (prevents jank)
+  dio.transformer = BackgroundTransformer();
+
   // 1. Interceptor de conectividad - verifica conexión antes de cada request
   dio.interceptors.add(ConnectivityInterceptor(connectivityService));
 

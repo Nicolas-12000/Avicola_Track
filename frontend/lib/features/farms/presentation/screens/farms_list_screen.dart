@@ -127,19 +127,36 @@ class _FarmsListScreenState extends ConsumerState<FarmsListScreen> {
             )
           : RefreshIndicator(
               onRefresh: () async {
-                await ref.read(farmsProvider.notifier).loadFarms();
+                await ref.read(farmsProvider.notifier).loadFarms(force: true);
               },
               child: visibleFarms.isEmpty
                   ? _buildEmptyState()
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: visibleFarms.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final farm = visibleFarms[index];
-                        return _buildFarmCard(farm);
+                  : NotificationListener<ScrollNotification>(
+                      onNotification: (scrollInfo) {
+                        if (scrollInfo.metrics.pixels >=
+                                scrollInfo.metrics.maxScrollExtent * 0.8 &&
+                            !farmsState.isLoadingMore &&
+                            farmsState.hasMoreData) {
+                          ref.read(farmsProvider.notifier).loadMoreFarms();
+                        }
+                        return false;
                       },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: visibleFarms.length + (farmsState.isLoadingMore ? 1 : 0),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          if (index >= visibleFarms.length) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          final farm = visibleFarms[index];
+                          return _buildFarmCard(farm);
+                        },
+                      ),
                     ),
             ),
       floatingActionButton: _canCreateFarm(ref)

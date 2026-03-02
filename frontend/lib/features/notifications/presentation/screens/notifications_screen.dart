@@ -27,7 +27,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAlarms();
+      _loadAlarms(isResolved: false);
       ref.read(alarmsProvider.notifier).loadAlarmStats(farmId: _selectedFarmId);
       ref.read(farmsProvider.notifier).loadFarms();
       ref.read(notificationsProvider.notifier).fetchRecentNotifications();
@@ -80,7 +80,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
             // Activas tab — badge with unresolved count
             Tab(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('Activas'),
                   if (alarmsState.unresolvedCount > 0) ...[
@@ -94,9 +94,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
             // Notificaciones tab — badge with unread count
             Tab(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Notificaciones'),
+                  const Icon(Icons.notifications_outlined, size: 18),
+                  const SizedBox(width: 4),
+                  const Text('Notif.'),
                   if (unreadCount > 0) ...[
                     const SizedBox(width: 6),
                     _badge('$unreadCount', Colors.deepPurple),
@@ -521,89 +523,174 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                 ),
               ],
             )
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: notifications.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final n = notifications[index];
-                final details = n.alarmDetails ?? {};
-                final isResolved = details['status']?.toString().toUpperCase() ==
-                    'RESOLVED';
-                final resolvedBy = details['resolved_by'] as String?;
-                final resolvedAt = details['resolved_at'] as String?;
-                final priority = details['priority']?.toString().toUpperCase();
+          : NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is ScrollEndNotification &&
+                    notification.metrics.extentAfter < 200 &&
+                    !state.isLoadingMore &&
+                    state.hasMore) {
+                  ref.read(notificationsProvider.notifier).loadMoreNotifications();
+                }
+                return false;
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: notifications.length + (state.isLoadingMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  // Loading indicator at bottom
+                  if (index == notifications.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor:
-                        _priorityColor(priority).withValues(alpha: 0.15),
-                    child: Icon(
-                      n.alarmId != null
-                          ? Icons.notification_important
-                          : Icons.notifications,
-                      color: _priorityColor(priority),
+                  final n = notifications[index];
+                  final details = n.alarmDetails ?? {};
+                  final isResolved = details['status']?.toString().toUpperCase() ==
+                      'RESOLVED';
+                  final resolvedBy = details['resolved_by'] as String?;
+                  final resolvedAt = details['resolved_at'] as String?;
+                  final priority = details['priority']?.toString().toUpperCase();
+
+                  return Dismissible(
+                    key: ValueKey(n.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      color: Colors.red,
+                      child: const Icon(Icons.delete, color: Colors.white),
                     ),
-                  ),
-                  title: Text(n.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(n.body),
-                      if (n.alarmId != null) ...[
-                        const SizedBox(height: 6),
-                        Row(
+                    confirmDismiss: (_) async {
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Eliminar notificación'),
+                          content: const Text('¿Deseas eliminar esta notificación?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      ) ?? false;
+                    },
+                    onDismissed: (_) {
+                      ref.read(notificationsProvider.notifier).deleteNotification(n.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Notificación eliminada'), duration: Duration(seconds: 2)),
+                      );
+                    },
+                    child: Card(
+                      elevation: n.isRead ? 0 : 2,
+                      color: n.isRead ? Colors.grey[50] : Colors.white,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor:
+                              _priorityColor(priority).withValues(alpha: 0.15),
+                          child: Icon(
+                            n.alarmId != null
+                                ? Icons.notification_important
+                                : Icons.notifications,
+                            color: _priorityColor(priority),
+                          ),
+                        ),
+                        title: Text(n.title,
+                            style: TextStyle(
+                              fontWeight: n.isRead ? FontWeight.normal : FontWeight.w600,
+                              color: n.isRead ? Colors.grey[600] : Colors.black,
+                            )),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              isResolved
-                                  ? Icons.check_circle
-                                  : Icons.warning_amber_rounded,
-                              size: 14,
-                              color:
-                                  isResolved ? Colors.green : Colors.orange,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isResolved ? 'Resuelta' : 'Activa',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color:
-                                    isResolved ? Colors.green : Colors.orange,
+                            const SizedBox(height: 4),
+                            Text(n.body,
+                                style: TextStyle(
+                                  color: n.isRead ? Colors.grey : null,
+                                )),
+                            if (n.alarmId != null) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    isResolved
+                                        ? Icons.check_circle
+                                        : Icons.warning_amber_rounded,
+                                    size: 14,
+                                    color:
+                                        isResolved ? Colors.green : Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isResolved ? 'Resuelta' : 'Activa',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color:
+                                          isResolved ? Colors.green : Colors.orange,
+                                    ),
+                                  ),
+                                  if (isResolved && resolvedBy != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text('por $resolvedBy',
+                                        style: const TextStyle(
+                                            fontSize: 12, color: Colors.grey)),
+                                  ],
+                                ],
                               ),
-                            ),
-                            if (isResolved && resolvedBy != null) ...[
-                              const SizedBox(width: 8),
-                              Text('por $resolvedBy',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey)),
+                              if (isResolved && resolvedAt != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text('Resuelta el: $resolvedAt',
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey)),
+                                ),
                             ],
                           ],
                         ),
-                        if (isResolved && resolvedAt != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text('Resuelta el: $resolvedAt',
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey)),
-                          ),
-                      ],
-                    ],
-                  ),
-                  trailing: Text(
-                    _fmtDate(n.createdAt.toLocal()),
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                  onTap: () {
-                    if (n.alarmId != null) {
-                      // Navigate to the Active alarms tab
-                      _tabController.animateTo(0);
-                    }
-                  },
-                );
-              },
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _fmtDate(n.createdAt.toLocal()),
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                            if (!n.isRead)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          // Mark as read on tap
+                          if (!n.isRead) {
+                            ref.read(notificationsProvider.notifier).markRead(n.id);
+                          }
+                          if (n.alarmId != null) {
+                            _tabController.animateTo(0);
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
     );
   }

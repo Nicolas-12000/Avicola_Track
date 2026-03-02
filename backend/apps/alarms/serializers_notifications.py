@@ -6,6 +6,7 @@ class NotificationLogSerializer(serializers.ModelSerializer):
     """Serializer para logs de notificaciones"""
     alarm_details = serializers.SerializerMethodField()
     recipient_name = serializers.SerializerMethodField()
+    is_read = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = NotificationLog
@@ -18,6 +19,8 @@ class NotificationLogSerializer(serializers.ModelSerializer):
             'notification_type',
             'status',
             'error_message',
+            'read_at',
+            'is_read',
             'created_at',
             'updated_at',
         ]

@@ -331,13 +331,30 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: reportsState.reports.length,
-      itemBuilder: (context, index) {
-        final report = reportsState.reports[index];
-        return _buildReportCard(report);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollInfo) {
+        if (scrollInfo.metrics.pixels >=
+                scrollInfo.metrics.maxScrollExtent * 0.8 &&
+            !reportsState.isLoadingMore &&
+            reportsState.hasMoreData) {
+          ref.read(reportsProvider.notifier).loadMoreReports();
+        }
+        return false;
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: reportsState.reports.length + (reportsState.isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= reportsState.reports.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final report = reportsState.reports[index];
+          return _buildReportCard(report);
+        },
+      ),
     );
   }
 

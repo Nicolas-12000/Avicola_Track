@@ -117,17 +117,18 @@ class FarmViewSet(viewsets.ModelViewSet):
         user = self.request.user
         role_name = user.role.name if user.role else None
 
+        base_qs = Farm.objects.select_related('farm_manager').prefetch_related('sheds')
+
         if role_name == 'Administrador Sistema':
-            return Farm.objects.all()
+            return base_qs.all()
         if role_name == 'Administrador de Granja':
-            return user.managed_farms.all()
+            return base_qs.filter(farm_manager=user)
         if role_name == 'Veterinario':
-            return getattr(user, 'assigned_farms', []).all()
+            return base_qs.filter(veterinarians=user)
 
         # Galponero: farms where their assigned_sheds belong
-        assigned_sheds = getattr(user, 'assigned_sheds', []).all()
-        farm_ids = set(s.farm.id for s in assigned_sheds)
-        return Farm.objects.filter(id__in=farm_ids)
+        farm_ids = Shed.objects.filter(assigned_worker=user).values_list('farm_id', flat=True)
+        return base_qs.filter(id__in=farm_ids)
 
     def perform_create(self, serializer):
         farm = serializer.save()
@@ -150,7 +151,7 @@ class ShedViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
-        qs = Shed.objects.all()
+        qs = Shed.objects.select_related('farm', 'assigned_worker').all()
 
         farm_param = self.request.query_params.get('farm')
         if farm_param:

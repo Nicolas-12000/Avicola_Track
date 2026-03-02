@@ -13,17 +13,25 @@ class FarmDataSource {
 
   FarmDataSource(this._dio, this._offlineService, this._connectivityService);
 
-  /// Obtener todas las granjas
-  Future<List<FarmModel>> getFarms() async {
+  /// Obtener todas las granjas (paginado)
+  Future<List<FarmModel>> getFarms({int? page, int pageSize = 20}) async {
     try {
-      final response = await _dio.get(ApiConstants.farms);
+      final Map<String, dynamic> queryParams = {'page_size': pageSize};
+      if (page != null) queryParams['page'] = page;
+
+      final response = await _dio.get(
+        ApiConstants.farms,
+        queryParameters: queryParams,
+      );
 
       if (response.statusCode == 200) {
         final data = parsePaginatedResponse(response.data);
-        // cache
-        try {
-          await _offlineService.cacheData('farms_all', data);
-        } catch (_) {}
+        // cache only first page
+        if (page == null || page == 1) {
+          try {
+            await _offlineService.cacheData('farms_all', data);
+          } catch (_) {}
+        }
 
         return data.map((json) => FarmModel.fromJson(json)).toList();
       }

@@ -27,7 +27,7 @@ class InventoryViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     role_flock_path = None
 
     def get_queryset(self):
-        qs = InventoryItem.objects.all()
+        qs = InventoryItem.objects.select_related('farm', 'shed', 'shed__farm').all()
 
         farm_param = self.request.query_params.get('farm')
         if farm_param:
@@ -46,13 +46,13 @@ class InventoryViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
 
         alerts = {'critical': [], 'low': [], 'out_of_stock': []}
 
-        for item in user_inventory:
-            status = item.stock_status['status']
-            if status == 'OUT_OF_STOCK':
+        for item in user_inventory.select_related('farm', 'shed'):
+            st = item.stock_status['status']
+            if st == 'OUT_OF_STOCK':
                 alerts['out_of_stock'].append(self._serialize_alert(item))
-            elif status == 'CRITICAL':
+            elif st == 'CRITICAL':
                 alerts['critical'].append(self._serialize_alert(item))
-            elif status == 'LOW':
+            elif st == 'LOW':
                 alerts['low'].append(self._serialize_alert(item))
 
         return Response({
@@ -292,38 +292,46 @@ class InventoryViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
 
 class FoodBatchViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para ver lotes de alimento (solo lectura)"""
-    queryset = FoodBatch.objects.all().order_by('-entry_date')
+    queryset = FoodBatch.objects.select_related('inventory_item', 'inventory_item__farm').all().order_by('-entry_date')
     serializer_class = FoodBatchSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = FoodBatch.objects.select_related(
+            'inventory_item', 'inventory_item__farm', 'inventory_item__shed'
+        )
         # Filtrar según permisos de usuario
         if hasattr(user, 'role') and user.role and user.role.name == 'Administrador Sistema':
-            return FoodBatch.objects.all().order_by('-entry_date')
+            return base_qs.all().order_by('-entry_date')
 
         if hasattr(user, 'role') and user.role and user.role.name == 'Administrador de Granja':
-            return FoodBatch.objects.filter(inventory_item__farm__farm_manager=user).order_by('-entry_date')
+            return base_qs.filter(inventory_item__farm__farm_manager=user).order_by('-entry_date')
 
         # Default: restricción por galpones asignados
-        return FoodBatch.objects.filter(inventory_item__shed__assigned_worker=user).order_by('-entry_date')
+        return base_qs.filter(inventory_item__shed__assigned_worker=user).order_by('-entry_date')
 
 
 class FoodConsumptionRecordViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para registros de consumo FIFO (solo lectura, creación via InventoryViewSet)"""
-    queryset = FoodConsumptionRecord.objects.all().order_by('-date')
+    queryset = FoodConsumptionRecord.objects.select_related(
+        'inventory_item', 'flock', 'flock__shed', 'flock__shed__farm'
+    ).all().order_by('-date')
     serializer_class = FoodConsumptionRecordSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = FoodConsumptionRecord.objects.select_related(
+            'inventory_item', 'flock', 'flock__shed', 'flock__shed__farm'
+        )
         # Filtrar según permisos de usuario
         if hasattr(user, 'role') and user.role and user.role.name == 'Administrador Sistema':
-            return FoodConsumptionRecord.objects.all().order_by('-date')
+            return base_qs.all().order_by('-date')
 
         if hasattr(user, 'role') and user.role and user.role.name == 'Administrador de Granja':
-            return FoodConsumptionRecord.objects.filter(flock__shed__farm__farm_manager=user).order_by('-date')
+            return base_qs.filter(flock__shed__farm__farm_manager=user).order_by('-date')
 
         # Default: solo registros de lotes asignados al galponero
-        return FoodConsumptionRecord.objects.filter(flock__shed__assigned_worker=user).order_by('-date')
+        return base_qs.filter(flock__shed__assigned_worker=user).order_by('-date')
 

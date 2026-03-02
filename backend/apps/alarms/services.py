@@ -74,51 +74,60 @@ class AlarmEvaluationEngine:
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
 
-        flocks = Flock.objects.filter(shed__farm=farm)
-        for flock in flocks:
-            records = MortalityRecord.objects.filter(flock=flock, date__range=[start_date, end_date])
-            for rec in records:
-                try:
-                    original_quantity = rec.flock.current_quantity + rec.deaths
-                    if original_quantity == 0:
+        # Batch: fetch all mortality records for all flocks of this farm in one query
+        records = MortalityRecord.objects.filter(
+            flock__shed__farm=farm,
+            date__range=[start_date, end_date]
+        ).select_related('flock', 'flock__shed')
+
+        if not records.exists():
+            return 0
+
+        # Batch: fetch all existing unresolved alarm source_ids for these records in one query
+        record_ids = [r.id for r in records]
+        existing_alarm_ids = set(
+            Alarm.objects.filter(
+                alarm_type='MORTALITY',
+                source_type='mortality',
+                source_id__in=record_ids,
+            ).exclude(status='RESOLVED').values_list('source_id', flat=True)
+        )
+
+        for rec in records:
+            try:
+                flock = rec.flock
+                original_quantity = flock.current_quantity + rec.deaths
+                if original_quantity == 0:
+                    continue
+
+                daily_mortality_rate = (rec.deaths / original_quantity) * 100
+
+                if daily_mortality_rate >= float(config.threshold_value):
+                    if rec.id in existing_alarm_ids:
                         continue
 
-                    daily_mortality_rate = (rec.deaths / original_quantity) * 100
+                    priority = 'HIGH' if (config.critical_threshold and daily_mortality_rate >= float(config.critical_threshold)) else 'MEDIUM'
 
-                    if daily_mortality_rate >= float(config.threshold_value):
-                        # avoid duplicate unresolved alarms for same source (structured)
-                        exists = Alarm.objects.filter(
-                            alarm_type='MORTALITY',
-                            source_type='mortality',
-                            source_date=rec.date,
-                            source_id=rec.id,
-                        ).exclude(status='RESOLVED').exists()
+                    alarm = Alarm.objects.create(
+                        alarm_type='MORTALITY',
+                        description=f'Mortalidad alta en {flock.shed.name} - {rec.date}: {daily_mortality_rate:.1f}% (umbral: {config.threshold_value}%)',
+                        priority=priority,
+                        farm=farm,
+                        flock=flock,
+                        configuration=config,
+                        source_type='mortality',
+                        source_date=rec.date,
+                        source_id=rec.id,
+                    )
 
-                        if exists:
-                            continue
+                    created += 1
 
-                        priority = 'HIGH' if (config.critical_threshold and daily_mortality_rate >= float(config.critical_threshold)) else 'MEDIUM'
-
-                        alarm = Alarm.objects.create(
-                            alarm_type='MORTALITY',
-                            description=f'Mortalidad alta en {flock.shed.name} - {rec.date}: {daily_mortality_rate:.1f}% (umbral: {config.threshold_value}%)',
-                            priority=priority,
-                            farm=farm,
-                            flock=flock,
-                            configuration=config,
-                            source_type='mortality',
-                            source_date=rec.date,
-                            source_id=rec.id,
-                        )
-
-                        created += 1
-
-                        try:
-                            AlarmNotificationService.send_alarm_notifications(alarm, config)
-                        except Exception:
-                            logger.exception('Failed sending notifications for alarm %s', alarm.id)
-                except Exception:
-                    logger.exception('Error evaluating mortality record %s', rec.id)
+                    try:
+                        AlarmNotificationService.send_alarm_notifications(alarm, config)
+                    except Exception:
+                        logger.exception('Failed sending notifications for alarm %s', alarm.id)
+            except Exception:
+                logger.exception('Error evaluating mortality record %s', rec.id)
 
         return created
 
@@ -142,19 +151,29 @@ class AlarmEvaluationEngine:
         from apps.inventory.models import InventoryItem
         created = 0
         
-        inventory_items = InventoryItem.objects.filter(farm=farm)
+        # Batch: load all inventory items with related data in one query
+        inventory_items = InventoryItem.objects.filter(farm=farm).select_related('farm', 'shed')
+        
+        if not inventory_items.exists():
+            return 0
+        
+        # Batch: load all existing unresolved STOCK alarms for this farm in one query
+        existing_alarms = {}
+        for alarm in Alarm.objects.filter(
+            alarm_type='STOCK',
+            farm=farm,
+            status__in=['PENDING', 'ESCALATED']
+        ).select_related('inventory_item'):
+            if alarm.inventory_item_id:
+                existing_alarms[alarm.inventory_item_id] = alarm
         
         for item in inventory_items:
             try:
                 status_info = item.stock_status
                 status = status_info['status']
                 
-                # Verificar si hay alarma existente no resuelta
-                existing_alarm = Alarm.objects.filter(
-                    alarm_type='STOCK',
-                    inventory_item=item,
-                    status__in=['PENDING', 'ESCALATED']
-                ).first()
+                # Use pre-fetched existing alarm instead of per-item query
+                existing_alarm = existing_alarms.get(item.id)
                 
                 # Si el estado es normal y hay alarma existente, resolverla
                 if status not in ['CRITICAL', 'LOW', 'OUT_OF_STOCK']:

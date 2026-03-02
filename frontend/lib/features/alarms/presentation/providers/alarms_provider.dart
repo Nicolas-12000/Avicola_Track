@@ -48,27 +48,35 @@ class AlarmsState {
     );
   }
 
+  // Cached computed lists (lazy, once per immutable state instance)
+  List<AlarmModel>? _unresolvedCache;
+  List<AlarmModel>? _resolvedCache;
+
   // Getters por severidad
   List<AlarmModel> get criticalAlarms =>
-      alarms.where((a) => a.severity == 'critical' && !a.isResolved).toList();
+      unresolvedAlarms.where((a) => a.severity == 'critical').toList();
 
   List<AlarmModel> get highAlarms =>
-      alarms.where((a) => a.severity == 'high' && !a.isResolved).toList();
+      unresolvedAlarms.where((a) => a.severity == 'high').toList();
 
   List<AlarmModel> get mediumAlarms =>
-      alarms.where((a) => a.severity == 'medium' && !a.isResolved).toList();
+      unresolvedAlarms.where((a) => a.severity == 'medium').toList();
 
   List<AlarmModel> get lowAlarms =>
-      alarms.where((a) => a.severity == 'low' && !a.isResolved).toList();
+      unresolvedAlarms.where((a) => a.severity == 'low').toList();
 
-  List<AlarmModel> get unresolvedAlarms =>
-      alarms.where((a) => !a.isResolved).toList();
+  List<AlarmModel> get unresolvedAlarms {
+    _unresolvedCache ??= alarms.where((a) => !a.isResolved).toList();
+    return _unresolvedCache!;
+  }
 
-  List<AlarmModel> get resolvedAlarms =>
-      alarms.where((a) => a.isResolved).toList();
+  List<AlarmModel> get resolvedAlarms {
+    _resolvedCache ??= alarms.where((a) => a.isResolved).toList();
+    return _resolvedCache!;
+  }
 
-  int get unresolvedCount => unresolvedAlarms.length;
-  int get criticalCount => criticalAlarms.length;
+  int get unresolvedCount => alarms.where((a) => !a.isResolved).length;
+  int get criticalCount => alarms.where((a) => a.severity == 'critical' && !a.isResolved).length;
 }
 
 // Notifier
@@ -104,6 +112,7 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
       farmId: farmId,
       severity: severity,
       isResolved: isResolved,
+      page: 1,
     );
 
     result.fold(
@@ -113,6 +122,7 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
         alarms: alarms,
         isLoading: false,
         error: null,
+        currentPage: 1,
         hasMoreData: alarms.length >= AlarmsState.pageSize,
       ),
     );
@@ -122,11 +132,13 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
     if (state.isLoadingMore || !state.hasMoreData) return;
 
     state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
 
     final result = await repository.getAlarms(
       farmId: _lastFarmId,
       severity: _lastSeverity,
       isResolved: _lastIsResolved,
+      page: nextPage,
     );
 
     result.fold(
@@ -137,7 +149,7 @@ class AlarmsNotifier extends StateNotifier<AlarmsState> {
         state = state.copyWith(
           alarms: allAlarms,
           isLoadingMore: false,
-          currentPage: state.currentPage + 1,
+          currentPage: nextPage,
           hasMoreData: newAlarms.length >= AlarmsState.pageSize,
           error: null,
         );

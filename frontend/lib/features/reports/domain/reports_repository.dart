@@ -88,7 +88,7 @@ class Report {
 /// Repository Interface for Reports
 abstract class ReportsRepository {
   /// Get all reports
-  Future<Either<Failure, List<Report>>> getReports({int? farmId});
+  Future<Either<Failure, List<Report>>> getReports({int? farmId, int? page, int pageSize = 20});
 
   /// Get report by ID
   Future<Either<Failure, Report>> getReportById(int id);

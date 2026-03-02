@@ -10,9 +10,15 @@ class InventoryRepository {
 
   Future<Either<Failure, List<InventoryItemModel>>> getInventoryItems({
     int? farmId,
+    int? page,
+    int pageSize = 30,
   }) async {
     try {
-      final items = await dataSource.getInventoryItems(farmId: farmId);
+      final items = await dataSource.getInventoryItems(
+        farmId: farmId,
+        page: page,
+        pageSize: pageSize,
+      );
       return Right(items);
     } catch (e) {
       return Left(

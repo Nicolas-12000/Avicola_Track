@@ -58,7 +58,7 @@ class InventoryMetricsTests(TestCase):
             InventoryConsumptionRecord.objects.create(inventory_item=self.item, date=d, quantity_consumed=10)
 
         # Force update metrics
-        self.item.update_consumption_metrics()
+        self.item.update_consumption_stats()
 
         self.assertAlmostEqual(float(self.item.daily_avg_consumption), 10.0, places=2)
         projected = self.item.projected_stockout_date

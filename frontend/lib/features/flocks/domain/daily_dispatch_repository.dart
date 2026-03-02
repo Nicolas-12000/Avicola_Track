@@ -15,6 +15,8 @@ class DailyRecordRepository {
     String? dateFrom,
     String? dateTo,
     int? week,
+    int? page,
+    int pageSize = 20,
   }) =>
       safeCall(
         () => dataSource.getDailyRecords(
@@ -22,6 +24,8 @@ class DailyRecordRepository {
           dateFrom: dateFrom,
           dateTo: dateTo,
           week: week,
+          page: page,
+          pageSize: pageSize,
         ),
         'Error cargando registros diarios',
       );
@@ -50,12 +54,16 @@ class DispatchRepository {
     int? flockId,
     String? dateFrom,
     String? dateTo,
+    int? page,
+    int pageSize = 20,
   }) =>
       safeCall(
         () => dataSource.getDispatches(
           flockId: flockId,
           dateFrom: dateFrom,
           dateTo: dateTo,
+          page: page,
+          pageSize: pageSize,
         ),
         'Error cargando despachos',
       );

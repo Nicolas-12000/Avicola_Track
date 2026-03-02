@@ -37,9 +37,14 @@ class Farm(BaseModel):
 		return self.name
 
 	def update_farm_stats(self):
-		sheds = getattr(self, 'sheds', []).all()
-		self.total_capacity = sum(getattr(s, 'capacity', 0) for s in sheds)
-		self.active_sheds = sum(1 for s in sheds if getattr(s, 'assigned_worker', None) is not None)
+		"""Update farm stats using aggregate queries instead of iterating in Python."""
+		from django.db.models import Sum, Count, Q
+		stats = self.sheds.aggregate(
+			total_cap=Sum('capacity'),
+			active=Count('id', filter=Q(assigned_worker__isnull=False)),
+		)
+		self.total_capacity = stats['total_cap'] or 0
+		self.active_sheds = stats['active'] or 0
 		self.save(update_fields=['total_capacity', 'active_sheds'])
 
 

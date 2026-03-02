@@ -9,9 +9,11 @@ class ReportsDataSource {
 
   ReportsDataSource(this.dio);
 
-  Future<List<Report>> getReports({int? farmId}) async {
+  Future<List<Report>> getReports({int? farmId, int? page, int pageSize = 20}) async {
     try {
-      final queryParams = farmId != null ? {'farm': farmId} : null;
+      final Map<String, dynamic> queryParams = {'page_size': pageSize};
+      if (farmId != null) queryParams['farm'] = farmId;
+      if (page != null) queryParams['page'] = page;
       final response = await dio.get(
         ApiConstants.reports,
         queryParameters: queryParams,

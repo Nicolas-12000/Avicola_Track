@@ -9,9 +9,9 @@ class ReportsRepositoryImpl implements ReportsRepository {
   ReportsRepositoryImpl(this.dataSource);
 
   @override
-  Future<Either<Failure, List<Report>>> getReports({int? farmId}) async {
+  Future<Either<Failure, List<Report>>> getReports({int? farmId, int? page, int pageSize = 20}) async {
     try {
-      final reports = await dataSource.getReports(farmId: farmId);
+      final reports = await dataSource.getReports(farmId: farmId, page: page, pageSize: pageSize);
       return Right(reports);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));

@@ -26,19 +26,37 @@ final farmRepositoryProvider = Provider<FarmRepository>((ref) {
 class FarmsState {
   final List<FarmModel> farms;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final bool hasMoreData;
 
-  FarmsState({this.farms = const [], this.isLoading = false, this.error});
+  static const int pageSize = 20;
+
+  FarmsState({
+    this.farms = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.error,
+    this.currentPage = 1,
+    this.hasMoreData = true,
+  });
 
   FarmsState copyWith({
     List<FarmModel>? farms,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    bool? hasMoreData,
   }) {
     return FarmsState(
       farms: farms ?? this.farms,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
     );
   }
 }
@@ -53,7 +71,17 @@ class FarmsNotifier extends StateNotifier<FarmsState> {
       : super(FarmsState());
 
   Future<void> loadFarms({bool force = false}) async {
-    state = state.copyWith(isLoading: true, error: null);
+    // Skip if already loaded and not forced
+    if (!force && state.farms.isNotEmpty && !state.isLoading) {
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      currentPage: 1,
+      hasMoreData: true,
+    );
 
     final isConnected = _connectivityService.currentState.isConnected;
     if (!isConnected && !force) {
@@ -72,15 +100,39 @@ class FarmsNotifier extends StateNotifier<FarmsState> {
       } catch (_) {}
     }
 
-    final result = await _repository.getFarms();
+    final result = await _repository.getFarms(page: 1);
 
     if (result.failure != null) {
       state = state.copyWith(isLoading: false, error: result.failure!.message);
     } else {
+      final farms = result.farms ?? [];
       state = state.copyWith(
-        farms: result.farms ?? [],
+        farms: farms,
         isLoading: false,
         error: null,
+        currentPage: 1,
+        hasMoreData: farms.length >= FarmsState.pageSize,
+      );
+    }
+  }
+
+  Future<void> loadMoreFarms() async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    state = state.copyWith(isLoadingMore: true);
+    final nextPage = state.currentPage + 1;
+
+    final result = await _repository.getFarms(page: nextPage);
+
+    if (result.failure != null) {
+      state = state.copyWith(isLoadingMore: false, error: result.failure!.message);
+    } else {
+      final newFarms = result.farms ?? [];
+      state = state.copyWith(
+        farms: [...state.farms, ...newFarms],
+        isLoadingMore: false,
+        currentPage: nextPage,
+        hasMoreData: newFarms.length >= FarmsState.pageSize,
       );
     }
   }

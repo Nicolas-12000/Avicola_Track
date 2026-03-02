@@ -92,7 +92,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 		
 		# Solo Administrador Sistema puede ver todos los usuarios
 		if role_name == 'Administrador Sistema' or user.is_staff:
-			return UserModel.objects.all()
+			return UserModel.objects.select_related('role').all()
 		
 		# Admin de granja puede ver usuarios de su granja
 		if role_name == 'Administrador de Granja':
@@ -101,7 +101,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 			farm_ids = user.managed_farms.values_list('id', flat=True)
 			galponero_ids = Shed.objects.filter(farm_id__in=farm_ids).values_list('assigned_worker_id', flat=True)
 			# Allow farm admins to see galponeros and veterinarians (so they can assign and schedule)
-			return UserModel.objects.filter(
+			return UserModel.objects.select_related('role').filter(
 				models.Q(id=user.id) | 
 				models.Q(id__in=galponero_ids) |
 				models.Q(role__name='Galponero') |
@@ -109,12 +109,16 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 			).distinct()
 		
 		# Otros solo pueden ver su propio perfil
-		return UserModel.objects.filter(id=user.id)
+		return UserModel.objects.select_related('role').filter(id=user.id)
 
 	@action(detail=False, methods=['get'])
 	def galponeros(self, request):
 		"""Obtener lista de todos los galponeros disponibles"""
-		galponeros = UserModel.objects.filter(role__name='Galponero', is_active=True)
+		galponeros = UserModel.objects.select_related('role').filter(role__name='Galponero', is_active=True)
+		page = self.paginate_queryset(galponeros)
+		if page is not None:
+			serializer = self.get_serializer(page, many=True)
+			return self.get_paginated_response(serializer.data)
 		serializer = self.get_serializer(galponeros, many=True)
 		return Response(serializer.data)
 

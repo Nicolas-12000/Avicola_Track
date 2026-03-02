@@ -14,9 +14,12 @@ class InventoryDataSource {
 
   InventoryDataSource(this.dio, this._offlineService, this._connectivityService);
 
-  Future<List<InventoryItemModel>> getInventoryItems({int? farmId}) async {
+  Future<List<InventoryItemModel>> getInventoryItems({int? farmId, int? page, int pageSize = 30}) async {
     try {
-      final queryParams = farmId != null ? {'farm': farmId} : null;
+      final Map<String, dynamic> queryParams = {};
+      if (farmId != null) queryParams['farm'] = farmId;
+      if (page != null) queryParams['page'] = page;
+      queryParams['page_size'] = pageSize;
       final response = await dio.get(
         ApiConstants.inventory,
         queryParameters: queryParams,

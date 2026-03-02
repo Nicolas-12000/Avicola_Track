@@ -76,16 +76,33 @@ class _DispatchRecordsScreenState extends ConsumerState<DispatchRecordsScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80),
-      itemCount: state.items.length,
-      itemBuilder: (context, index) {
-        final dispatch = state.items[state.items.length - 1 - index];
-        return _DispatchCard(
-          dispatch: dispatch,
-          onTapEdit: () => _showEditDialog(context, dispatch),
-        );
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollInfo) {
+        if (scrollInfo.metrics.pixels >=
+                scrollInfo.metrics.maxScrollExtent * 0.8 &&
+            !state.isLoadingMore &&
+            state.hasMoreData) {
+          ref.read(dispatchesProvider.notifier).loadMoreDispatches();
+        }
+        return false;
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 80),
+        itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= state.items.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final dispatch = state.items[state.items.length - 1 - index];
+          return _DispatchCard(
+            dispatch: dispatch,
+            onTapEdit: () => _showEditDialog(context, dispatch),
+          );
+        },
+      ),
     );
   }
 

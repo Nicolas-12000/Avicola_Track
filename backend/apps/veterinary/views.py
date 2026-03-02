@@ -30,7 +30,9 @@ class VeterinaryVisitViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = self.apply_role_filter(
-            VeterinaryVisit.objects.all().prefetch_related('flocks')
+            VeterinaryVisit.objects.select_related(
+                'farm', 'farm__farm_manager', 'veterinarian'
+            ).prefetch_related('flocks', 'flocks__shed')
         )
         farm_id = self.request.query_params.get('farm_id')
         flock_id = self.request.query_params.get('flock_id')
@@ -106,11 +108,17 @@ class VeterinaryVisitViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
         today = timezone.now().date()
         upcoming_end = today + timedelta(days=7)
         
-        queryset = VeterinaryVisit.objects.filter(
+        queryset = VeterinaryVisit.objects.select_related(
+            'farm', 'veterinarian'
+        ).prefetch_related('flocks').filter(
             visit_date__date__gte=today,
             visit_date__date__lte=upcoming_end
-        ).order_by('visit_date').prefetch_related('flocks')
+        ).order_by('visit_date')
         
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -121,7 +129,9 @@ class VaccinationRecordViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     role_flock_path = 'flock__shed'
     
     def get_queryset(self):
-        queryset = self.apply_role_filter(VaccinationRecord.objects.all())
+        queryset = self.apply_role_filter(
+            VaccinationRecord.objects.select_related('flock', 'flock__shed', 'flock__shed__farm', 'applied_by').all()
+        )
         flock_id = self.request.query_params.get('flock_id')
         status_param = self.request.query_params.get('status')
         
@@ -150,12 +160,18 @@ class VaccinationRecordViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
         days_ahead = int(request.query_params.get('days_ahead', 7))
         end_date = timezone.now() + timedelta(days=days_ahead)
         
-        queryset = VaccinationRecord.objects.filter(
+        queryset = VaccinationRecord.objects.select_related(
+            'flock', 'flock__shed', 'flock__shed__farm'
+        ).filter(
             status='scheduled',
             scheduled_date__lte=end_date,
             scheduled_date__gte=timezone.now()
         )
         
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -166,7 +182,9 @@ class MedicationViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     role_flock_path = 'flock__shed'
     
     def get_queryset(self):
-        queryset = self.apply_role_filter(Medication.objects.all())
+        queryset = self.apply_role_filter(
+            Medication.objects.select_related('flock', 'flock__shed', 'flock__shed__farm').all()
+        )
         flock_id = self.request.query_params.get('flock_id')
         status_param = self.request.query_params.get('status')
         
@@ -196,7 +214,13 @@ class MedicationViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def active(self, request):
-        queryset = Medication.objects.filter(status='active')
+        queryset = Medication.objects.select_related(
+            'flock', 'flock__shed', 'flock__shed__farm'
+        ).filter(status='active')
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
@@ -248,7 +272,9 @@ class BiosecurityChecklistViewSet(RoleFilteredMixin, viewsets.ModelViewSet):
     role_flock_path = 'shed'
     
     def get_queryset(self):
-        queryset = self.apply_role_filter(BiosecurityChecklist.objects.all())
+        queryset = self.apply_role_filter(
+            BiosecurityChecklist.objects.select_related('farm', 'shed').all()
+        )
         farm_id = self.request.query_params.get('farm_id')
         shed_id = self.request.query_params.get('shed_id')
         checklist_type = self.request.query_params.get('checklist_type')

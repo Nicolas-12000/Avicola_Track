@@ -55,8 +55,12 @@ class InventoryState {
     );
   }
 
+  /// Cached filtered items (computed lazily, once per state instance)
+  List<InventoryItemModel>? _filteredItemsCache;
+
   /// Items filtrados según filtros activos
   List<InventoryItemModel> get filteredItems {
+    if (_filteredItemsCache != null) return _filteredItemsCache!;
     var result = items;
 
     // Filtrar por búsqueda
@@ -75,6 +79,7 @@ class InventoryState {
       ).toList();
     }
 
+    _filteredItemsCache = result;
     return result;
   }
 
@@ -117,7 +122,7 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
       );
     }
 
-    final result = await repository.getInventoryItems(farmId: farmId);
+    final result = await repository.getInventoryItems(farmId: farmId, page: 1);
 
     result.fold(
       (failure) =>
@@ -126,6 +131,7 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
         items: items,
         isLoading: false,
         error: null,
+        currentPage: 1,
         hasMoreData: items.length >= 30,
       ),
     );
@@ -139,6 +145,7 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
 
     final result = await repository.getInventoryItems(
       farmId: state.selectedFarmId,
+      page: nextPage,
     );
 
     result.fold(
