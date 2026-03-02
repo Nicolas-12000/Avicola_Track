@@ -162,6 +162,11 @@ class NotificationsService {
     try {
       final response = await _dio!.get(ApiConstants.notificationsUnread);
 
+      // Log raw response for easier debugging
+      _logger.d('DIO: statusCode: ${response.statusCode}');
+      _logger.d('DIO: headers: ${response.headers}');
+      _logger.d('DIO: data: ${response.data}');
+
       if (response.statusCode == 200) {
         final data = response.data;
         final List<dynamic> notificationsList = data['notifications'] ?? [];
@@ -184,6 +189,12 @@ class NotificationsService {
         _logger.d('Fetched ${notifications.length} notifications');
       }
     } catch (e) {
+      // DioException provides response details; log them explicitly
+      try {
+        if (e is DioException) {
+          _logger.e('DioException response: status=${e.response?.statusCode} data=${e.response?.data}');
+        }
+      } catch (_) {}
       _logger.e('Error fetching notifications: $e');
       // No hacer nada en caso de error (modo silencioso para polling)
     }

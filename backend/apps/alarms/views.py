@@ -178,7 +178,16 @@ class AlarmManagementViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Solo se pueden resolver alarmas pendientes o atendidas'}, status=400)
 
         alarm.status = 'RESOLVED'
-        alarm.save(update_fields=['status'])
+        # store resolver metadata when possible
+        try:
+            alarm.resolved_by = request.user
+            from django.utils import timezone as dj_tz
+            alarm.resolved_at = dj_tz.now()
+            alarm.resolution_notes = request.data.get('notes') or request.data.get('resolution_notes') or ''
+            alarm.save(update_fields=['status', 'resolved_by', 'resolved_at', 'resolution_notes'])
+        except Exception:
+            # fallback: at least persist status
+            alarm.save(update_fields=['status'])
 
         logger.info(f"Alarm {alarm.id} resolved by {request.user.username}")
 

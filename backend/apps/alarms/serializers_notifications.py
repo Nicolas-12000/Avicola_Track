@@ -25,12 +25,21 @@ class NotificationLogSerializer(serializers.ModelSerializer):
     
     def get_alarm_details(self, obj):
         if obj.alarm:
+            alarm = obj.alarm
+            resolved_by = None
+            if getattr(alarm, 'resolved_by', None):
+                rb = alarm.resolved_by
+                resolved_by = f"{getattr(rb, 'first_name', '')} {getattr(rb, 'last_name', '')}".strip() or getattr(rb, 'username', None)
+
             return {
-                'id': obj.alarm.id,
-                'type': obj.alarm.alarm_type,
-                'description': obj.alarm.description,
-                'priority': obj.alarm.priority,
-                'status': obj.alarm.status,
+                'id': alarm.id,
+                'type': alarm.alarm_type,
+                'description': alarm.description,
+                'priority': alarm.priority,
+                'status': alarm.status,
+                'resolved_by': resolved_by,
+                'resolved_at': alarm.resolved_at.isoformat() if getattr(alarm, 'resolved_at', None) else None,
+                'resolution_notes': alarm.resolution_notes,
             }
         return None
     

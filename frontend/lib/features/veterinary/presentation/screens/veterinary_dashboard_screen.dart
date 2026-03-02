@@ -63,7 +63,7 @@ class _VeterinaryDashboardScreenState
               label: Text('${visitsState.totalOverdue}'),
               child: const Icon(Icons.notifications),
             ),
-            onPressed: () => context.push('/notifications'),
+            onPressed: () => context.push('/alerts'),
           ),
         ],
       ),
@@ -258,7 +258,7 @@ class _VeterinaryDashboardScreenState
                 leading: const Icon(Icons.event_busy, color: Colors.red),
                 title: Text('${visitsState.totalOverdue} visitas atrasadas'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => context.push('/notifications'),
+                onTap: () => context.push('/alerts'),
               ),
                 if (vaccinationsState.totalOverdue > 0)
               ListTile(
@@ -267,7 +267,7 @@ class _VeterinaryDashboardScreenState
                   '${vaccinationsState.totalOverdue} vacunas atrasadas',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => context.push('/notifications'),
+                onTap: () => context.push('/alerts'),
               ),
           ],
         ),
@@ -443,7 +443,7 @@ class _VeterinaryDashboardScreenState
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () => context.push('/notifications'),
+                onPressed: () => context.push('/alerts'),
               child: const Text('Ver todos'),
             ),
           ],

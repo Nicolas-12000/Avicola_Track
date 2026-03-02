@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/user_roles.dart';
@@ -14,7 +15,6 @@ import '../../features/flocks/presentation/screens/flocks_list_screen.dart';
 import '../../features/flocks/presentation/screens/daily_records_screen.dart';
 import '../../features/flocks/presentation/screens/dispatch_records_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_list_screen.dart';
-import '../../features/alarms/presentation/screens/alarms_list_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/dashboard/presentation/screens/farm_dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/shed_keeper_dashboard_screen.dart';
@@ -52,11 +52,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOnSplash = state.matchedLocation == '/splash';
       final isOnLogin = state.matchedLocation == '/login';
 
-      print('🚦 Router redirect: location=${state.matchedLocation}, isAuth=$isAuthenticated, isLoading=$isLoading, role=${userRole?.name}');
+      debugPrint('🚦 Router redirect: location=${state.matchedLocation}, isAuth=$isAuthenticated, isLoading=$isLoading, role=${userRole?.name}');
 
       // Mientras carga, mostrar splash
-      if (isLoading && !isOnSplash) {
-        print('🚦 Router: Redirigiendo a splash (cargando)');
+        if (isLoading && !isOnSplash) {
+        debugPrint('🚦 Router: Redirigiendo a splash (cargando)');
         return '/splash';
       }
 
@@ -66,24 +66,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (isOnSplash) {
           if (isAuthenticated) {
             final dest = _getInitialRouteForRole(userRole);
-            print('🚦 Router: Desde splash -> $dest (rol: ${userRole?.name})');
+            debugPrint('🚦 Router: Desde splash -> $dest (rol: ${userRole?.name})');
             return dest;
           } else {
-            print('🚦 Router: Desde splash -> /login');
+            debugPrint('🚦 Router: Desde splash -> /login');
             return '/login';
           }
         }
 
         // Si no está autenticado y no está en login, redirigir a login
-        if (!isAuthenticated && !isOnLogin) {
-          print('🚦 Router: No autenticado -> /login');
+          if (!isAuthenticated && !isOnLogin) {
+          debugPrint('🚦 Router: No autenticado -> /login');
           return '/login';
         }
 
         // Si está autenticado y está en login, redirigir según rol
-        if (isAuthenticated && isOnLogin) {
+          if (isAuthenticated && isOnLogin) {
           final dest = _getInitialRouteForRole(userRole);
-          print('🚦 Router: Autenticado en login -> $dest');
+          debugPrint('🚦 Router: Autenticado en login -> $dest');
           return dest;
         }
         
@@ -93,11 +93,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           
           // Galponero solo puede acceder a su dashboard, lotes, inventario y alarmas
           if (userRole.isShedKeeper) {
-            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alarms', '/notifications', '/inventory', '/profile'];
+            final allowedPaths = ['/shed-keeper-dashboard', '/flocks', '/alerts', '/inventory', '/profile'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
-            print('🚦 Router: Galponero verificando $location, permitido=$isAllowed');
+            debugPrint('🚦 Router: Galponero verificando $location, permitido=$isAllowed');
             if (!isAllowed && location != '/') {
-              print('🚦 Router: Galponero sin acceso a $location -> /shed-keeper-dashboard');
+              debugPrint('🚦 Router: Galponero sin acceso a $location -> /shed-keeper-dashboard');
               return '/shed-keeper-dashboard';
             }
             if (location == '/') {
@@ -107,10 +107,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           
           // Veterinario solo puede acceder a veterinary y perfil
           if (userRole.isVeterinarian) {
-            final allowedPaths = ['/veterinary', '/alarms', '/notifications', '/farms', '/profile'];
+            final allowedPaths = ['/veterinary', '/alerts', '/farms', '/profile'];
             final isAllowed = allowedPaths.any((p) => location.startsWith(p));
             if (!isAllowed && location != '/') {
-              print('🚦 Router: Veterinario sin acceso a $location -> /veterinary');
+              debugPrint('🚦 Router: Veterinario sin acceso a $location -> /veterinary');
               return '/veterinary';
             }
             if (location == '/') {
@@ -128,7 +128,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // No redirigir
-      print('🚦 Router: Sin redirección');
+      debugPrint('🚦 Router: Sin redirección');
       return null;
     },
     routes: [
@@ -288,17 +288,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const InventoryListScreen(),
       ),
 
-      // Alarms Routes
+      // Alerts (unified) Route
+      GoRoute(
+        path: '/alerts',
+        name: 'alerts',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      // Legacy routes redirect to unified alerts
       GoRoute(
         path: '/alarms',
-        name: 'alarms',
-        builder: (context, state) => const AlarmsListScreen(),
+        redirect: (context, state) => '/alerts',
       ),
-      // Notifications Routes
       GoRoute(
         path: '/notifications',
-        name: 'notifications',
-        builder: (context, state) => const NotificationsScreen(),
+        redirect: (context, state) => '/alerts',
       ),
 
       // Reports Routes

@@ -82,6 +82,12 @@ class Alarm(BaseModel):
 
     configuration = models.ForeignKey(AlarmConfiguration, null=True, blank=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    # Resolution metadata
+    resolved_by = models.ForeignKey(
+        'users.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='resolved_alarms'
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolution_notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Alarm {self.id} - {self.alarm_type} - {self.status}"
